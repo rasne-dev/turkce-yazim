@@ -339,31 +339,16 @@ function analyze(text){
     } else if(!/\s/.test(c)){ss=false;}
   }
 
-  const r7=/([A-ZİĞÜŞÖÇ][a-zA-ZığüşöçİĞÜŞÖÇ\d]*|[A-ZİĞÜŞÖÇ]{2,}|\d+)(nın|nin|nun|nün|nda|nde|ndan|nden|ya|ye|yı|yi|yu|yü|yla|yle|da|de|ta|te|dan|den|tan|ten|ı|i|u|ü|n|m)\b/g;
+  const r7=/([A-ZİĞÜŞÖÇ]{2,}|\d+)(nın|nin|nun|nün|nda|nde|ndan|nden|ya|ye|yı|yi|yu|yü|yla|yle|da|de|ta|te|dan|den|tan|ten|ı|i|u|ü|n|m)\b/g;
   while((m=r7.exec(text))!==null){
     const prevIdx=m.index-1;
     const prev=prevIdx >= 0 ? text[prevIdx] : null;
     const isDigit = /^\d+$/.test(m[1]);
-    let isSentenceStart = false;
-    if (prev === null) isSentenceStart = true;
-    else {
-      let lookBack = prevIdx;
-      while(lookBack >= 0 && /\s/.test(text[lookBack])) lookBack--;
-      if (lookBack < 0 || /[.!?]/.test(text[lookBack])) {
-        isSentenceStart = true;
-        if (text[lookBack] === '.') {
-           const abbrMatch = text.slice(0, lookBack).match(/[\wığüşöçİĞÜŞÖÇ]+$/);
-           if (abbrMatch && ABBRS.has(tl(abbrMatch[0]))) isSentenceStart = false;
-           if (/\d/.test(text[lookBack-1])) isSentenceStart = false;
-        }
-      }
-    }
-    if (isSentenceStart && !isDigit) continue;
     if(prev==="'"||prev==='\u2019') continue;
     if(!ok(m.index,m.index+m[0].length)) continue;
     push({type:'suggest',word:m[0],start:m.index,end:m.index+m[0].length,
       suggestions:[m[1]+"'"+m[2]],
-      msg:(isDigit ? 'Sayı' : 'Özel isim') + ' + ek arası kesme işareti: "'+m[1]+"'"+m[2]+'"'});
+      msg:(isDigit ? 'Sayı' : 'Kısaltma') + ' + ek arası kesme işareti: "'+m[1]+"'"+m[2]+'"'});
   }
 
   issues.sort((a,b)=>a.start-b.start);
