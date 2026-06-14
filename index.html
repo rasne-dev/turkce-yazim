@@ -27,7 +27,7 @@
   .lbl{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--slate)}
   .smp{font-size:.75rem;color:var(--crimson);background:none;border:none;cursor:pointer;font-family:var(--f);font-weight:600;padding:0}
   .smp:hover{text-decoration:underline}
-  textarea{width:100%;min-height:160px;border:2px solid var(--border);border-radius:8px;padding:1rem;font-size:1rem;line-height:1.75;font-family:var(--f);resize:vertical;color:var(--ink);transition:border-color .18s;background:var(--mist)}
+  textarea{width:100%;min-height:160px;border:2px solid var(--border);border-radius:8px;padding:1rem;font-size:1rem;line-height:1.75;font-family:var(--f);resize:none;color:var(--ink);transition:border-color .18s;background:var(--mist);overflow-y:hidden}
   textarea:focus{outline:none;border-color:var(--crimson);background:#fff}
   textarea::placeholder{color:#B0A99F}
   .tlb{display:flex;align-items:center;gap:.65rem;margin-top:1rem;flex-wrap:wrap}
@@ -186,9 +186,15 @@ const NOT_PROPER=new Set([
   'geçmiş','gelecek','şimdi','bugün','dün','yarın',
   'verilen','alınan','yapılan','söylenen','belirtilen',
   'sabah','öğle','akşam','gece',
-  // Kısaltmalar değil tam kelimeler
-  'türkiye','istanbul','ankara','izmir',  // bunlar büyük yazılınca zaten özel isim ama suffix alırsa kesme lazım
+  // Eklemeler
+  'neyse','zaten','belki','aslında','örneğin','mesela','genelde','normalde',
+  'şöyle','böyle','öyle','burada','şurada','orada',
+  'kimse','hiçbir','herhangi','bazıları','pek','hâlâ','henüz',
+  'neden','niçin','nasıl','hangi','nerede','nereden','nereye',
+  'işte','elbette','tamam','hayır','evet','asla','hiçbir zaman',
 ]);
+
+const ABBRS = new Set(['prof','dr','cad','sok','no','yard','doç','av','mah','alb','gen','müh','mim','ist','ank','m','sn','dk','sa']);
 
 // ─────────────────────────────────────────────────────────────────
 // KATMAN 1 — YAZIM
@@ -205,13 +211,14 @@ const SPELL=[
   ['napacaksın','ne yapacaksın'],['naparsın','ne yaparsın'],['naptın','ne yaptın'],
   ['icin','için'],['içın','için'],['i.in','için'],
   ['icinde','içinde'],['icinden','içinden'],['icine','içine'],
-  ['hicbir','hiçbir'],['hicbiri','hiçbiri'],
+  ['hicbir','hiçbir'],['hicbiri','hiçbiri'],['hic bir','hiçbir'],
   ['gercekten','gerçekten'],['gercek','gerçek'],
   ['oncelikle','öncelikle'],['once','önce'],
   ['ozellikle','özellikle'],['ozel','özel'],
   ['onemli','önemli'],['onem','önem'],
   ['ozur','özür'],['boyle','böyle'],['soyle','söyle'],['oyle','öyle'],
   ['yuzde','yüzde'],['bircok','birçok'],['birkac','birkaç'],
+  ['bir çok','birçok'],['bir kaç','birkaç'],
   ['kucuk','küçük'],['buyuk','büyük'],['dusun','düşün'],['dusunce','düşünce'],
   ['gunes','güneş'],['ates','ateş'],['ogretmen','öğretmen'],['ogrenci','öğrenci'],
   ['bu gun','bugün'],['bu gün','bugün'],['su an','şu an'],['su anda','şu anda'],
@@ -219,6 +226,7 @@ const SPELL=[
   ['yapıyo','yapıyor'],['bekliyo','bekliyor'],['aliyor','alıyor'],
   ['veriyo','veriyor'],['biliyo','biliyor'],['istiyo','istiyor'],['diyo','diyor'],
   ['merhabaa','merhaba'],['tammam','tamam'],
+  ['yada', 'ya da'],['her hangi','herhangi'],
 ];
 
 // ─────────────────────────────────────────────────────────────────
@@ -316,9 +324,22 @@ function analyze(text){
   const r1=/,(?=[^ \n\r"'»)\].,;!?0-9\u2019])/g;
   while((m=r1.exec(text))!==null)
     push({type:'punct',word:',',start:m.index,end:m.index+1,suggestions:[', '],msg:'Virgülden sonra boşluk bırakılmalıdır'});
-  const r2=/(?<![A-ZİĞÜŞÖÇ\d])\.(?=[A-ZİĞÜŞÖÇa-zığüşöç])/g;
-  while((m=r2.exec(text))!==null)
+  
+  // Nokta tespiti (Ondalık sayı ve kısaltma hariç)
+  const r2=/\.(?=[A-ZİĞÜŞÖÇa-zığüşöç])/g;
+  while((m=r2.exec(text))!==null){
+    // Ondalık sayı mı? (Örn: 3.5)
+    const prevChar = text[m.index-1];
+    const nextChar = text[m.index+1];
+    if (/\d/.test(prevChar) && /\d/.test(nextChar)) continue;
+    
+    // Kısaltma mı? (Örn: Prof. Dr.)
+    const prevWordMatch = text.slice(0, m.index).match(/[\wığüşöçİĞÜŞÖÇ]+$/);
+    if (prevWordMatch && ABBRS.has(tl(prevWordMatch[0]))) continue;
+
     push({type:'punct',word:'.',start:m.index,end:m.index+1,suggestions:['. '],msg:'Noktadan sonra boşluk bırakılmalıdır'});
+  }
+
   const r3=/[?!](?=[A-ZİĞÜŞÖÇa-zığüşöç])/g;
   while((m=r3.exec(text))!==null)
     push({type:'punct',word:text[m.index],start:m.index,end:m.index+1,
@@ -343,36 +364,72 @@ function analyze(text){
   let ss=true;
   for(let i=0;i<text.length;i++){
     const c=text[i];
-    if(ss&&/[a-zığüşöç]/.test(c)){
+    if(ss && /[a-zığüşöç]/.test(c)){
       const u=tu(c);
-      if(u!==c&&ok(i,i+1))
-        push({type:'suggest',word:c,start:i,end:i+1,suggestions:[u],msg:'Cümle başı büyük harf olmalıdır'});
+      if(u!==c && ok(i,i+1)) {
+        // Öncesinde ondalık nokta veya kısaltma varsa cümle başı değildir
+        let isStart = true;
+        let lookBack = i - 1;
+        while(lookBack >= 0 && /\s/.test(text[lookBack])) lookBack--;
+        if(text[lookBack] === '.') {
+          const prevWordMatch = text.slice(0, lookBack).match(/[\wığüşöçİĞÜŞÖÇ]+$/);
+          if (prevWordMatch && ABBRS.has(tl(prevWordMatch[0]))) isStart = false;
+          if (/\d/.test(text[lookBack-1]) && /\d/.test(c)) isStart = false; // "3. litre" gibi hatalı durumları da önlemek için c kontrolü zayıf ama güvenli
+        }
+        if (isStart) push({type:'suggest',word:c,start:i,end:i+1,suggestions:[u],msg:'Cümle başı büyük harf olmalıdır'});
+      }
       ss=false;
-    }else if(/[.!?]/.test(c)){ss=true;}
-    else if(!/\s/.test(c)){ss=false;}
+    } else if(/[.!?]/.test(c)){
+      // Kısaltma noktasıysa cümle bitmemiştir
+      let isEnd = true;
+      if (c === '.') {
+        const prevWordMatch = text.slice(0, i).match(/[\wığüşöçİĞÜŞÖÇ]+$/);
+        if (prevWordMatch && ABBRS.has(tl(prevWordMatch[0]))) isEnd = false;
+        if (/\d/.test(text[i-1]) && /\d/.test(text[i+1])) isEnd = false;
+      }
+      if (isEnd) ss=true;
+    } else if(!/\s/.test(c)){ss=false;}
   }
 
   // Özel isim + ek → kesme işareti
-  // Kural: cümle ortasında, satır başı DEĞİL, tire/yeni satır sonrası DEĞİL
-  // ve NOT_PROPER listesinde DEĞİL
-  const r7=/([A-ZİĞÜŞÖÇ][a-zA-ZığüşöçİĞÜŞÖÇ]{2,})(nın|nin|nun|nün|nda|nde|ndan|nden|ya|ye|yı|yi|yu|yü|yla|yle|da|de|ta|te|dan|den|tan|ten|la|le|a|e|ı|i|u|ü|lar|ler)\b/g;
+  // ([A-ZİĞÜŞÖÇ][a-zA-ZığüşöçİĞÜŞÖÇ\d]*|[A-ZİĞÜŞÖÇ]{2,}|\d+)
+  const r7=/([A-ZİĞÜŞÖÇ][a-zA-ZığüşöçİĞÜŞÖÇ\d]*|[A-ZİĞÜŞÖÇ]{2,}|\d+)(nın|nin|nun|nün|nda|nde|ndan|nden|ya|ye|yı|yi|yu|yü|yla|yle|da|de|ta|te|dan|den|tan|ten|ı|i|u|ü|n|m)\b/g;
   while((m=r7.exec(text))!==null){
-    // Önceki karakteri kontrol et
     const prevIdx=m.index-1;
-    if(prevIdx<0) continue; // metin başı
-    const prev=text[prevIdx];
-    // Satır başı, tire, yeni satır, noktalama sonrası ise atla
-    if(/[\n\r\-—\s]/.test(prev)) continue;
+    const prev=prevIdx >= 0 ? text[prevIdx] : null;
+    
+    // Rakamla başlıyorsa (Örn: 2024de) kesme işareti öner
+    const isDigit = /^\d+$/.test(m[1]);
+    
+    // Cümle başı kontrolü
+    let isSentenceStart = false;
+    if (prev === null) isSentenceStart = true;
+    else {
+      let lookBack = prevIdx;
+      while(lookBack >= 0 && /\s/.test(text[lookBack])) lookBack--;
+      if (lookBack < 0 || /[.!?]/.test(text[lookBack])) {
+        isSentenceStart = true;
+        if (text[lookBack] === '.') {
+           const abbrMatch = text.slice(0, lookBack).match(/[\wığüşöçİĞÜŞÖÇ]+$/);
+           if (abbrMatch && ABBRS.has(tl(abbrMatch[0]))) isSentenceStart = false;
+           if (/\d/.test(text[lookBack-1])) isSentenceStart = false; // Ordinal/Decimal koruması
+        }
+      }
+    }
+
+    if (isSentenceStart && !isDigit) {
+       // Cümle başıysa, sadece NOT_PROPER içinde DEĞİLSE özel isim sayılır
+       if (NOT_PROPER.has(tl(m[1]))) continue;
+    }
+
     // Kesme işareti zaten varsa atla
     if(prev==="'"||prev==='\u2019') continue;
-    // NOT_PROPER listesindeyse atla
-    if(NOT_PROPER.has(tl(m[1]))) continue;
-    // Çok kısa stem (2 harf) false positive üretir
-    if(m[1].length<3) continue;
+    
     if(!ok(m.index,m.index+m[0].length)) continue;
+    
     push({type:'suggest',word:m[0],start:m.index,end:m.index+m[0].length,
       suggestions:[m[1]+"'"+m[2]],
-      msg:'Özel isim + ek arası kesme işareti: "'+m[1]+"'"+m[2]+'"'});
+      msg:(isDigit ? 'Sayı' : 'Özel isim') + ' + ek arası kesme işareti: "'+m[1]+"'"+m[2]+'"'});
   }
 
   issues.sort((a,b)=>a.start-b.start);
@@ -501,6 +558,16 @@ document.getElementById('fxAll').addEventListener('click',()=>fixByType(['spell'
 document.getElementById('fxSp').addEventListener('click',()=>fixByType(['spell']));
 document.getElementById('fxGr').addEventListener('click',()=>fixByType(['gram']));
 document.getElementById('fxPu').addEventListener('click',()=>fixByType(['punct']));
+
+// UX: Textarea auto-resize
+const inp = document.getElementById('inp');
+function autoResize(){
+  this.style.height = 'auto';
+  this.style.height = (this.scrollHeight) + 'px';
+}
+inp.setAttribute('style', 'height:' + (inp.scrollHeight) + 'px;overflow-y:hidden;');
+inp.addEventListener('input', autoResize, false);
+
 document.getElementById('cpyBtn').addEventListener('click',()=>{
   navigator.clipboard.writeText(document.getElementById('inp').value).then(()=>{
     const b=document.getElementById('cpyBtn');b.textContent='✓ Kopyalandı!';
@@ -514,15 +581,19 @@ document.addEventListener('click',e=>{
   if(!pop.contains(e.target)&&!e.target.closest('.h-sp,.h-gr,.h-wn,.h-pu,.h-su,.ii'))closePop();
 });
 document.getElementById('smpBtn').addEventListener('click',()=>{
-  document.getElementById('inp').value=
-    'ali\'nin topu kaçtığı icin markete gitti.\n'+
+  const val = 'ali\'nin topu kaçtığı icin markete gitti.\n'+
     'birşey söylemek istiyorum ama bilmiyorum ,gerçekten.\n'+
     'masada ki kitabı hemde dün okudum, çünkü ki sınav vardı.\n'+
     'Türkiyede herkes bu konuyu biliyo.bu çok önemli bir konu!\n'+
     'bende para yok ama ben de bu konuya katılıyorum.';
-  document.getElementById('cc').textContent=
+  document.getElementById('inp').value = val;
+  autoResize.call(document.getElementById('inp'));
+  document.getElementById('cc').textContent =
     document.getElementById('inp').value.length.toLocaleString('tr-TR')+' karakter';
 });
+
+// Auto-focus on load
+document.getElementById('inp').focus();
 })();
 </script>
 </body>
