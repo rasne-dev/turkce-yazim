@@ -135,6 +135,7 @@
       <div class="st s-wn"><div class="sd"></div><span id="cWn">0</span> kontrol et</div>
       <div class="st s-pu"><div class="sd"></div><span id="cPu">0</span> noktalama</div>
       <div class="st s-su"><div class="sd"></div><span id="cSu">0</span> öneri</div>
+      <div class="st" style="color:var(--ink)"><div class="sd" style="background:var(--ink)"></div><span id="cTo">0</span> toplam</div>
       <div class="sbar-r">
         <button class="btn btn-g btn-xs" id="cpyBtn">⎘ Kopyala</button>
       </div>
@@ -169,26 +170,6 @@ const WB='(?<![\\wığüşöçİĞÜŞÖÇ\'\u2019])';
 const WE='(?![\\wığüşöçİĞÜŞÖÇ\'\u2019])';
 function wb(p){return WB+p+WE}
 
-const NOT_PROPER=new Set([
-  'ocak','şubat','mart','nisan','mayıs','haziran','temmuz','ağustos','eylül','ekim','kasım','aralık',
-  'pazartesi','salı','çarşamba','perşembe','cuma','cumartesi','pazar',
-  'bu','bir','ve','de','da','ile','için','ama','fakat','ancak','çünkü','ki','ya','veya',
-  'her','hiç','bazı','tüm','bütün','çok','az','en','daha','dahi','bile','hem','ne',
-  'ben','sen','o','biz','siz','onlar','bu','şu',
-  'yeni','eski','büyük','küçük','iyi','kötü','güzel','uzun','kısa',
-  'ilk','son','tek','çift','birinci','ikinci',
-  'doktor','hasta','okul','ev','iş','yol','zaman','gün','yıl','ay',
-  'tedavi','kontrol','başlangıç','bitiş','sonuç','özet',
-  'geçmiş','gelecek','şimdi','bugün','dün','yarın',
-  'verilen','alınan','yapılan','söylenen','belirtilen',
-  'sabah','öğle','akşam','gece',
-  'neyse','zaten','belki','aslında','örneğin','mesela','genelde','normalde',
-  'şöyle','böyle','öyle','burada','şurada','orada',
-  'kimse','hiçbir','herhangi','bazıları','pek','hâlâ','henüz',
-  'neden','niçin','nasıl','hangi','nerede','nereden','nereye',
-  'işte','elbette','tamam','hayır','evet','asla','hiçbir zaman',
-]);
-
 const ABBRS = new Set(['prof','dr','cad','sok','no','yard','doç','av','mah','alb','gen','müh','mim','ist','ank','m','sn','dk','sa']);
 
 const SPELL=[
@@ -201,7 +182,7 @@ const SPELL=[
   ['herkez','herkes'],['herkezin','herkesin'],['herkezi','herkesi'],
   ['napalım','ne yapalım'],['napıyorsun','ne yapıyorsun'],['napıyorum','ne yapıyorum'],
   ['napacaksın','ne yapacaksın'],['naparsın','ne yaparsın'],['naptın','ne yaptın'],
-  ['icin','için'],['içın','için'],['i.in','için'],
+  ['icin','için'],['içın','için'],
   ['icinde','içinde'],['icinden','içinden'],['icine','içine'],
   ['hicbir','hiçbir'],['hicbiri','hiçbiri'],['hic bir','hiçbir'],
   ['gercekten','gerçekten'],['gercek','gerçek'],
@@ -238,7 +219,7 @@ const KI=[
 
 const WARNS=[
   {
-    rx:/\b(ben|sen|o|biz|siz|onlar)(da|de)\b/gi,
+    rx:/\b(ben|sen|biz|siz|onlar)(da|de)\b/gi,
     rule:'Şahıs zamiri + "da/de"',
     detail:'Hâl eki: "bende para var" ✓ (on me)\nBağlaç: "ben de geldim" ✓ (I also)',
     makeOpts:m=>({
@@ -377,9 +358,7 @@ function analyze(text){
         }
       }
     }
-    if (isSentenceStart && !isDigit) {
-       if (NOT_PROPER.has(tl(m[1]))) continue;
-    }
+    if (isSentenceStart && !isDigit) continue;
     if(prev==="'"||prev==='\u2019') continue;
     if(!ok(m.index,m.index+m[0].length)) continue;
     push({type:'suggest',word:m[0],start:m.index,end:m.index+m[0].length,
@@ -472,13 +451,18 @@ function closePop(){document.getElementById('pop').style.display='none'}
 
 function run(){
   curText=document.getElementById('inp').value;
-  if(!curText.trim()) return;
+  if(!curText.trim()){
+    ['statsBar','res'].forEach(id=>document.getElementById(id).style.display='none');
+    curIssues=[];closePop();
+    return;
+  }
   curIssues=analyze(curText).filter(i=>!ignored.has(tl(i.word)));
   document.getElementById('cSp').textContent=curIssues.filter(i=>i.type==='spell').length;
   document.getElementById('cGr').textContent=curIssues.filter(i=>i.type==='gram').length;
   document.getElementById('cWn').textContent=curIssues.filter(i=>i.type==='warn').length;
   document.getElementById('cPu').textContent=curIssues.filter(i=>i.type==='punct').length;
   document.getElementById('cSu').textContent=curIssues.filter(i=>i.type==='suggest').length;
+  document.getElementById('cTo').textContent=curIssues.length;
   document.getElementById('statsBar').style.display='block';
   const ra=document.getElementById('res');ra.style.display='block';ra.innerHTML=renderRes(curIssues);
 }
@@ -498,6 +482,7 @@ document.getElementById('clrBtn').addEventListener('click',()=>{
   ['statsBar','res'].forEach(id=>document.getElementById(id).style.display='none');
   document.getElementById('cc').textContent='0 karakter';
   curText='';curIssues=[];ignored.clear();closePop();
+  try{localStorage.removeItem('ty_draft');}catch(e){}
 });
 document.getElementById('inp').addEventListener('input',()=>{
   document.getElementById('cc').textContent=
@@ -518,6 +503,13 @@ function autoResize(){
 }
 inp.setAttribute('style', 'height:' + (inp.scrollHeight) + 'px;overflow-y:hidden;');
 inp.addEventListener('input', autoResize, false);
+
+let autoTimer=null;
+inp.addEventListener('input',()=>{
+  try{localStorage.setItem('ty_draft', inp.value);}catch(e){}
+  clearTimeout(autoTimer);
+  autoTimer=setTimeout(run,700);
+});
 
 document.getElementById('cpyBtn').addEventListener('click',()=>{
   navigator.clipboard.writeText(document.getElementById('inp').value).then(()=>{
@@ -542,6 +534,15 @@ document.getElementById('smpBtn').addEventListener('click',()=>{
   document.getElementById('cc').textContent =
     document.getElementById('inp').value.length.toLocaleString('tr-TR')+' karakter';
 });
+try{
+  const saved=localStorage.getItem('ty_draft');
+  if(saved){
+    inp.value=saved;
+    document.getElementById('cc').textContent=saved.length.toLocaleString('tr-TR')+' karakter';
+    autoResize.call(inp);
+    run();
+  }
+}catch(e){}
 document.getElementById('inp').focus();
 })();
 </script>
