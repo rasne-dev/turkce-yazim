@@ -27,7 +27,7 @@
   .lbl{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--slate)}
   .smp{font-size:.75rem;color:var(--crimson);background:none;border:none;cursor:pointer;font-family:var(--f);font-weight:600;padding:0}
   .smp:hover{text-decoration:underline}
-  textarea{width:100%;min-height:160px;border:2px solid var(--border);border-radius:8px;padding:1rem;font-size:1rem;line-height:1.75;font-family:var(--f);resize:none;color:var(--ink);transition:border-color .18s;background:var(--mist);overflow-y:hidden}
+  textarea{width:100%;min-height:160px;border:2px solid var(--border);border-radius:8px;padding:1rem;font-size:1rem;line-height:1.75;font-family:var(--f);resize:vertical;color:var(--ink);transition:border-color .18s;background:var(--mist)}
   textarea:focus{outline:none;border-color:var(--crimson);background:#fff}
   textarea::placeholder{color:#B0A99F}
   .tlb{display:flex;align-items:center;gap:.65rem;margin-top:1rem;flex-wrap:wrap}
@@ -169,13 +169,9 @@ const WB='(?<![\\wığüşöçİĞÜŞÖÇ\'\u2019])';
 const WE='(?![\\wığüşöçİĞÜŞÖÇ\'\u2019])';
 function wb(p){return WB+p+WE}
 
-// ── Engel listesi: büyük harfle yazılabilen AMA özel isim OLMAYAN kelimeler ──
 const NOT_PROPER=new Set([
-  // Aylar
   'ocak','şubat','mart','nisan','mayıs','haziran','temmuz','ağustos','eylül','ekim','kasım','aralık',
-  // Günler
   'pazartesi','salı','çarşamba','perşembe','cuma','cumartesi','pazar',
-  // Cümle başında sık kullanılan kelimeler
   'bu','bir','ve','de','da','ile','için','ama','fakat','ancak','çünkü','ki','ya','veya',
   'her','hiç','bazı','tüm','bütün','çok','az','en','daha','dahi','bile','hem','ne',
   'ben','sen','o','biz','siz','onlar','bu','şu',
@@ -186,7 +182,6 @@ const NOT_PROPER=new Set([
   'geçmiş','gelecek','şimdi','bugün','dün','yarın',
   'verilen','alınan','yapılan','söylenen','belirtilen',
   'sabah','öğle','akşam','gece',
-  // Eklemeler
   'neyse','zaten','belki','aslında','örneğin','mesela','genelde','normalde',
   'şöyle','böyle','öyle','burada','şurada','orada',
   'kimse','hiçbir','herhangi','bazıları','pek','hâlâ','henüz',
@@ -196,9 +191,6 @@ const NOT_PROPER=new Set([
 
 const ABBRS = new Set(['prof','dr','cad','sok','no','yard','doç','av','mah','alb','gen','müh','mim','ist','ank','m','sn','dk','sa']);
 
-// ─────────────────────────────────────────────────────────────────
-// KATMAN 1 — YAZIM
-// ─────────────────────────────────────────────────────────────────
 const SPELL=[
   ['birşey','bir şey'],['birşeyi','bir şeyi'],['birşeyler','bir şeyler'],
   ['birşeyde','bir şeyde'],['birşeyden','bir şeyden'],
@@ -229,9 +221,6 @@ const SPELL=[
   ['yada', 'ya da'],['her hangi','herhangi'],
 ];
 
-// ─────────────────────────────────────────────────────────────────
-// KATMAN 2 — DİLBİLGİSİ (net hatalar)
-// ─────────────────────────────────────────────────────────────────
 const DEDA=[
   ['hemde','hem de'],['birde','bir de'],['yinede','yine de'],
   ['artıkda','artık da'],['sadecede','sadece de'],['ancakda','ancak da'],
@@ -247,12 +236,8 @@ const KI=[
   ['gece ki','geceki'],['geçen ki','geçenki'],
 ];
 
-// ─────────────────────────────────────────────────────────────────
-// KATMAN 3 — UYARI (bağlama göre değişir)
-// ─────────────────────────────────────────────────────────────────
 const WARNS=[
   {
-    // Şahıs zamirleri + da/de bitişik
     rx:/\b(ben|sen|o|biz|siz|onlar)(da|de)\b/gi,
     rule:'Şahıs zamiri + "da/de"',
     detail:'Hâl eki: "bende para var" ✓ (on me)\nBağlaç: "ben de geldim" ✓ (I also)',
@@ -262,11 +247,10 @@ const WARNS=[
     })
   },
   {
-    // [hal eki] + boşluk + ki — sıfat eki mi bağlaç mı?
     rx:/([a-zA-ZığüşöçİĞÜŞÖÇ]{3,}(?:nda|nde|da|de|ta|te)) (ki)\b/gi,
     preCheck:(txt,m)=>{
       const pre=txt.slice(Math.max(0,m.index-3),m.index).trim();
-      return !pre.endsWith(',')&&!pre.endsWith(';'); // virgülden sonraysa bağlaç → dokunma
+      return !pre.endsWith(',')&&!pre.endsWith(';');
     },
     rule:'Hâl eki + "ki"',
     detail:'Sıfat eki ise bitişik: "masadaki kitap" ✓\nBağlaç ise virgülle ayrı: "masada, ki bu önemli" ✓',
@@ -277,15 +261,11 @@ const WARNS=[
   },
 ];
 
-// ─────────────────────────────────────────────────────────────────
-// ANALİZ
-// ─────────────────────────────────────────────────────────────────
 function analyze(text){
   const issues=[],ranges=[];
   function ok(s,e){return!ranges.some(r=>s<r[1]&&e>r[0])}
   function push(iss){if(ok(iss.start,iss.end)){issues.push(iss);ranges.push([iss.start,iss.end])}}
 
-  // 1. Yazım
   for(const[w,r] of SPELL){
     try{
       const rx=new RegExp(wb(w),'gi');let m;
@@ -295,7 +275,6 @@ function analyze(text){
     }catch(e){}
   }
 
-  // 2. Dilbilgisi
   for(const[w,r] of [...DEDA,...KI]){
     try{
       const rx=new RegExp(wb(w),'gi');let m;
@@ -305,7 +284,6 @@ function analyze(text){
     }catch(e){}
   }
 
-  // 3. Uyarılar
   for(const wp of WARNS){
     const rx=new RegExp(wp.rx.source,'gi');let m;
     while((m=rx.exec(text))!==null){
@@ -319,24 +297,18 @@ function analyze(text){
     }
   }
 
-  // 4. Noktalama
   let m;
   const r1=/,(?=[^ \n\r"'»)\].,;!?0-9\u2019])/g;
   while((m=r1.exec(text))!==null)
     push({type:'punct',word:',',start:m.index,end:m.index+1,suggestions:[', '],msg:'Virgülden sonra boşluk bırakılmalıdır'});
   
-  // Nokta tespiti (Ondalık sayı ve kısaltma hariç)
   const r2=/\.(?=[A-ZİĞÜŞÖÇa-zığüşöç])/g;
   while((m=r2.exec(text))!==null){
-    // Ondalık sayı mı? (Örn: 3.5)
     const prevChar = text[m.index-1];
     const nextChar = text[m.index+1];
     if (/\d/.test(prevChar) && /\d/.test(nextChar)) continue;
-    
-    // Kısaltma mı? (Örn: Prof. Dr.)
     const prevWordMatch = text.slice(0, m.index).match(/[\wığüşöçİĞÜŞÖÇ]+$/);
     if (prevWordMatch && ABBRS.has(tl(prevWordMatch[0]))) continue;
-
     push({type:'punct',word:'.',start:m.index,end:m.index+1,suggestions:['. '],msg:'Noktadan sonra boşluk bırakılmalıdır'});
   }
 
@@ -348,39 +320,34 @@ function analyze(text){
   while((m=r4.exec(text))!==null)
     push({type:'punct',word:m[0],start:m.index,end:m.index+m[0].length,
       suggestions:[m[1]],msg:'Noktalama önünde boşluk olmamalıdır'});
-  // Çift boşluk — SADECE gerçek boşluk, yeni satır hariç
   const r5=/[^\S\n]{2,}/g;
   while((m=r5.exec(text))!==null)
     push({type:'punct',word:m[0],start:m.index,end:m.index+m[0].length,
       suggestions:[' '],msg:'Gereksiz çift boşluk'});
 
-  // 5. Öneriler
   const r6=/\.{3}/g;
   while((m=r6.exec(text))!==null)
     push({type:'suggest',word:'...',start:m.index,end:m.index+3,
       suggestions:['…'],msg:'Üç nokta yerine elipsis (…) kullanılabilir'});
 
-  // Cümle başı küçük harf
   let ss=true;
   for(let i=0;i<text.length;i++){
     const c=text[i];
     if(ss && /[a-zığüşöç]/.test(c)){
       const u=tu(c);
       if(u!==c && ok(i,i+1)) {
-        // Öncesinde ondalık nokta veya kısaltma varsa cümle başı değildir
         let isStart = true;
         let lookBack = i - 1;
         while(lookBack >= 0 && /\s/.test(text[lookBack])) lookBack--;
         if(text[lookBack] === '.') {
           const prevWordMatch = text.slice(0, lookBack).match(/[\wığüşöçİĞÜŞÖÇ]+$/);
           if (prevWordMatch && ABBRS.has(tl(prevWordMatch[0]))) isStart = false;
-          if (/\d/.test(text[lookBack-1]) && /\d/.test(c)) isStart = false; // "3. litre" gibi hatalı durumları da önlemek için c kontrolü zayıf ama güvenli
+          if (/\d/.test(text[lookBack-1]) && /\d/.test(c)) isStart = false; 
         }
         if (isStart) push({type:'suggest',word:c,start:i,end:i+1,suggestions:[u],msg:'Cümle başı büyük harf olmalıdır'});
       }
       ss=false;
     } else if(/[.!?]/.test(c)){
-      // Kısaltma noktasıysa cümle bitmemiştir
       let isEnd = true;
       if (c === '.') {
         const prevWordMatch = text.slice(0, i).match(/[\wığüşöçİĞÜŞÖÇ]+$/);
@@ -391,17 +358,11 @@ function analyze(text){
     } else if(!/\s/.test(c)){ss=false;}
   }
 
-  // Özel isim + ek → kesme işareti
-  // ([A-ZİĞÜŞÖÇ][a-zA-ZığüşöçİĞÜŞÖÇ\d]*|[A-ZİĞÜŞÖÇ]{2,}|\d+)
   const r7=/([A-ZİĞÜŞÖÇ][a-zA-ZığüşöçİĞÜŞÖÇ\d]*|[A-ZİĞÜŞÖÇ]{2,}|\d+)(nın|nin|nun|nün|nda|nde|ndan|nden|ya|ye|yı|yi|yu|yü|yla|yle|da|de|ta|te|dan|den|tan|ten|ı|i|u|ü|n|m)\b/g;
   while((m=r7.exec(text))!==null){
     const prevIdx=m.index-1;
     const prev=prevIdx >= 0 ? text[prevIdx] : null;
-    
-    // Rakamla başlıyorsa (Örn: 2024de) kesme işareti öner
     const isDigit = /^\d+$/.test(m[1]);
-    
-    // Cümle başı kontrolü
     let isSentenceStart = false;
     if (prev === null) isSentenceStart = true;
     else {
@@ -412,21 +373,15 @@ function analyze(text){
         if (text[lookBack] === '.') {
            const abbrMatch = text.slice(0, lookBack).match(/[\wığüşöçİĞÜŞÖÇ]+$/);
            if (abbrMatch && ABBRS.has(tl(abbrMatch[0]))) isSentenceStart = false;
-           if (/\d/.test(text[lookBack-1])) isSentenceStart = false; // Ordinal/Decimal koruması
+           if (/\d/.test(text[lookBack-1])) isSentenceStart = false;
         }
       }
     }
-
     if (isSentenceStart && !isDigit) {
-       // Cümle başıysa, sadece NOT_PROPER içinde DEĞİLSE özel isim sayılır
        if (NOT_PROPER.has(tl(m[1]))) continue;
     }
-
-    // Kesme işareti zaten varsa atla
     if(prev==="'"||prev==='\u2019') continue;
-    
     if(!ok(m.index,m.index+m[0].length)) continue;
-    
     push({type:'suggest',word:m[0],start:m.index,end:m.index+m[0].length,
       suggestions:[m[1]+"'"+m[2]],
       msg:(isDigit ? 'Sayı' : 'Özel isim') + ' + ek arası kesme işareti: "'+m[1]+"'"+m[2]+'"'});
@@ -436,9 +391,6 @@ function analyze(text){
   return issues;
 }
 
-// ─────────────────────────────────────────────────────────────────
-// STATE & UI
-// ─────────────────────────────────────────────────────────────────
 let curText='',curIssues=[];
 const ignored=new Set();
 const HC={spell:'h-sp',gram:'h-gr',warn:'h-wn',punct:'h-pu',suggest:'h-su'};
@@ -559,7 +511,6 @@ document.getElementById('fxSp').addEventListener('click',()=>fixByType(['spell']
 document.getElementById('fxGr').addEventListener('click',()=>fixByType(['gram']));
 document.getElementById('fxPu').addEventListener('click',()=>fixByType(['punct']));
 
-// UX: Textarea auto-resize
 const inp = document.getElementById('inp');
 function autoResize(){
   this.style.height = 'auto';
@@ -591,8 +542,6 @@ document.getElementById('smpBtn').addEventListener('click',()=>{
   document.getElementById('cc').textContent =
     document.getElementById('inp').value.length.toLocaleString('tr-TR')+' karakter';
 });
-
-// Auto-focus on load
 document.getElementById('inp').focus();
 })();
 </script>
