@@ -166,6 +166,7 @@
 function tl(s){return s.replace(/İ/g,'i').replace(/I/g,'ı').toLowerCase()}
 function tu(s){if(!s)return s;const c=s[0];return(c==='i'?'İ':c==='ı'?'I':c.toUpperCase())+s.slice(1)}
 function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function escAttr(v){return JSON.stringify(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 const WB='(?<![\\wığüşöçİĞÜŞÖÇ\'\u2019])';
 const WE='(?![\\wığüşöçİĞÜŞÖÇ\'\u2019])';
 function wb(p){return WB+p+WE}
@@ -351,6 +352,18 @@ function analyze(text){
       msg:(isDigit ? 'Sayı' : 'Kısaltma') + ' + ek arası kesme işareti: "'+m[1]+"'"+m[2]+'"'});
   }
 
+  {
+    const trimmed=text.replace(/\s+$/,'');
+    let endPos=trimmed.length;
+    while(endPos>0 && /[)\]"'»”’]/.test(trimmed[endPos-1])) endPos--;
+    const lastCh=trimmed[endPos-1];
+    if(lastCh && /[\wığüşöçİĞÜŞÖÇ]/.test(lastCh) && ok(endPos-1,endPos)){
+      push({type:'punct',word:lastCh,start:endPos-1,end:endPos,
+        suggestions:[lastCh+'.',lastCh+'!',lastCh+'?'],
+        msg:'Metin bir noktalama işaretiyle bitmelidir (. ! ? … gibi)'});
+    }
+  }
+
   issues.sort((a,b)=>a.start-b.start);
   return issues;
 }
@@ -406,11 +419,11 @@ window.TY={
         <div class="wbr">${esc(iss.detail).replace(/\n/g,'<br>')}</div>
       </div>
       <div class="ol">Ne yapmak istersiniz?</div>
-      ${iss.optA.val?`<button class="ob" onclick="TY.fix(${idx},${JSON.stringify(iss.optA.val)})"><span class="oi">✏️</span><span class="ot">${esc(iss.optA.label)}<span class="os">${esc(iss.optA.sub||'')}</span></span></button>`:''}
-      <button class="ob" onclick="TY.ign(${JSON.stringify(iss.word)})"><span class="oi">✓</span><span class="ot">${esc(iss.optB.label)}<span class="os">${esc(iss.optB.sub||'')}</span></span></button>`;
+      ${iss.optA.val?`<button class="ob" onclick="TY.fix(${idx},${escAttr(iss.optA.val)})"><span class="oi">✏️</span><span class="ot">${esc(iss.optA.label)}<span class="os">${esc(iss.optA.sub||'')}</span></span></button>`:''}
+      <button class="ob" onclick="TY.ign(${escAttr(iss.word)})"><span class="oi">✓</span><span class="ot">${esc(iss.optB.label)}<span class="os">${esc(iss.optB.sub||'')}</span></span></button>`;
     } else if(iss.suggestions.length){
       body.innerHTML='<div class="sl">Öneriler</div>'+
-        iss.suggestions.map(s=>`<button class="sb" onclick="TY.fix(${idx},${JSON.stringify(s)})">${esc(s)}</button>`).join('');
+        iss.suggestions.map(s=>`<button class="sb" onclick="TY.fix(${idx},${escAttr(s)})">${esc(s)}</button>`).join('');
     } else { body.innerHTML='<div style="font-size:.76rem;color:var(--slate);font-style:italic">Öneri bulunamadı</div>'; }
     const ft=document.getElementById('pf');ft.innerHTML='';
     if(iss.type!=='warn'){const b=document.createElement('button');b.className='pa';b.textContent='Yoksay';b.onclick=()=>TY.ign(iss.word);ft.appendChild(b);}
