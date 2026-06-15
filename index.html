@@ -420,13 +420,13 @@ window.TY={
       </div>
       <div class="ol">Ne yapmak istersiniz?</div>
       ${iss.optA.val?`<button class="ob" onclick="TY.fix(${idx},${escAttr(iss.optA.val)})"><span class="oi">✏️</span><span class="ot">${esc(iss.optA.label)}<span class="os">${esc(iss.optA.sub||'')}</span></span></button>`:''}
-      <button class="ob" onclick="TY.ign(${escAttr(iss.word)})"><span class="oi">✓</span><span class="ot">${esc(iss.optB.label)}<span class="os">${esc(iss.optB.sub||'')}</span></span></button>`;
+      <button class="ob" onclick="TY.ign(${escAttr(iss.word)},${escAttr(iss.type)})"><span class="oi">✓</span><span class="ot">${esc(iss.optB.label)}<span class="os">${esc(iss.optB.sub||'')}</span></span></button>`;
     } else if(iss.suggestions.length){
       body.innerHTML='<div class="sl">Öneriler</div>'+
         iss.suggestions.map(s=>`<button class="sb" onclick="TY.fix(${idx},${escAttr(s)})">${esc(s)}</button>`).join('');
     } else { body.innerHTML='<div style="font-size:.76rem;color:var(--slate);font-style:italic">Öneri bulunamadı</div>'; }
     const ft=document.getElementById('pf');ft.innerHTML='';
-    if(iss.type!=='warn'){const b=document.createElement('button');b.className='pa';b.textContent='Yoksay';b.onclick=()=>TY.ign(iss.word);ft.appendChild(b);}
+    if(iss.type!=='warn'){const b=document.createElement('button');b.className='pa';b.textContent='Yoksay';b.onclick=()=>TY.ign(iss.word,iss.type);ft.appendChild(b);}
     const pop=document.getElementById('pop');
     pop.style.display='block';pop.style.transform='';
     if(ev){
@@ -442,7 +442,7 @@ window.TY={
     document.getElementById('inp').value=curText;
     closePop();run();
   },
-  ign(word){ignored.add(tl(word));closePop();run();}
+  ign(word,type){ignored.add((type||'')+'|'+tl(word));closePop();run();}
 };
 
 function closePop(){document.getElementById('pop').style.display='none'}
@@ -454,7 +454,7 @@ function run(){
     curIssues=[];closePop();
     return;
   }
-  curIssues=analyze(curText).filter(i=>!ignored.has(tl(i.word)));
+  curIssues=analyze(curText).filter(i=>!ignored.has(i.type+'|'+tl(i.word)));
   document.getElementById('cSp').textContent=curIssues.filter(i=>i.type==='spell').length;
   document.getElementById('cGr').textContent=curIssues.filter(i=>i.type==='gram').length;
   document.getElementById('cWn').textContent=curIssues.filter(i=>i.type==='warn').length;
