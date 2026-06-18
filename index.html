@@ -171,147 +171,153 @@ const WB='(?<![\\wığüşöçİĞÜŞÖÇ\'\u2019])';
 const WE='(?![\\wığüşöçİĞÜŞÖÇ\'\u2019])';
 function wb(p){return WB+p+WE}
 
-const ABBRS = new Set(['prof','dr','cad','sok','no','yard','doç','av','mah','alb','gen','müh','mim','ist','ank','m','sn','dk','sa']);
+const ABBRS = new Set(['prof','dr','cad','sok','no','yard','doç','av','mah','alb','gen','müh','mim','ist','ank','m','sn','dk','sa','bkz','vb','vs']);
 
-const SPELL=[
-  ['birşey','bir şey'],['birşeyi','bir şeyi'],['birşeyler','bir şeyler'],
-  ['birşeyde','bir şeyde'],['birşeyden','bir şeyden'],
-  ['herşey','her şey'],['herşeyi','her şeyi'],['herşeyleri','her şeyleri'],
-  ['hiçbirşey','hiçbir şey'],['bişey','bir şey'],['bişeyi','bir şeyi'],
-  ['değilmi','değil mi'],['değilmiydi','değil miydi'],['değilmisin','değil misin'],
-  ['tamammı','tamam mı'],['olabilirmi','olabilir mi'],
-  ['herkez','herkes'],['herkezin','herkesin'],['herkezi','herkesi'],
-  ['napalım','ne yapalım'],['napıyorsun','ne yapıyorsun'],['napıyorum','ne yapıyorum'],
-  ['napacaksın','ne yapacaksın'],['naparsın','ne yaparsın'],['naptın','ne yaptın'],
-  ['icin','için'],['içın','için'],
-  ['icinde','içinde'],['icinden','içinden'],['icine','içine'],
-  ['hicbir','hiçbir'],['hicbiri','hiçbiri'],['hic bir','hiçbir'],
-  ['gercekten','gerçekten'],['gercek','gerçek'],
-  ['oncelikle','öncelikle'],['once','önce'],
-  ['ozellikle','özellikle'],['ozel','özel'],
-  ['onemli','önemli'],['onem','önem'],
-  ['ozur','özür'],['boyle','böyle'],['soyle','söyle'],['oyle','öyle'],
-  ['yuzde','yüzde'],['bircok','birçok'],['birkac','birkaç'],
-  ['bir çok','birçok'],['bir kaç','birkaç'],
-  ['kucuk','küçük'],['buyuk','büyük'],['dusun','düşün'],['dusunce','düşünce'],
-  ['gunes','güneş'],['ates','ateş'],['ogretmen','öğretmen'],['ogrenci','öğrenci'],
-  ['bu gun','bugün'],['bu gün','bugün'],['su an','şu an'],['su anda','şu anda'],
-  ['oluyo','oluyor'],['geliyo','geliyor'],['gidiyo','gidiyor'],
-  ['yapıyo','yapıyor'],['bekliyo','bekliyor'],['aliyor','alıyor'],
-  ['veriyo','veriyor'],['biliyo','biliyor'],['istiyo','istiyor'],['diyo','diyor'],
-  ['merhabaa','merhaba'],['tammam','tamam'],
-  ['yada', 'ya da'],['her hangi','herhangi'],
+const SPELL_RULES = [
+  { rx: /\bherşey/gi, fix: 'her şey', msg: '"şey" her zaman ayrı yazılır.' },
+  { rx: /\bbirşey/gi, fix: 'bir şey', msg: '"şey" her zaman ayrı yazılır.' },
+  { rx: /\bhiçbirşey/gi, fix: 'hiçbir şey', msg: '"şey" her zaman ayrı yazılır.' },
+  { rx: /\bherkez/gi, fix: 'herkes', msg: 'Doğrusu "herkes" (s ile) olmalıdır.' },
+  { rx: /\byanlız\b/gi, fix: 'yalnız', msg: 'Yalın\'dan gelir: "yalnız".' },
+  { rx: /\byalnış\b/gi, fix: 'yanlış', msg: 'Yanıl\'dan gelir: "yanlış".' },
+  { rx: /\bmalesef/gi, fix: 'maalesef', msg: 'Doğrusu "maalesef" (çift a) olmalıdır.' },
+  { rx: /\bşöför/gi, fix: 'şoför', msg: 'Doğrusu "şoför" olmalıdır.' },
+  { rx: /\bsüpriz/gi, fix: 'sürpriz', msg: 'Doğrusu "sürpriz" (r ile) olmalıdır.' },
+  { rx: /\bantreman/gi, fix: 'antrenman', msg: 'Doğrusu "antrenman" (n ile) olmalıdır.' },
+  { rx: /\bdöküman/gi, fix: 'doküman', msg: 'Doğrusu "doküman" olmalıdır.' },
+  { rx: /\borjinal/gi, fix: 'orijinal', msg: 'Doğrusu "orijinal" (i ile) olmalıdır.' },
+  { rx: /\binsiyatif/gi, fix: 'inisiyatif', msg: 'Doğrusu "inisiyatif" olmalıdır.' },
+  { rx: /\bmütevazi\b/gi, fix: 'mütevazı', msg: 'Alçakgönüllü anlamındaysa "mütevazı".' },
+  { rx: /\bklavuz/gi, fix: 'kılavuz', msg: 'Doğrusu "kılavuz" olmalıdır.' },
+  { rx: /\btraş/gi, fix: 'tıraş', msg: 'Doğrusu "tıraş" (ı ile) olmalıdır.' },
+  { rx: /\begzoz|egzos|eksoz/gi, fix: 'egzoz', msg: 'Doğrusu "egzoz" olmalıdır.' },
+  { rx: /\byada\b/gi, fix: 'ya da', msg: '"ya da" her zaman ayrı yazılır.' },
+  { rx: /\bher\s?gün\b/gi, fix: 'her gün', msg: '"her gün" ayrı yazılır.' },
+  { rx: /\bşu\s?an\b/gi, fix: 'şu an', msg: '"şu an" ayrı yazılır.' },
+  { rx: /\bhiç\s?bir\b/gi, fix: 'hiçbir', msg: '"hiçbir" bitişik yazılır.' },
+  { rx: /\bbir\s?çok\b/gi, fix: 'birçok', msg: '"birçok" bitişik yazılır.' },
+  { rx: /\bbir\s?kaç\b/gi, fix: 'birkaç', msg: '"birkaç" bitişik yazılır.' },
+  { rx: /\bpekçok/gi, fix: 'pek çok', msg: '"pek çok" ayrı yazılır.' },
+  { rx: /\bherhangibir/gi, fix: 'herhangi bir', msg: '"herhangi bir" şeklinde yazılır.' },
+  { rx: /\bhaftasonu/gi, fix: 'hafta sonu', msg: '"hafta sonu" ayrı yazılır.' },
+  { rx: /\bsağol\b/gi, fix: 'sağ ol', msg: '"sağ ol" ayrı yazılır.' },
+  { rx: /\bhoşgeldin/gi, fix: 'hoş geldin', msg: '"hoş geldin" ayrı yazılır.' },
+  { rx: /\byanyana/gi, fix: 'yan yana', msg: '"yan yana" ayrı yazılır.' },
+  { rx: /\belele\b/gi, fix: 'el ele', msg: '"el ele" ayrı yazılır.' },
+  { rx: /\bartarda/gi, fix: 'art arda', msg: '"art arda" ayrı yazılır.' },
+  { rx: /\bfarketmek/gi, fix: 'fark etmek', msg: 'Ses düşmesi/türemesi yoksa ayrı yazılır.' },
+  { rx: /\bterketmek/gi, fix: 'terk etmek', msg: 'Ses düşmesi/türemesi yoksa ayrı yazılır.' },
+  { rx: /\barzetmek/gi, fix: 'arz etmek', msg: 'Ses düşmesi/türemesi yoksa ayrı yazılır.' },
+  { rx: /\bvaz\s?geçmek/gi, fix: 'vazgeçmek', msg: '"vazgeçmek" bitişik yazılır.' },
+  { rx: /\bbir\s?takım\b/gi, fix: 'birtakım', msg: '"bazı" anlamındaysa bitişik yazılır.' },
+  { rx: /\bayırt\s?etmek/gi, fix: 'ayırt etmek', msg: 'Ayrı yazılmalıdır.' },
+  { rx: /\bilüzyon/gi, fix: 'illüzyon', msg: 'Doğrusu "illüzyon" (çift l).' },
+  { rx: /\bvazgeçilmez/gi, fix: 'vazgeçilmez', msg: 'Bitişik yazılır.' },
+  { rx: /\btabiki\b/gi, fix: 'tabii ki', msg: 'Doğrusu "tabii ki" (çift i ve ayrı ki).' },
+  { rx: /\btabi\s+ki\b/gi, fix: 'tabii ki', msg: 'Doğrusu "tabii ki" (çift i).' },
+  { rx: /\bve\s+ya\b/gi, fix: 'veya', msg: '"veya" bitişik yazılır.' },
+  { rx: /\bgidicek/gi, fix: 'gidecek', msg: 'Gelecek zaman eki "-ecek/-acak" şeklindedir.' },
+  { rx: /\byapıcak/gi, fix: 'yapacak', msg: 'Gelecek zaman eki "-ecek/-acak" şeklindedir.' },
+  { rx: /\bdiyebiliyorum/gi, fix: 'diyebiliyorum', msg: 'Doğru yazım.' },
+  { rx: /\bmüsade\b/gi, fix: 'müsaade', msg: 'Doğrusu "müsaade" (çift a) olmalıdır.' },
+  { rx: /\bmüsaid\b/gi, fix: 'müsait', msg: 'Doğrusu "müsait" (t ile) olmalıdır.' },
 ];
 
-const DEDA=[
-  ['hemde','hem de'],['birde','bir de'],['yinede','yine de'],
-  ['artıkda','artık da'],['sadecede','sadece de'],['ancakda','ancak da'],
-  ['fakatda','fakat da'],['ayrıcada','ayrıca da'],['dahada','daha da'],
-  ['çokda','çok da'],['hiçde','hiç de'],['oysada','oysa da'],
-  ['zatende','zaten de'],['nede','ne de'],['genede','gene de'],['bilede','bile de'],
-];
-const KI=[
-  ['sanki ki','sanki'],['çünkü ki','çünkü'],['halbuki ki','halbuki'],['zira ki','zira'],
-  ['madem ki','mademki'],['oysa ki','oysaki'],
-  ['dün ki','dünkü'],['şimdi ki','şimdiki'],['bugün ki','bugünkü'],
-  ['yarın ki','yarınki'],['akşam ki','akşamki'],['sabah ki','sabahki'],
-  ['gece ki','geceki'],['geçen ki','geçenki'],
-];
+function getLastVowel(word) {
+  const vowels = word.match(/[aeıioöuü]/gi);
+  return vowels ? vowels[vowels.length - 1].toLowerCase() : null;
+}
 
-const WARNS=[
-  {
-    rx:/\b(ben|sen|biz|siz|onlar)(da|de)\b/gi,
-    rule:'Şahıs zamiri + "da/de"',
-    detail:'Hâl eki: "bende para var" ✓ (on me)\nBağlaç: "ben de geldim" ✓ (I also)',
-    makeOpts:m=>({
-      A:{label:'Bağlaç — ayrı yaz',sub:'"'+m[1]+' '+m[2]+'"',val:m[1]+' '+m[2]},
-      B:{label:'Hâl eki — olduğu gibi bırak',sub:'"'+m[0]+'" doğru',val:null},
-    })
-  },
-  {
-    rx:/([a-zA-ZığüşöçİĞÜŞÖÇ]{3,}(?:nda|nde|da|de|ta|te)) (ki)\b/gi,
-    preCheck:(txt,m)=>{
-      const pre=txt.slice(Math.max(0,m.index-3),m.index).trim();
-      return !pre.endsWith(',')&&!pre.endsWith(';');
-    },
-    rule:'Hâl eki + "ki"',
-    detail:'Sıfat eki ise bitişik: "masadaki kitap" ✓\nBağlaç ise virgülle ayrı: "masada, ki bu önemli" ✓',
-    makeOpts:m=>({
-      A:{label:'Sıfat eki — bitişik yaz',sub:'"'+m[1]+'ki"',val:m[1]+'ki'},
-      B:{label:'Bağlaç — ayrı bırak',sub:'Gerekirse virgül koy',val:null},
-    })
-  },
-];
+function checkVowelHarmony(v1, v2) {
+  const thick = 'aıou', thin = 'eiöü';
+  return (thick.includes(v1) && thick.includes(v2)) || (thin.includes(v1) && thin.includes(v2));
+}
 
 function analyze(text){
   const issues=[],ranges=[];
   function ok(s,e){return!ranges.some(r=>s<r[1]&&e>r[0])}
   function push(iss){if(ok(iss.start,iss.end)){issues.push(iss);ranges.push([iss.start,iss.end])}}
 
-  for(const[w,r] of SPELL){
-    try{
-      const rx=new RegExp(wb(w),'gi');let m;
-      while((m=rx.exec(text))!==null)
-        push({type:'spell',word:m[0],start:m.index,end:m.index+m[0].length,
-          suggestions:[r],msg:'"'+w+'" → "'+r+'"'});
-    }catch(e){}
-  }
-
-  for(const[w,r] of [...DEDA,...KI]){
-    try{
-      const rx=new RegExp(wb(w),'gi');let m;
-      while((m=rx.exec(text))!==null)
-        push({type:'gram',word:m[0],start:m.index,end:m.index+m[0].length,
-          suggestions:[r],msg:'"'+w+'" → "'+r+'" (TDK)'});
-    }catch(e){}
-  }
-
-  for(const wp of WARNS){
-    const rx=new RegExp(wp.rx.source,'gi');let m;
-    while((m=rx.exec(text))!==null){
-      if(!ok(m.index,m.index+m[0].length)) continue;
-      if(wp.preCheck&&!wp.preCheck(text,m)) continue;
-      const opts=wp.makeOpts(m);
-      push({type:'warn',word:m[0],start:m.index,end:m.index+m[0].length,
-        suggestions:opts.A.val?[opts.A.val]:[],
-        optA:opts.A,optB:opts.B,rule:wp.rule,detail:wp.detail,
-        msg:'Bağlama göre değişir — kontrol edin'});
+  // 1. Static Rules & Common Mistakes
+  for(const rule of SPELL_RULES){
+    const rx = new RegExp(rule.rx.source, 'gi'); let m;
+    while((m=rx.exec(text))!==null) {
+      const fix = typeof rule.fix === 'function' ? rule.fix(m) : rule.fix;
+      push({type:'spell', word:m[0], start:m.index, end:m.index+m[0].length, suggestions:[fix], msg:rule.msg});
     }
   }
 
+  // 2. Mi Soru Eki (Refined with suffixes)
+  const miRx = /\b(\w+)(mı|mi|mu|mü)(sın|sin|sun|sün|m|ız|iz|uz|üz|nız|niz|nuz|nüz|lar|ler)?\b/gi;
   let m;
-  const r1=/,(?=[^ \n\r"'»)\].,;!?0-9\u2019])/g;
-  while((m=r1.exec(text))!==null)
-    push({type:'punct',word:',',start:m.index,end:m.index+1,suggestions:[', '],msg:'Virgülden sonra boşluk bırakılmalıdır'});
-  
-  const r2=/\.(?=[A-ZİĞÜŞÖÇa-zığüşöç])/g;
-  while((m=r2.exec(text))!==null){
-    const prevChar = text[m.index-1];
-    const nextChar = text[m.index+1];
-    if (/\d/.test(prevChar) && /\d/.test(nextChar)) continue;
-    const prevWordMatch = text.slice(0, m.index).match(/[\wığüşöçİĞÜŞÖÇ]+$/);
-    if (prevWordMatch && ABBRS.has(tl(prevWordMatch[0]))) continue;
-    push({type:'punct',word:'.',start:m.index,end:m.index+1,suggestions:['. '],msg:'Noktadan sonra boşluk bırakılmalıdır'});
+  while((m=miRx.exec(text))!==null){
+    const word = m[1], particle = m[2], suffix = m[3] || '';
+    const MI_EXC = new Set(['cami','gemi','resmi','azami','umumi','ilmi','harimi','mermi','hami','sami','nami','pami','rumi','kamu','pazı','sızı','yazı','dizi','bazı','kuzubeni','meyve','sebze','üniversite','doküman','inisiyatif','mütevazı','idari','siyasi','askeri','milli','manevi','bari','hani','yani','peki','belki','sanki']);
+    if (MI_EXC.has(tl(word+particle))) continue;
+    if (word.length <= 1) continue;
+    push({type:'gram', word:m[0], start:m.index, end:m.index+m[0].length, suggestions:[word + ' ' + particle + suffix], msg: 'Soru eki "'+particle+'" ayrı yazılır.'});
   }
 
-  const r3=/[?!](?=[A-ZİĞÜŞÖÇa-zığüşöç])/g;
-  while((m=r3.exec(text))!==null)
-    push({type:'punct',word:text[m.index],start:m.index,end:m.index+1,
-      suggestions:[text[m.index]+' '],msg:'Noktalama sonrası boşluk bırakılmalıdır'});
-  const r4=/[ \t]+([,;:.!?])/g;
-  while((m=r4.exec(text))!==null)
-    push({type:'punct',word:m[0],start:m.index,end:m.index+m[0].length,
-      suggestions:[m[1]],msg:'Noktalama önünde boşluk olmamalıdır'});
-  const r5=/[^\S\n]{2,}/g;
-  while((m=r5.exec(text))!==null)
-    push({type:'punct',word:m[0],start:m.index,end:m.index+m[0].length,
-      suggestions:[' '],msg:'Gereksiz çift boşluk'});
+  // 3. De/Da Bağlacı (Heuristic)
+  const dedaRx = /\b(\w+)(da|de)\b/gi;
+  while((m=dedaRx.exec(text))!==null){
+    const word = m[1], part = m[2];
+    const lastV = getLastVowel(word);
+    
+    // Check Vowel Harmony for separate/attached de/da
+    if (lastV && !checkVowelHarmony(lastV, part)) {
+       const correctPart = 'aıou'.includes(lastV) ? 'da' : 'de';
+       push({type:'gram', word:m[0], start:m.index, end:m.index+m[0].length, suggestions:[word + (text[m.index+word.length]===' '?' ':'') + correctPart], msg: 'Ünlü uyumuna göre "'+correctPart+'" olmalıdır.'});
+       continue;
+    }
 
-  const r6=/\.{3}/g;
-  while((m=r6.exec(text))!==null)
-    push({type:'suggest',word:'...',start:m.index,end:m.index+3,
-      suggestions:['…'],msg:'Üç nokta yerine elipsis (…) kullanılabilir'});
+    if (['ben','sen','biz','siz','onlar'].includes(tl(word))) {
+       push({type:'warn', word:m[0], start:m.index, end:m.index+m[0].length, suggestions:[word + ' ' + part], 
+       rule: 'Bağlaç olan "de/da"', detail: 'Cümleden çıkarınca anlam bozulmuyorsa ayrı yazılır.\nÖrn: "Ben de geldim" (I also came)',
+       optA: {label:'Ayrı yaz (Bağlaç)', sub:word+' '+part, val:word+' '+part},
+       optB: {label:'Bitişik bırak (Hâl)', sub:m[0]+' doğru', val:null},
+       msg: 'Bağlamı kontrol edin (Hâl eki mi, bağlaç mı?)'});
+    }
+  }
 
+  // 4. Ki Bağlacı (Heuristic)
+  const kiRx = /\b(\w+)(ki)\b/gi;
+  const SOMBAHÇEM = new Set(['sanki','oysaki','mademki','belki','halbuki','çünkü','meğerki','illaki']);
+  while((m=kiRx.exec(text))!==null){
+    const word = m[1], part = m[2];
+    const full = tl(m[0]);
+    if (SOMBAHÇEM.has(full)) continue;
+    // Common verb + ki cases (usually separate)
+    if (/dik$|yor$|acak$|ecek$|miş$|mış$|muş$|müş$|malı$|meli$|sa$|se$|sun$|sin$|lar$|ler$|dı$|di$|du$|dü$|tı$|ti$|tu$|tü$/.test(tl(word))) {
+      push({type:'gram', word:m[0], start:m.index, end:m.index+m[0].length, suggestions:[word + ' ' + part], msg: 'Bağlaç olan "ki" ayrı yazılır.'});
+    }
+  }
+
+  // 5. Proper Noun Apostrophe
+  const propRx = /\b([A-ZÇĞİÖŞÜ][a-zçğıöşü]+)(nın|nin|nun|nün|na|ne|da|de|ta|te|dan|den|tan|ten|ı|i|u|ü|la|le)\b/g;
+  while((m=propRx.exec(text))!==null){
+    if (m.index === 0) continue; // Skip start of sentence
+    const prev = text[m.index-1];
+    if (prev && !/[\s.!?,"';]/.test(prev)) continue; // Not a standalone proper noun
+    push({type:'suggest', word:m[0], start:m.index, end:m.index+m[0].length, suggestions:[m[1] + "'" + m[2]], msg: 'Özel isimlere gelen ekler kesme işareti ile ayrılır.'});
+  }
+
+  // 6. Punctuation
+  const puncts = [
+    { rx: /,(?=[^ \n\r"'»)\].,;!?0-9\u2019])/g, fix: ', ', msg: 'Virgülden sonra boşluk bırakılmalıdır.' },
+    { rx: /[?!](?=[A-ZİĞÜŞÖÇa-zığüşöç])/g, fix: m => m[0] + ' ', msg: 'Noktalama sonrası boşluk bırakılmalıdır.' },
+    { rx: /[ \t]+([,;:.!?])/g, fix: m => m[1], msg: 'Noktalama önünde boşluk olmamalıdır.' },
+    { rx: /[^\S\n]{2,}/g, fix: ' ', msg: 'Gereksiz çift boşluk.' },
+    { rx: /\.{3}/g, fix: '…', msg: 'Üç nokta yerine elipsis (…) kullanılabilir.' }
+  ];
+  for(const p of puncts){
+    let pm; while((pm=p.rx.exec(text))!==null){
+      const fix = typeof p.fix === 'function' ? p.fix(pm) : p.fix;
+      push({type:'punct', word:pm[0], start:pm.index, end:pm.index+pm[0].length, suggestions:[fix], msg: p.msg});
+    }
+  }
+
+  // 7. Capitalization at sentence start
   let ss=true;
   for(let i=0;i<text.length;i++){
     const c=text[i];
@@ -324,44 +330,13 @@ function analyze(text){
         if(text[lookBack] === '.') {
           const prevWordMatch = text.slice(0, lookBack).match(/[\wığüşöçİĞÜŞÖÇ]+$/);
           if (prevWordMatch && ABBRS.has(tl(prevWordMatch[0]))) isStart = false;
-          if (/\d/.test(text[lookBack-1]) && /\d/.test(c)) isStart = false; 
         }
-        if (isStart) push({type:'suggest',word:c,start:i,end:i+1,suggestions:[u],msg:'Cümle başı büyük harf olmalıdır'});
+        if (isStart) push({type:'suggest',word:c,start:i,end:i+1,suggestions:[u],msg:'Cümle başı büyük harf olmalıdır.'});
       }
       ss=false;
     } else if(/[.!?]/.test(c)){
-      let isEnd = true;
-      if (c === '.') {
-        const prevWordMatch = text.slice(0, i).match(/[\wığüşöçİĞÜŞÖÇ]+$/);
-        if (prevWordMatch && ABBRS.has(tl(prevWordMatch[0]))) isEnd = false;
-        if (/\d/.test(text[i-1]) && /\d/.test(text[i+1])) isEnd = false;
-      }
-      if (isEnd) ss=true;
+      ss=true;
     } else if(!/\s/.test(c)){ss=false;}
-  }
-
-  const r7=/([A-ZİĞÜŞÖÇ]{2,}|\d+)(nın|nin|nun|nün|nda|nde|ndan|nden|ya|ye|yı|yi|yu|yü|yla|yle|da|de|ta|te|dan|den|tan|ten|ı|i|u|ü|n|m)\b/g;
-  while((m=r7.exec(text))!==null){
-    const prevIdx=m.index-1;
-    const prev=prevIdx >= 0 ? text[prevIdx] : null;
-    const isDigit = /^\d+$/.test(m[1]);
-    if(prev==="'"||prev==='\u2019') continue;
-    if(!ok(m.index,m.index+m[0].length)) continue;
-    push({type:'suggest',word:m[0],start:m.index,end:m.index+m[0].length,
-      suggestions:[m[1]+"'"+m[2]],
-      msg:(isDigit ? 'Sayı' : 'Kısaltma') + ' + ek arası kesme işareti: "'+m[1]+"'"+m[2]+'"'});
-  }
-
-  {
-    const trimmed=text.replace(/\s+$/,'');
-    let endPos=trimmed.length;
-    while(endPos>0 && /[)\]"'»”’]/.test(trimmed[endPos-1])) endPos--;
-    const lastCh=trimmed[endPos-1];
-    if(lastCh && /[\wığüşöçİĞÜŞÖÇ]/.test(lastCh) && ok(endPos-1,endPos)){
-      push({type:'punct',word:lastCh,start:endPos-1,end:endPos,
-        suggestions:[lastCh+'.',lastCh+'!',lastCh+'?'],
-        msg:'Metin bir noktalama işaretiyle bitmelidir (. ! ? … gibi)'});
-    }
   }
 
   issues.sort((a,b)=>a.start-b.start);
