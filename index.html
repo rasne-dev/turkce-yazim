@@ -471,6 +471,35 @@ const SPELL=[
 
   // öğrenmek
   // already have ogrenmek
+
+  // === YÜKLENEN DOSYADAN EKSİK KELİMELER ===
+  ['malesef','maalesef'],
+  ['yanlız','yalnız'],['yalnış','yanlış'],
+  ['süpriz','sürpriz'],['antrenman','antrenman'], // antrenman doğru yazım zaten
+  ['antreman','antrenman'],
+  ['döküman','doküman'],['dokumanı','dokümanı'],['dokumanda','dokümanda'],['insiyatif','inisiyatif'],
+  ['mütevazi','mütevazı'],['klavuz','kılavuz'],
+  ['traş','tıraş'],['egzos','egzoz'],['eksoz','egzoz'],['egzos','egzoz'],
+  ['haftasonu','hafta sonu'],
+  ['sağol','sağ ol'],['hoşgeldin','hoş geldin'],['hoşgeldiniz','hoş geldiniz'],
+  ['yanyana','yan yana'],['elele','el ele'],['artarda','art arda'],
+  ['farketmek','fark etmek'],['farketmedi','fark etmedi'],['farketmedim','fark etmedim'],
+  ['farkediyorum','fark ediyorum'],['farkedilmez','fark edilmez'],
+  ['terketmek','terk etmek'],['terkediyorum','terk ediyorum'],
+  ['arzetmek','arz etmek'],['arzetmedi','arz etmedi'],
+
+  ['bir takım','birtakım'], // bazı anlamındaysa
+  ['ilüzyon','illüzyon'],['iluzyon','illüzyon'],
+  ['tabiki','tabii ki'],['tabi ki','tabii ki'],['tabii','tabii'], // tabii doğru
+  ['müsade','müsaade'],['müsaid','müsait'],
+  ['pekçok','pek çok'],
+  ['herhangibir','herhangi bir'],
+  ['gidicek','gidecek'],['yapıcak','yapacak'],['alıcak','alacak'],
+  ['gelicek','gelecek'],['bulacak','bulacak'], // doğru
+  ['buluçak','bulacak'],['yapıcaksın','yapacaksın'],['gidiceksin','gideceksin'],
+
+
+  ['vaz geçmek','vazgeçmek'],['ayırt etmek','ayırt etmek'], // doğru
 ];
 
 // ============================================================
@@ -536,6 +565,10 @@ const WARNS=[
     })
   },
 ];
+
+
+function getLastVowel(w){const v=w.match(/[aeıioöuü]/gi);return v?v[v.length-1].toLowerCase():null}
+function vowelHarmony(v1,v2){const tk='aıou',tn='eiöü';return(tk.includes(v1)&&tk.includes(v2))||(tn.includes(v1)&&tn.includes(v2))}
 
 // ============================================================
 // ANALİZ FONKSİYONU
@@ -692,6 +725,36 @@ function analyze(text){
       push({type:'punct',word:lastCh,start:endPos-1,end:endPos,
         suggestions:[lastCh+'.',lastCh+'!',lastCh+'?'],
         msg:'Metin bir noktalama işaretiyle bitmelidir (., !, ?)'});
+    }
+  }
+
+
+  // --- Mİ SORU EKİ ayrı yazılır ---
+  const MI_EXC=new Set(['cami','gemi','resmi','azami','umumi','ilmi','harimi','mermi','hami','sami','nami','rumi','pazı','sızı','yazı','dizi','bazı','yani','peki','belki','sanki','bari','hani','üniversite','siyasi','askeri','milli','beni','seni','onu','bizi','sizi','onları']);
+  const miRx=/(\w+(?:[ığüşöç]\w*)?)(mı|mi|mu|mü)(sın|sin|sun|sün|m|ız|iz|uz|üz|nız|niz|nuz|nüz|lar|ler)?/gi;
+  while((m=miRx.exec(text))!==null){
+    const base=m[1],part=m[2],suf=m[3]||'';
+    const full=tl(base+part);
+    if(MI_EXC.has(full)||MI_EXC.has(tl(base))||base.length<=1) continue;
+    // son sesli uyumu kontrol et
+    const lv=getLastVowel(base);
+    if(!lv) continue;
+    const correct=('aıou'.includes(lv)&&(part==='mı'||part==='mu'))||('eiöü'.includes(lv)&&(part==='mi'||part==='mü'));
+    if(!correct) continue; // yanlış ek formu (ayrı yazım sorunu değil, uyum sorunu)
+    push({type:'gram',word:m[0],start:m.index,end:m.index+m[0].length,
+      suggestions:[base+' '+part+suf],msg:'Soru eki "'+part+'" fiilden ayrı yazılır'});
+  }
+
+  // --- FİİL EKİ + "ki" bağlacı ayrı yazılır ---
+  const KI_OK=new Set(['sanki','oysaki','mademki','belki','halbuki','meğerki','illaki','oysakide','belkide','çünkü']);
+  const kiRx=/(\w{3,})(ki)/gi;
+  while((m=kiRx.exec(text))!==null){
+    const base=m[1];
+    if(KI_OK.has(tl(m[0]))||KI_OK.has(tl(base))) continue;
+    // Sadece fiil eki ile bitiyorsa (zaman/kip/kişi eki)
+    if(/dik$|yor$|acak$|ecek$|miş$|mış$|muş$|müş$|malı$|meli$|sa$|se$|sun$|sin$|lar$|ler$|dı$|di$|du$|dü$|tı$|ti$|tu$|tü$/.test(tl(base))){
+      push({type:'gram',word:m[0],start:m.index,end:m.index+m[0].length,
+        suggestions:[base+' '+m[2]],msg:'Bağlaç olan "ki" fiilden ayrı yazılır'});
     }
   }
 
