@@ -167,182 +167,541 @@ function tl(s){return s.replace(/İ/g,'i').replace(/I/g,'ı').toLowerCase()}
 function tu(s){if(!s)return s;const c=s[0];return(c==='i'?'İ':c==='ı'?'I':c.toUpperCase())+s.slice(1)}
 function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 function escAttr(v){return JSON.stringify(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
-const WB='(?<![\\wığüşöçİĞÜŞÖÇ\'\u2019])';
-const WE='(?![\\wığüşöçİĞÜŞÖÇ\'\u2019])';
+
+// Türkçe dahil kelime sınırı lookbehind/lookahead
+const WB='(?<![\\wığüşöçİĞÜŞÖÇ\'\u2019\u02bc])';
+const WE='(?![\\wığüşöçİĞÜŞÖÇ\'\u2019\u02bc])';
 function wb(p){return WB+p+WE}
 
-const ABBRS = new Set(['prof','dr','cad','sok','no','yard','doç','av','mah','alb','gen','müh','mim','ist','ank','m','sn','dk','sa','bkz','vb','vs']);
+const ABBRS=new Set(['prof','dr','cad','sok','no','yard','doç','av','mah','alb','gen','müh','mim','ist','ank','m','sn','dk','sa','hz','bn','kd','uzm','arş','öğr','mr','mrs','st','vb','vs','bkz','krş','çev','haz','ed','yay','ünv','fak']);
 
-const SPELL_RULES = [
-  { rx: /\bherşey/gi, fix: 'her şey', msg: '"şey" her zaman ayrı yazılır.' },
-  { rx: /\bbirşey/gi, fix: 'bir şey', msg: '"şey" her zaman ayrı yazılır.' },
-  { rx: /\bhiçbirşey/gi, fix: 'hiçbir şey', msg: '"şey" her zaman ayrı yazılır.' },
-  { rx: /\bherkez/gi, fix: 'herkes', msg: 'Doğrusu "herkes" (s ile) olmalıdır.' },
-  { rx: /\byanlız\b/gi, fix: 'yalnız', msg: 'Yalın\'dan gelir: "yalnız".' },
-  { rx: /\byalnış\b/gi, fix: 'yanlış', msg: 'Yanıl\'dan gelir: "yanlış".' },
-  { rx: /\bmalesef/gi, fix: 'maalesef', msg: 'Doğrusu "maalesef" (çift a) olmalıdır.' },
-  { rx: /\bşöför/gi, fix: 'şoför', msg: 'Doğrusu "şoför" olmalıdır.' },
-  { rx: /\bsüpriz/gi, fix: 'sürpriz', msg: 'Doğrusu "sürpriz" (r ile) olmalıdır.' },
-  { rx: /\bantreman/gi, fix: 'antrenman', msg: 'Doğrusu "antrenman" (n ile) olmalıdır.' },
-  { rx: /\bdöküman/gi, fix: 'doküman', msg: 'Doğrusu "doküman" olmalıdır.' },
-  { rx: /\borjinal/gi, fix: 'orijinal', msg: 'Doğrusu "orijinal" (i ile) olmalıdır.' },
-  { rx: /\binsiyatif/gi, fix: 'inisiyatif', msg: 'Doğrusu "inisiyatif" olmalıdır.' },
-  { rx: /\bmütevazi\b/gi, fix: 'mütevazı', msg: 'Alçakgönüllü anlamındaysa "mütevazı".' },
-  { rx: /\bklavuz/gi, fix: 'kılavuz', msg: 'Doğrusu "kılavuz" olmalıdır.' },
-  { rx: /\btraş/gi, fix: 'tıraş', msg: 'Doğrusu "tıraş" (ı ile) olmalıdır.' },
-  { rx: /\begzoz|egzos|eksoz/gi, fix: 'egzoz', msg: 'Doğrusu "egzoz" olmalıdır.' },
-  { rx: /\byada\b/gi, fix: 'ya da', msg: '"ya da" her zaman ayrı yazılır.' },
-  { rx: /\bher\s?gün\b/gi, fix: 'her gün', msg: '"her gün" ayrı yazılır.' },
-  { rx: /\bşu\s?an\b/gi, fix: 'şu an', msg: '"şu an" ayrı yazılır.' },
-  { rx: /\bhiç\s?bir\b/gi, fix: 'hiçbir', msg: '"hiçbir" bitişik yazılır.' },
-  { rx: /\bbir\s?çok\b/gi, fix: 'birçok', msg: '"birçok" bitişik yazılır.' },
-  { rx: /\bbir\s?kaç\b/gi, fix: 'birkaç', msg: '"birkaç" bitişik yazılır.' },
-  { rx: /\bpekçok/gi, fix: 'pek çok', msg: '"pek çok" ayrı yazılır.' },
-  { rx: /\bherhangibir/gi, fix: 'herhangi bir', msg: '"herhangi bir" şeklinde yazılır.' },
-  { rx: /\bhaftasonu/gi, fix: 'hafta sonu', msg: '"hafta sonu" ayrı yazılır.' },
-  { rx: /\bsağol\b/gi, fix: 'sağ ol', msg: '"sağ ol" ayrı yazılır.' },
-  { rx: /\bhoşgeldin/gi, fix: 'hoş geldin', msg: '"hoş geldin" ayrı yazılır.' },
-  { rx: /\byanyana/gi, fix: 'yan yana', msg: '"yan yana" ayrı yazılır.' },
-  { rx: /\belele\b/gi, fix: 'el ele', msg: '"el ele" ayrı yazılır.' },
-  { rx: /\bartarda/gi, fix: 'art arda', msg: '"art arda" ayrı yazılır.' },
-  { rx: /\bfarketmek/gi, fix: 'fark etmek', msg: 'Ses düşmesi/türemesi yoksa ayrı yazılır.' },
-  { rx: /\bterketmek/gi, fix: 'terk etmek', msg: 'Ses düşmesi/türemesi yoksa ayrı yazılır.' },
-  { rx: /\barzetmek/gi, fix: 'arz etmek', msg: 'Ses düşmesi/türemesi yoksa ayrı yazılır.' },
-  { rx: /\bvaz\s?geçmek/gi, fix: 'vazgeçmek', msg: '"vazgeçmek" bitişik yazılır.' },
-  { rx: /\bbir\s?takım\b/gi, fix: 'birtakım', msg: '"bazı" anlamındaysa bitişik yazılır.' },
-  { rx: /\bayırt\s?etmek/gi, fix: 'ayırt etmek', msg: 'Ayrı yazılmalıdır.' },
-  { rx: /\bilüzyon/gi, fix: 'illüzyon', msg: 'Doğrusu "illüzyon" (çift l).' },
-  { rx: /\bvazgeçilmez/gi, fix: 'vazgeçilmez', msg: 'Bitişik yazılır.' },
-  { rx: /\btabiki\b/gi, fix: 'tabii ki', msg: 'Doğrusu "tabii ki" (çift i ve ayrı ki).' },
-  { rx: /\btabi\s+ki\b/gi, fix: 'tabii ki', msg: 'Doğrusu "tabii ki" (çift i).' },
-  { rx: /\bve\s+ya\b/gi, fix: 'veya', msg: '"veya" bitişik yazılır.' },
-  { rx: /\bgidicek/gi, fix: 'gidecek', msg: 'Gelecek zaman eki "-ecek/-acak" şeklindedir.' },
-  { rx: /\byapıcak/gi, fix: 'yapacak', msg: 'Gelecek zaman eki "-ecek/-acak" şeklindedir.' },
-  { rx: /\bdiyebiliyorum/gi, fix: 'diyebiliyorum', msg: 'Doğru yazım.' },
-  { rx: /\bmüsade\b/gi, fix: 'müsaade', msg: 'Doğrusu "müsaade" (çift a) olmalıdır.' },
-  { rx: /\bmüsaid\b/gi, fix: 'müsait', msg: 'Doğrusu "müsait" (t ile) olmalıdır.' },
+// ============================================================
+// SPELL — Yazım hataları (yüksek güvenirlikli kurallar)
+// ============================================================
+const SPELL=[
+  // === BİTİŞİK / AYRI YAZIM ===
+  ['birşey','bir şey'],['birşeyi','bir şeyi'],['birşeyler','bir şeyler'],
+  ['birşeyde','bir şeyde'],['birşeyden','bir şeyden'],['birşeye','bir şeye'],
+  ['herşey','her şey'],['herşeyi','her şeyi'],['herşeyleri','her şeyleri'],
+  ['herşeyde','her şeyde'],['herşeyden','her şeyden'],['herşeye','her şeye'],
+  ['hiçbirşey','hiçbir şey'],['hiçbirşeyi','hiçbir şeyi'],
+  ['hiçbirşeyde','hiçbir şeyde'],['hiçbirşeyden','hiçbir şeyden'],
+  ['bişey','bir şey'],['bişeyi','bir şeyi'],['bişeyler','bir şeyler'],
+  ['yada','ya da'],
+  ['bir çok','birçok'],['bir kaç','birkaç'],
+  ['her hangi','herhangi'],
+  ['bu gun','bugün'],['bu gün','bugün'],
+  ['su an','şu an'],['su anda','şu anda'],['su anki','şu anki'],
+  ['su ana','şu ana'],['su ana kadar','şu ana kadar'],
+  ['altında ki','altındaki'],['üstünde ki','üstündeki'],
+  ['yanında ki','yanındaki'],['içinde ki','içindeki'],
+  ['dışında ki','dışındaki'],['başında ki','başındaki'],
+  ['sonunda ki','sonundaki'],['arasında ki','arasındaki'],
+  ['önünde ki','önündeki'],['arkasında ki','arkasındaki'],
+  ['üzerinde ki','üzerindeki'],['altındaki','altındaki'],
+
+  // === TÜRKÇE KARAKTER EKSİKLİĞİ ===
+  // için ve türevleri
+  ['icin','için'],['icine','içine'],['icinde','içinde'],['icinden','içinden'],
+  ['icindeki','içindeki'],['iceri','içeri'],['iceride','içeride'],
+  ['iceriden','içeriden'],['icerik','içerik'],['icerigi','içeriği'],
+
+  // hiç, hiçbir
+  ['hic','hiç'],['hicbir','hiçbir'],['hicbiri','hiçbiri'],['hicbirini','hiçbirini'],
+  ['hic bir','hiçbir'],
+
+  // gerçek ve türevleri
+  ['gercek','gerçek'],['gercekten','gerçekten'],['gercegi','gerçeği'],
+  ['gerceklestirilmesi','gerçekleştirilmesi'],['gerceklesen','gerçekleşen'],
+  ['gerceklesme','gerçekleşme'],['gerceklestir','gerçekleştir'],
+
+  // önce, özellikle, önemli ve türevleri
+  ['once','önce'],['oncelikle','öncelikle'],['onceki','önceki'],
+  ['onceden','önceden'],['oncesinde','öncesinde'],
+  ['ozel','özel'],['ozellikle','özellikle'],['ozellikleri','özellikleri'],
+  ['ozelligi','özelliği'],['ozelligini','özelliğini'],
+  ['onem','önem'],['onemli','önemli'],['onemlidir','önemlidir'],
+  ['oneminden','öneminden'],['onemsiz','önemsiz'],['onemli bir','önemli bir'],
+
+  // özür ve türevleri
+  ['ozur','özür'],['ozurlu','özürlü'],['ozur dilerim','özür dilerim'],
+
+  // böyle, söyle, öyle
+  ['boyle','böyle'],['boylece','böylece'],['boylelikle','böylelikle'],
+  ['boyle bir','böyle bir'],
+  ['soyle','söyle'],['soyleyin','söyleyin'],['soyledi','söyledi'],
+  ['soyledim','söyledim'],['soylemek','söylemek'],['soylenir','söylenir'],
+  ['oyle','öyle'],['oyleyse','öyleyse'],['oyle bir','öyle bir'],
+
+  // yüzde, üzere
+  ['yuzde','yüzde'],['uzere','üzere'],
+
+  // birçok, birkaç
+  ['bircok','birçok'],['birkac','birkaç'],
+
+  // küçük, büyük
+  ['kucuk','küçük'],['kucuktur','küçüktür'],['kucuk','küçük'],
+  ['buyuk','büyük'],['buyuktur','büyüktür'],['buyuk','büyük'],
+
+  // düşün ve türevleri
+  ['dusun','düşün'],['dusunce','düşünce'],['dusunur','düşünür'],
+  ['dusunmek','düşünmek'],['dusunuyorum','düşünüyorum'],['dusundum','düşündüm'],
+
+  // güneş, ateş
+  ['gunes','güneş'],['ates','ateş'],
+
+  // öğretmen, öğrenci, öğren ve türevleri
+  ['ogretmen','öğretmen'],['ogretmeni','öğretmeni'],['ogretmenler','öğretmenler'],
+  ['ogretmenin','öğretmenin'],
+  ['ogrenci','öğrenci'],['ogrenciler','öğrenciler'],['ogrencinin','öğrencinin'],
+  ['ogrencisi','öğrencisi'],
+  ['ogren','öğren'],['ogrenir','öğrenir'],['ogrenmek','öğrenmek'],
+  ['ogrendi','öğrendi'],['ogrendim','öğrendim'],
+
+  // herkes
+  ['herkez','herkes'],['herkezin','herkesin'],['herkezi','herkesi'],
+  ['herkeze','herkese'],
+
+  // şimdi ve türevleri
+  ['simdi','şimdi'],['simdiye','şimdiye'],['simdiden','şimdiden'],
+  ['simdilik','şimdilik'],['simdiki','şimdiki'],
+
+  // şey ve türevleri
+  ['sey','şey'],['seyler','şeyler'],['seyleri','şeyleri'],
+
+  // çünkü
+  ['cunki','çünkü'],['cunku','çünkü'],
+
+  // değil mi (ayrı yazım)
+  ['değilmi','değil mi'],['değilmiydi','değil miydi'],['değilmisin','değil misin'],
+  ['değilmisiniz','değil misiniz'],['değildir ki','değil dir ki'],
+  ['tamammı','tamam mı'],['olabilirmi','olabilir mi'],['mümkünmü','mümkün mü'],
+  ['dogrumu','doğru mu'],
+
+  // === KONUŞMA DİLİ KISALTMALARI (yazıda hatalı) ===
+  ['oluyo','oluyor'],['geliyo','geliyor'],['gidiyo','gidiyor'],
+  ['yapıyo','yapıyor'],['bekliyo','bekliyor'],
+  ['veriyo','veriyor'],['biliyo','biliyor'],['istiyo','istiyor'],
+  ['diyo','diyor'],['demiyo','demiyor'],['görmüyo','görmüyor'],
+  ['bilmiyo','bilmiyor'],['almıyo','almıyor'],
+  ['getiriyo','getiriyor'],['götürüyo','götürüyor'],
+  ['düşünüyo','düşünüyor'],['söylüyo','söylüyor'],
+  ['yiyo','yiyor'],['içiyo','içiyor'],['çıkıyo','çıkıyor'],
+  ['girmiyo','girmiyor'],['gönderiyo','gönderiyor'],
+  ['anlatıyo','anlatıyor'],['okuyo','okuyor'],['yazıyo','yazıyor'],
+  ['oynuyo','oynuyor'],['ağlıyo','ağlıyor'],['gülio','gülüyor'],
+  ['koşuyo','koşuyor'],['uçuyo','uçuyor'],['sürüyo','sürüyor'],
+
+  // === NAPALIM VB. ===
+  ['napalım','ne yapalım'],['napıyorsun','ne yapıyorsun'],
+  ['napıyorum','ne yapıyorum'],['napacaksın','ne yapacaksın'],
+  ['naparsın','ne yaparsın'],['naptın','ne yaptın'],
+  ['napayım','ne yapayım'],['napcaz','ne yapacağız'],
+
+  // === DİĞER YAYGIN YAZIM HATALARI ===
+  ['tammam','tamam'],['merhabaa','merhaba'],
+  ['iyi ki','iyiki'],  // hayır, iyi ki AYRI — skip bu ikisini
+  // 'iyi ki' ayrı yazılır (TDK), bu yüzden dahil etmiyoruz
+
+  // dışarı ve türevleri
+  ['disari','dışarı'],['disarida','dışarıda'],['disaridan','dışarıdan'],
+  ['disariya','dışarıya'],['disinda','dışında'],['disindaki','dışındaki'],
+
+  // ayrıca
+  ['ayrica','ayrıca'],
+
+  // çalışmak ve türevleri
+  ['calismak','çalışmak'],['calisma','çalışma'],['calisiyor','çalışıyor'],
+  ['calisti','çalıştı'],['calisir','çalışır'],['calisan','çalışan'],
+
+  // görmek ve türevleri
+  ['gormek','görmek'],['goruyorum','görüyorum'],['gordu','gördü'],
+  ['gormustum','görmüştüm'],['gormus','görmüş'],['goruyor','görüyor'],
+
+  // başlamak ve türevleri
+  ['baslamak','başlamak'],['basladi','başladı'],['baslayan','başlayan'],
+  ['basla','başla'],['basliyor','başlıyor'],['baslangic','başlangıç'],
+
+  // kaçmak ve türevleri
+  ['kacmak','kaçmak'],['kacti','kaçtı'],['kaciyor','kaçıyor'],
+
+  // geçmek ve türevleri
+  ['gecmek','geçmek'],['gecti','geçti'],['gecmis','geçmiş'],
+  ['gecen','geçen'],['gecerli','geçerli'],['gecici','geçici'],
+
+  // düşmek ve türevleri
+  ['dusmek','düşmek'],['dustu','düştü'],['dusuyor','düşüyor'],
+
+  // çocuk ve türevleri
+  ['cocuk','çocuk'],['cocuklar','çocuklar'],['cocugun','çocuğun'],
+
+  // açık ve türevleri
+  ['acik','açık'],['acikca','açıkça'],['aciklama','açıklama'],
+  ['aciklamak','açıklamak'],
+
+  // sağlık ve türevleri
+  ['saglik','sağlık'],['saglıklı','sağlıklı'],['saglikli','sağlıklı'],
+
+  // doğru ve türevleri
+  ['dogru','doğru'],['dogruluk','doğruluk'],['dogrudan','doğrudan'],
+  ['dogrulama','doğrulama'],
+
+  // yağmur
+  ['yagmur','yağmur'],['yagmurlu','yağmurlu'],
+
+  // ağır
+  ['agir','ağır'],['agirlik','ağırlık'],
+
+  // öğle
+  ['ogle','öğle'],['ogle yemegi','öğle yemeği'],
+
+  // dün ve türevleri
+  ['dun','dün'],['dunden','dünden'],['dune','düne'],['dunku','dünkü'],
+
+  // müzik
+  ['muzik','müzik'],['muzige','müziğe'],['muzikle','müzikle'],
+
+  // üzgün
+  ['uzgun','üzgün'],
+
+  // gün ve türevleri (dikkatli — sadece açıkça yanlış olanlar)
+  ['gunler','günler'],['gunde','günde'],['gunluk','günlük'],
+  ['gunelik','günlük'],
+
+  // şans
+  ['sans','şans'],['sanslı','şanslı'],['sansiz','şanssız'],
+
+  // şarkı
+  ['sarki','şarkı'],['sarkilar','şarkılar'],['sarkici','şarkıcı'],
+
+  // şehir
+  ['sehir','şehir'],['sehirde','şehirde'],['sehirler','şehirler'],
+
+  // şirket
+  ['sirket','şirket'],['sirketin','şirketin'],
+
+  // işte
+  ['iste','işte'],
+
+  // aşağı
+  ['asagi','aşağı'],['asagida','aşağıda'],['asagidaki','aşağıdaki'],
+
+  // yukarı
+  ['yukari','yukarı'],['yukarida','yukarıda'],['yukaridaki','yukarıdaki'],
+
+  // şu
+  ['su','şu'], // dikkat: çok yaygın kelime, false positive çok yüksek — atla
+  // ['su','şu'] atlanıyor
+
+  // ülke
+  ['ulke','ülke'],['ulkede','ülkede'],['ulkeler','ülkeler'],
+
+  // bilgi
+  ['bilgi','bilgi'], // doğru zaten
+
+  // çok (cok)
+  ['cok','çok'],['cok daha','çok daha'],['coktan','çoktan'],['cokca','çokça'],
+
+  // çıkmak
+  ['cikmak','çıkmak'],['cikti','çıktı'],['cikiyor','çıkıyor'],['cikis','çıkış'],
+
+  // gelmek - 'geliyo' already have
+
+  // almak — aliyor → alıyor
+  ['aliyor','alıyor'],['alıyo','alıyor'],
+
+  // kalmak
+  ['kaliyor','kalıyor'],['kaliyo','kalıyor'],
+
+  // söylemek
+  ['soylemek','söylemek'],['soyledi','söyledi'],['soylüyor','söylüyor'],
+  // already have soyle variants above
+
+  // büyük
+  // already have buyuk
+
+  // yüksek
+  ['yuksek','yüksek'],['yuksekte','yüksekte'],
+
+  // güzel
+  ['guzel','güzel'],['guzelde','güzelde'],
+
+  // ünlü
+  ['unlu','ünlü'],
+
+  // güç
+  ['guc','güç'],['guclu','güçlü'],['guctur','güçtür'],
+
+  // öğretim
+  ['ogretim','öğretim'],
+
+  // şunu — şu-nu
+  ['sunu','şunu'],['sunlar','şunlar'],['sunları','şunları'],
+
+  // şöyle
+  // already have soyle
+
+  // çevre
+  ['cevre','çevre'],['cevresi','çevresi'],
+
+  // çözüm
+  ['cozum','çözüm'],['coz','çöz'],['cozer','çözer'],
+
+  // görüş
+  ['gorus','görüş'],['gorusum','görüşüm'],['gorustum','görüştüm'],
+
+  // ölçü / ölçek
+  ['olcu','ölçü'],['olcek','ölçek'],
+
+  // öldür / öl
+  ['oldu','öldü'], // dikkat: "oldu" → "öldü" çok agresif! Atla.
+  // ['oldu','öldü'] ATLA
+
+  // küçük
+  // already have kucuk
+
+  // şikâyet
+  ['sikayet','şikâyet'],
+
+  // şartlar
+  ['sartlar','şartlar'],['sart','şart'],
+
+  // çeşitli
+  ['cesitli','çeşitli'],
+
+  // öğrenmek
+  // already have ogrenmek
 ];
 
-function getLastVowel(word) {
-  const vowels = word.match(/[aeıioöuü]/gi);
-  return vowels ? vowels[vowels.length - 1].toLowerCase() : null;
-}
+// ============================================================
+// DEDA — "de/da" her zaman ayrı yazılanlar (bağlaç)
+// ============================================================
+const DEDA=[
+  ['hemde','hem de'],['birde','bir de'],['yinede','yine de'],
+  ['artıkda','artık da'],['sadecede','sadece de'],['ancakda','ancak da'],
+  ['fakatda','fakat da'],['ayrıcada','ayrıca da'],['dahada','daha da'],
+  ['çokda','çok da'],['hiçde','hiç de'],['oysada','oysa da'],
+  ['zatende','zaten de'],['nede','ne de'],['genede','gene de'],
+  ['bilede','bile de'],['oysakide','oysa ki de'],
+  ['öncede','önce de'],['sonrada','sonra da'],['şimdide','şimdi de'],
+  ['hepside','hepsi de'],['hepsinde','hepsinde'], // hepsinde doğru (hal eki)
+  // dikkat: hepside → hepsi de (bağlaç), ama hepsinde hal eki — skip hepsinde
+  ['tekde','tek de'],['sadede','sade de'],
+];
 
-function checkVowelHarmony(v1, v2) {
-  const thick = 'aıou', thin = 'eiöü';
-  return (thick.includes(v1) && thick.includes(v2)) || (thin.includes(v1) && thin.includes(v2));
-}
+// ============================================================
+// KI — "ki" kullanım kuralları
+// ============================================================
+const KI=[
+  // Gereksiz ki
+  ['sanki ki','sanki'],['çünkü ki','çünkü'],['halbuki ki','halbuki'],
+  ['zira ki','zira'],['mademki ki','mademki'],
+  // madem ki → mademki (bitişik)
+  ['madem ki','mademki'],['oysa ki','oysaki'],
+  // Sıfat eki -ki (zaman/yer bildiren)
+  ['dün ki','dünkü'],['şimdi ki','şimdiki'],['bugün ki','bugünkü'],
+  ['yarın ki','yarınki'],['akşam ki','akşamki'],['sabah ki','sabahki'],
+  ['gece ki','geceki'],['geçen ki','geçenki'],['öte ki','öteki'],
+  ['şu an ki','şu anki'],['bu gün ki','bugünkü'],
+  // Yaygın hata: ayrı yazılan ama bitişik olması gerekenler
+  ['ilerde ki','ileriki'],['geride ki','gerideki'],
+];
 
+// ============================================================
+// WARNS — Bağlama göre değişen (kullanıcı kararı gereken)
+// ============================================================
+const WARNS=[
+  {
+    rx:/\b(ben|sen|o|biz|siz|onlar|bana|sana|ona|bize|size|onlara)(da|de)\b/gi,
+    rule:'Zamir + "da/de"',
+    detail:'HAL EKİ (üzerinde/yanında anlamı): "bende para var" ✓\nBĞLAÇ (de/da = "also"): "ben de geldim" ✓',
+    makeOpts:m=>({
+      A:{label:'Bağlaç — ayrı yaz',sub:'"'+m[1]+' '+m[2]+'"',val:m[1]+' '+m[2]},
+      B:{label:'Hâl eki — olduğu gibi bırak',sub:'"'+m[0]+'" bu haliyle doğru',val:null},
+    })
+  },
+  {
+    // masada ki, evde ki vb. — hal eki + ki
+    rx:/([a-zA-ZığüşöçİĞÜŞÖÇ]{3,}(?:nda|nde|ında|inde|da|de|ta|te)) (ki)\b/gi,
+    preCheck:(txt,m)=>{
+      // Virgülle ayrılmış "masada, ki bu önemli" → bağlaç, doğru kullanım
+      const pre=txt.slice(Math.max(0,m.index-3),m.index).trim();
+      return !pre.endsWith(',')&&!pre.endsWith(';');
+    },
+    rule:'Hâl eki + "ki"',
+    detail:'SIFAT EKİ (bitişik): "masadaki kitap" ✓\nBĞLAÇ (virgülle ayrı): "masada, ki bu önemli" ✓',
+    makeOpts:m=>({
+      A:{label:'Sıfat eki — bitişik yaz',sub:'"'+m[1]+'ki"',val:m[1]+'ki'},
+      B:{label:'Bağlaç — ayrı bırak',sub:'Gerekirse önüne virgül koy',val:null},
+    })
+  },
+];
+
+// ============================================================
+// ANALİZ FONKSİYONU
+// ============================================================
 function analyze(text){
   const issues=[],ranges=[];
   function ok(s,e){return!ranges.some(r=>s<r[1]&&e>r[0])}
-  function push(iss){if(ok(iss.start,iss.end)){issues.push(iss);ranges.push([iss.start,iss.end])}}
-
-  // 1. Static Rules & Common Mistakes
-  for(const rule of SPELL_RULES){
-    const rx = new RegExp(rule.rx.source, 'gi'); let m;
-    while((m=rx.exec(text))!==null) {
-      const fix = typeof rule.fix === 'function' ? rule.fix(m) : rule.fix;
-      push({type:'spell', word:m[0], start:m.index, end:m.index+m[0].length, suggestions:[fix], msg:rule.msg});
+  function push(iss){
+    if(ok(iss.start,iss.end)){
+      // Öneri büyük harfle başlayan orijinale uymalı
+      if(iss.suggestions&&iss.suggestions.length){
+        iss.suggestions=iss.suggestions.map(sug=>{
+          const fc=iss.word[0];
+          if(fc&&fc===fc.toUpperCase()&&fc!==fc.toLowerCase()){
+            return tu(sug);
+          }
+          return sug;
+        });
+      }
+      issues.push(iss);
+      ranges.push([iss.start,iss.end]);
     }
   }
 
-  // 2. Mi Soru Eki (Refined with suffixes)
-  const miRx = /\b(\w+)(mı|mi|mu|mü)(sın|sin|sun|sün|m|ız|iz|uz|üz|nız|niz|nuz|nüz|lar|ler)?\b/gi;
+  // 1. Yazım hataları
+  for(const[w,r] of SPELL){
+    try{
+      const rx=new RegExp(wb(w),'gi');let m;
+      while((m=rx.exec(text))!==null)
+        push({type:'spell',word:m[0],start:m.index,end:m.index+m[0].length,
+          suggestions:[r],msg:'"'+w+'" yerine "'+r+'" yazılmalıdır'});
+    }catch(e){}
+  }
+
+  // 2. Dilbilgisi hataları (de/da ve ki)
+  for(const[w,r] of [...DEDA,...KI]){
+    try{
+      const rx=new RegExp(wb(w),'gi');let m;
+      while((m=rx.exec(text))!==null)
+        push({type:'gram',word:m[0],start:m.index,end:m.index+m[0].length,
+          suggestions:[r],msg:'TDK: "'+w+'" → "'+r+'"'});
+    }catch(e){}
+  }
+
+  // 3. Uyarı gerektiren durumlar (kullanıcı karar verir)
+  for(const wp of WARNS){
+    const rx=new RegExp(wp.rx.source,'gi');let m;
+    while((m=rx.exec(text))!==null){
+      if(!ok(m.index,m.index+m[0].length)) continue;
+      if(wp.preCheck&&!wp.preCheck(text,m)) continue;
+      const opts=wp.makeOpts(m);
+      push({type:'warn',word:m[0],start:m.index,end:m.index+m[0].length,
+        suggestions:opts.A.val?[opts.A.val]:[],
+        optA:opts.A,optB:opts.B,rule:wp.rule,detail:wp.detail,
+        msg:'Bağlama göre değişir — kontrol edin'});
+    }
+  }
+
+  // 4. Noktalama
   let m;
-  while((m=miRx.exec(text))!==null){
-    const word = m[1], particle = m[2], suffix = m[3] || '';
-    const MI_EXC = new Set(['cami','gemi','resmi','azami','umumi','ilmi','harimi','mermi','hami','sami','nami','pami','rumi','kamu','pazı','sızı','yazı','dizi','bazı','kuzubeni','meyve','sebze','üniversite','doküman','inisiyatif','mütevazı','idari','siyasi','askeri','milli','manevi','bari','hani','yani','peki','belki','sanki']);
-    if (MI_EXC.has(tl(word+particle))) continue;
-    if (word.length <= 1) continue;
-    push({type:'gram', word:m[0], start:m.index, end:m.index+m[0].length, suggestions:[word + ' ' + particle + suffix], msg: 'Soru eki "'+particle+'" ayrı yazılır.'});
+  // Virgülden sonra boşluk yok
+  const r1=/,(?=[^ \n\r"'»)\].,;!?\u2019\d])/g;
+  while((m=r1.exec(text))!==null)
+    push({type:'punct',word:',',start:m.index,end:m.index+1,
+      suggestions:[', '],msg:'Virgülden sonra boşluk bırakılmalıdır'});
+
+  // Noktadan sonra boşluk yok
+  const r2=/\.(?=[A-ZİĞÜŞÖÇa-zığüşöç])/g;
+  while((m=r2.exec(text))!==null){
+    const prevChar=text[m.index-1];
+    const nextChar=text[m.index+1];
+    if(/\d/.test(prevChar)&&/\d/.test(nextChar)) continue;
+    const prevWord=text.slice(0,m.index).match(/[\wığüşöçİĞÜŞÖÇ]+$/);
+    if(prevWord&&ABBRS.has(tl(prevWord[0]))) continue;
+    push({type:'punct',word:'.',start:m.index,end:m.index+1,
+      suggestions:['. '],msg:'Noktadan sonra boşluk bırakılmalıdır'});
   }
 
-  // 3. De/Da Bağlacı (Heuristic)
-  const dedaRx = /\b(\w+)(da|de)\b/gi;
-  while((m=dedaRx.exec(text))!==null){
-    const word = m[1], part = m[2];
-    const lastV = getLastVowel(word);
-    
-    // Check Vowel Harmony for separate/attached de/da
-    if (lastV && !checkVowelHarmony(lastV, part)) {
-       const correctPart = 'aıou'.includes(lastV) ? 'da' : 'de';
-       push({type:'gram', word:m[0], start:m.index, end:m.index+m[0].length, suggestions:[word + (text[m.index+word.length]===' '?' ':'') + correctPart], msg: 'Ünlü uyumuna göre "'+correctPart+'" olmalıdır.'});
-       continue;
-    }
+  // Soru/ünlem sonrası boşluk yok
+  const r3=/[?!](?=[A-ZİĞÜŞÖÇa-zığüşöç])/g;
+  while((m=r3.exec(text))!==null)
+    push({type:'punct',word:text[m.index],start:m.index,end:m.index+1,
+      suggestions:[text[m.index]+' '],msg:'Noktalama işaretinden sonra boşluk bırakılmalıdır'});
 
-    if (['ben','sen','biz','siz','onlar'].includes(tl(word))) {
-       push({type:'warn', word:m[0], start:m.index, end:m.index+m[0].length, suggestions:[word + ' ' + part], 
-       rule: 'Bağlaç olan "de/da"', detail: 'Cümleden çıkarınca anlam bozulmuyorsa ayrı yazılır.\nÖrn: "Ben de geldim" (I also came)',
-       optA: {label:'Ayrı yaz (Bağlaç)', sub:word+' '+part, val:word+' '+part},
-       optB: {label:'Bitişik bırak (Hâl)', sub:m[0]+' doğru', val:null},
-       msg: 'Bağlamı kontrol edin (Hâl eki mi, bağlaç mı?)'});
-    }
-  }
+  // Noktalama önünde boşluk var
+  const r4=/[ \t]+([,;:.!?])/g;
+  while((m=r4.exec(text))!==null)
+    push({type:'punct',word:m[0],start:m.index,end:m.index+m[0].length,
+      suggestions:[m[1]],msg:'Noktalama işaretinden önce boşluk olmamalıdır'});
 
-  // 4. Ki Bağlacı (Heuristic)
-  const kiRx = /\b(\w+)(ki)\b/gi;
-  const SOMBAHÇEM = new Set(['sanki','oysaki','mademki','belki','halbuki','çünkü','meğerki','illaki']);
-  while((m=kiRx.exec(text))!==null){
-    const word = m[1], part = m[2];
-    const full = tl(m[0]);
-    if (SOMBAHÇEM.has(full)) continue;
-    // Common verb + ki cases (usually separate)
-    if (/dik$|yor$|acak$|ecek$|miş$|mış$|muş$|müş$|malı$|meli$|sa$|se$|sun$|sin$|lar$|ler$|dı$|di$|du$|dü$|tı$|ti$|tu$|tü$/.test(tl(word))) {
-      push({type:'gram', word:m[0], start:m.index, end:m.index+m[0].length, suggestions:[word + ' ' + part], msg: 'Bağlaç olan "ki" ayrı yazılır.'});
-    }
-  }
+  // Çift boşluk
+  const r5=/[^\S\n]{2,}/g;
+  while((m=r5.exec(text))!==null)
+    push({type:'punct',word:m[0],start:m.index,end:m.index+m[0].length,
+      suggestions:[' '],msg:'Gereksiz fazla boşluk'});
 
-  // 5. Proper Noun Apostrophe
-  const propRx = /\b([A-ZÇĞİÖŞÜ][a-zçğıöşü]+)(nın|nin|nun|nün|na|ne|da|de|ta|te|dan|den|tan|ten|ı|i|u|ü|la|le)\b/g;
-  while((m=propRx.exec(text))!==null){
-    if (m.index === 0) continue; // Skip start of sentence
-    const prev = text[m.index-1];
-    if (prev && !/[\s.!?,"';]/.test(prev)) continue; // Not a standalone proper noun
-    push({type:'suggest', word:m[0], start:m.index, end:m.index+m[0].length, suggestions:[m[1] + "'" + m[2]], msg: 'Özel isimlere gelen ekler kesme işareti ile ayrılır.'});
-  }
+  // 5. Öneriler
+  // Üç nokta → elipsis
+  const r6=/\.{3}/g;
+  while((m=r6.exec(text))!==null)
+    push({type:'suggest',word:'...',start:m.index,end:m.index+3,
+      suggestions:['…'],msg:'Üç nokta yerine "…" (elipsis) kullanılabilir'});
 
-  // 6. Punctuation
-  const puncts = [
-    { rx: /,(?=[^ \n\r"'»)\].,;!?0-9\u2019])/g, fix: ', ', msg: 'Virgülden sonra boşluk bırakılmalıdır.' },
-    { rx: /[?!](?=[A-ZİĞÜŞÖÇa-zığüşöç])/g, fix: m => m[0] + ' ', msg: 'Noktalama sonrası boşluk bırakılmalıdır.' },
-    { rx: /[ \t]+([,;:.!?])/g, fix: m => m[1], msg: 'Noktalama önünde boşluk olmamalıdır.' },
-    { rx: /[^\S\n]{2,}/g, fix: ' ', msg: 'Gereksiz çift boşluk.' },
-    { rx: /\.{3}/g, fix: '…', msg: 'Üç nokta yerine elipsis (…) kullanılabilir.' }
-  ];
-  for(const p of puncts){
-    let pm; while((pm=p.rx.exec(text))!==null){
-      const fix = typeof p.fix === 'function' ? p.fix(pm) : p.fix;
-      push({type:'punct', word:pm[0], start:pm.index, end:pm.index+pm[0].length, suggestions:[fix], msg: p.msg});
-    }
-  }
-
-  // 7. Capitalization at sentence start
+  // Cümle başı büyük harf
   let ss=true;
   for(let i=0;i<text.length;i++){
     const c=text[i];
-    if(ss && /[a-zığüşöç]/.test(c)){
+    if(ss&&/[a-zığüşöç]/.test(c)){
       const u=tu(c);
-      if(u!==c && ok(i,i+1)) {
-        let isStart = true;
-        let lookBack = i - 1;
-        while(lookBack >= 0 && /\s/.test(text[lookBack])) lookBack--;
-        if(text[lookBack] === '.') {
-          const prevWordMatch = text.slice(0, lookBack).match(/[\wığüşöçİĞÜŞÖÇ]+$/);
-          if (prevWordMatch && ABBRS.has(tl(prevWordMatch[0]))) isStart = false;
+      if(u!==c&&ok(i,i+1)){
+        let isStart=true;
+        let lb=i-1;
+        while(lb>=0&&/\s/.test(text[lb])) lb--;
+        if(lb>=0&&text[lb]==='.'){
+          const pw=text.slice(0,lb).match(/[\wığüşöçİĞÜŞÖÇ]+$/);
+          if(pw&&ABBRS.has(tl(pw[0]))) isStart=false;
+          if(/\d/.test(text[lb-1])&&/\d/.test(c)) isStart=false;
         }
-        if (isStart) push({type:'suggest',word:c,start:i,end:i+1,suggestions:[u],msg:'Cümle başı büyük harf olmalıdır.'});
+        // İki nokta üst üste sonrası büyük harf zorunlu değil
+        if(lb>=0&&text[lb]===':') isStart=false;
+        if(isStart) push({type:'suggest',word:c,start:i,end:i+1,
+          suggestions:[u],msg:'Cümle başı büyük harfle yazılmalıdır'});
       }
       ss=false;
     } else if(/[.!?]/.test(c)){
-      ss=true;
+      let isEnd=true;
+      if(c==='.'){
+        const pw=text.slice(0,i).match(/[\wığüşöçİĞÜŞÖÇ]+$/);
+        if(pw&&ABBRS.has(tl(pw[0]))) isEnd=false;
+        if(/\d/.test(text[i-1])&&/\d/.test(text[i+1])) isEnd=false;
+      }
+      if(isEnd) ss=true;
     } else if(!/\s/.test(c)){ss=false;}
+  }
+
+  // Kısaltma/sayı + ek → kesme işareti
+  const r7=/([A-ZİĞÜŞÖÇ]{2,}|\d+)(nın|nin|nun|nün|nda|nde|ndan|nden|ya|ye|yı|yi|yu|yü|yla|yle|da|de|ta|te|dan|den|tan|ten|ın|in|un|ün|n|m)\b/g;
+  while((m=r7.exec(text))!==null){
+    const prev=m.index>0?text[m.index-1]:null;
+    if(prev==="'"||prev==='\u2019') continue;
+    if(!ok(m.index,m.index+m[0].length)) continue;
+    push({type:'suggest',word:m[0],start:m.index,end:m.index+m[0].length,
+      suggestions:[m[1]+"'"+m[2]],
+      msg:(/^\d+$/.test(m[1])?'Sayı':'Kısaltma')+' ekinden önce kesme işareti gereklidir'});
+  }
+
+  // Cümle sonu noktalama eksik
+  {
+    const trimmed=text.replace(/\s+$/,'');
+    let endPos=trimmed.length;
+    while(endPos>0&&/[)\]"'»"'\u2019]/.test(trimmed[endPos-1])) endPos--;
+    const lastCh=trimmed[endPos-1];
+    if(lastCh&&/[\wığüşöçİĞÜŞÖÇ]/.test(lastCh)&&ok(endPos-1,endPos)){
+      push({type:'punct',word:lastCh,start:endPos-1,end:endPos,
+        suggestions:[lastCh+'.',lastCh+'!',lastCh+'?'],
+        msg:'Metin bir noktalama işaretiyle bitmelidir (., !, ?)'});
+    }
   }
 
   issues.sort((a,b)=>a.start-b.start);
   return issues;
 }
 
+// ============================================================
+// DURUM & RENDER
+// ============================================================
 let curText='',curIssues=[];
 const ignored=new Set();
 const HC={spell:'h-sp',gram:'h-gr',warn:'h-wn',punct:'h-pu',suggest:'h-su'};
@@ -426,8 +785,7 @@ function run(){
   curText=document.getElementById('inp').value;
   if(!curText.trim()){
     ['statsBar','res'].forEach(id=>document.getElementById(id).style.display='none');
-    curIssues=[];closePop();
-    return;
+    curIssues=[];closePop();return;
   }
   curIssues=analyze(curText).filter(i=>!ignored.has(i.type+'|'+tl(i.word)));
   document.getElementById('cSp').textContent=curIssues.filter(i=>i.type==='spell').length;
@@ -469,17 +827,17 @@ document.getElementById('fxSp').addEventListener('click',()=>fixByType(['spell']
 document.getElementById('fxGr').addEventListener('click',()=>fixByType(['gram']));
 document.getElementById('fxPu').addEventListener('click',()=>fixByType(['punct']));
 
-const inp = document.getElementById('inp');
+const inp=document.getElementById('inp');
 function autoResize(){
-  this.style.height = 'auto';
-  this.style.height = (this.scrollHeight) + 'px';
+  this.style.height='auto';
+  this.style.height=(this.scrollHeight)+'px';
 }
-inp.setAttribute('style', 'height:' + (inp.scrollHeight) + 'px;overflow-y:hidden;');
-inp.addEventListener('input', autoResize, false);
+inp.setAttribute('style','height:'+(inp.scrollHeight)+'px;overflow-y:hidden;');
+inp.addEventListener('input',autoResize,false);
 
 let autoTimer=null;
 inp.addEventListener('input',()=>{
-  try{localStorage.setItem('ty_draft', inp.value);}catch(e){}
+  try{localStorage.setItem('ty_draft',inp.value);}catch(e){}
   clearTimeout(autoTimer);
   autoTimer=setTimeout(run,700);
 });
@@ -497,14 +855,14 @@ document.addEventListener('click',e=>{
   if(!pop.contains(e.target)&&!e.target.closest('.h-sp,.h-gr,.h-wn,.h-pu,.h-su,.ii'))closePop();
 });
 document.getElementById('smpBtn').addEventListener('click',()=>{
-  const val = 'ali\'nin topu kaçtığı icin markete gitti.\n'+
-    'birşey söylemek istiyorum ama bilmiyorum ,gerçekten.\n'+
-    'masada ki kitabı hemde dün okudum, çünkü ki sınav vardı.\n'+
-    'Türkiyede herkes bu konuyu biliyo.bu çok önemli bir konu!\n'+
-    'bende para yok ama ben de bu konuya katılıyorum.';
-  document.getElementById('inp').value = val;
+  const val="ali'nin topu kaçtığı icin markete gitti.\n"+
+    "birşey söylemek istiyorum ama bilmiyorum ,gerçekten.\n"+
+    "masada ki kitabı hemde dün okudum, çünkü ki sınav vardı.\n"+
+    "Türkiyede herkes bu konuyu biliyo.bu çok önemli bir konu!\n"+
+    "bende para yok ama ben de bu konuya katılıyorum.";
+  document.getElementById('inp').value=val;
   autoResize.call(document.getElementById('inp'));
-  document.getElementById('cc').textContent =
+  document.getElementById('cc').textContent=
     document.getElementById('inp').value.length.toLocaleString('tr-TR')+' karakter';
 });
 try{
