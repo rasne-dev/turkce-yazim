@@ -198,7 +198,7 @@ const SPELL=[
   ['dışında ki','dışındaki'],['başında ki','başındaki'],
   ['sonunda ki','sonundaki'],['arasında ki','arasındaki'],
   ['önünde ki','önündeki'],['arkasında ki','arkasındaki'],
-  ['üzerinde ki','üzerindeki'],['altındaki','altındaki'],
+  ['üzerinde ki','üzerindeki'],
 
   // === TÜRKÇE KARAKTER EKSİKLİĞİ ===
   // için ve türevleri
@@ -300,8 +300,7 @@ const SPELL=[
 
   // === DİĞER YAYGIN YAZIM HATALARI ===
   ['tammam','tamam'],['merhabaa','merhaba'],
-  ['iyi ki','iyiki'],  // hayır, iyi ki AYRI — skip bu ikisini
-  // 'iyi ki' ayrı yazılır (TDK), bu yüzden dahil etmiyoruz
+  // 'iyi ki' zaten ayrı yazılır (TDK) — buraya yanlışlıkla ters kural eklenmişti, kaldırıldı
 
   // dışarı ve türevleri
   ['disari','dışarı'],['disarida','dışarıda'],['disaridan','dışarıdan'],
@@ -389,15 +388,10 @@ const SPELL=[
   // yukarı
   ['yukari','yukarı'],['yukarida','yukarıda'],['yukaridaki','yukarıdaki'],
 
-  // şu
-  ['su','şu'], // dikkat: çok yaygın kelime, false positive çok yüksek — atla
-  // ['su','şu'] atlanıyor
+  // şu — 'su' (=water) çok yaygın bir kelime olduğu için bu kural bilerek eklenmiyor
 
   // ülke
   ['ulke','ülke'],['ulkede','ülkede'],['ulkeler','ülkeler'],
-
-  // bilgi
-  ['bilgi','bilgi'], // doğru zaten
 
   // çok (cok)
   ['cok','çok'],['cok daha','çok daha'],['coktan','çoktan'],['cokca','çokça'],
@@ -453,9 +447,7 @@ const SPELL=[
   // ölçü / ölçek
   ['olcu','ölçü'],['olcek','ölçek'],
 
-  // öldür / öl
-  ['oldu','öldü'], // dikkat: "oldu" → "öldü" çok agresif! Atla.
-  // ['oldu','öldü'] ATLA
+  // öldür / öl — 'oldu' (=oldu/happened) çok yaygın olduğu için 'öldü' kuralı bilerek eklenmiyor
 
   // küçük
   // already have kucuk
@@ -475,7 +467,7 @@ const SPELL=[
   // === YÜKLENEN DOSYADAN EKSİK KELİMELER ===
   ['malesef','maalesef'],
   ['yanlız','yalnız'],['yalnış','yanlış'],
-  ['süpriz','sürpriz'],['antrenman','antrenman'], // antrenman doğru yazım zaten
+  ['süpriz','sürpriz'],
   ['antreman','antrenman'],
   ['döküman','doküman'],['dokumanı','dokümanı'],['dokumanda','dokümanda'],['insiyatif','inisiyatif'],
   ['mütevazi','mütevazı'],['klavuz','kılavuz'],
@@ -490,16 +482,15 @@ const SPELL=[
 
   ['bir takım','birtakım'], // bazı anlamındaysa
   ['ilüzyon','illüzyon'],['iluzyon','illüzyon'],
-  ['tabiki','tabii ki'],['tabi ki','tabii ki'],['tabii','tabii'], // tabii doğru
+  ['tabiki','tabii ki'],['tabi ki','tabii ki'],
   ['müsade','müsaade'],['müsaid','müsait'],
   ['pekçok','pek çok'],
   ['herhangibir','herhangi bir'],
   ['gidicek','gidecek'],['yapıcak','yapacak'],['alıcak','alacak'],
-  ['gelicek','gelecek'],['bulacak','bulacak'], // doğru
+  ['gelicek','gelecek'],
   ['buluçak','bulacak'],['yapıcaksın','yapacaksın'],['gidiceksin','gideceksin'],
 
-
-  ['vaz geçmek','vazgeçmek'],['ayırt etmek','ayırt etmek'], // doğru
+  ['vaz geçmek','vazgeçmek'],
 ];
 
 // ============================================================
@@ -513,8 +504,7 @@ const DEDA=[
   ['zatende','zaten de'],['nede','ne de'],['genede','gene de'],
   ['bilede','bile de'],['oysakide','oysa ki de'],
   ['öncede','önce de'],['sonrada','sonra da'],['şimdide','şimdi de'],
-  ['hepside','hepsi de'],['hepsinde','hepsinde'], // hepsinde doğru (hal eki)
-  // dikkat: hepside → hepsi de (bağlaç), ama hepsinde hal eki — skip hepsinde
+  ['hepside','hepsi de'], // dikkat: 'hepsinde' (hal eki) farklıdır, o kural eklenmiyor
   ['tekde','tek de'],['sadede','sade de'],
 ];
 
@@ -575,6 +565,10 @@ function vowelHarmony(v1,v2){const tk='aıou',tn='eiöü';return(tk.includes(v1)
 // ============================================================
 function analyze(text){
   const issues=[],ranges=[];
+  // JS'in yerleşik /i bayrağı Türkçe büyük İ/I harflerini doğru küçültmediği için
+  // (İçin, Şimdi gibi cümle başı kelimeler kaçırılıyordu), kendi normalize fonksiyonumuzla
+  // eşleştirme yapıp orijinal metindeki karşılığını gösteriyoruz.
+  const ltext=tl(text);
   function ok(s,e){return!ranges.some(r=>s<r[1]&&e>r[0])}
   function push(iss){
     if(ok(iss.start,iss.end)){
@@ -596,9 +590,9 @@ function analyze(text){
   // 1. Yazım hataları
   for(const[w,r] of SPELL){
     try{
-      const rx=new RegExp(wb(w),'gi');let m;
-      while((m=rx.exec(text))!==null)
-        push({type:'spell',word:m[0],start:m.index,end:m.index+m[0].length,
+      const rx=new RegExp(wb(tl(w)),'g');let m;
+      while((m=rx.exec(ltext))!==null)
+        push({type:'spell',word:text.slice(m.index,m.index+m[0].length),start:m.index,end:m.index+m[0].length,
           suggestions:[r],msg:'"'+w+'" yerine "'+r+'" yazılmalıdır'});
     }catch(e){}
   }
@@ -606,11 +600,41 @@ function analyze(text){
   // 2. Dilbilgisi hataları (de/da ve ki)
   for(const[w,r] of [...DEDA,...KI]){
     try{
-      const rx=new RegExp(wb(w),'gi');let m;
-      while((m=rx.exec(text))!==null)
-        push({type:'gram',word:m[0],start:m.index,end:m.index+m[0].length,
+      const rx=new RegExp(wb(tl(w)),'g');let m;
+      while((m=rx.exec(ltext))!==null)
+        push({type:'gram',word:text.slice(m.index,m.index+m[0].length),start:m.index,end:m.index+m[0].length,
           suggestions:[r],msg:'TDK: "'+w+'" → "'+r+'"'});
     }catch(e){}
+  }
+
+  // 2b. Mİ soru eki ve fiil eki + "ki" bağlacı (büyük harf/nokta önerileriyle
+  //     aynı konumda çakışıp elenmesinler diye erkenden, punct/suggest'ten önce çalışır)
+  {
+    const MI_EXC=new Set(['cami','gemi','resmi','azami','umumi','ilmi','harimi','mermi','hami','sami','nami','rumi','pazı','sızı','yazı','dizi','bazı','yani','peki','belki','sanki','bari','hani','üniversite','siyasi','askeri','milli','beni','seni','onu','bizi','sizi','onları']);
+    const miRx=/([\wığüşöçİĞÜŞÖÇ]+)(mı|mi|mu|mü)(sın|sin|sun|sün|m|ız|iz|uz|üz|nız|niz|nuz|nüz|lar|ler)?\b/gi;
+    let mm;
+    while((mm=miRx.exec(text))!==null){
+      const base=mm[1],part=mm[2],suf=mm[3]||'';
+      const full=tl(base+part);
+      if(MI_EXC.has(full)||MI_EXC.has(tl(base))||base.length<=1) continue;
+      const lv=getLastVowel(base);
+      if(!lv) continue;
+      const correct=('aıou'.includes(lv)&&(part==='mı'||part==='mu'))||('eiöü'.includes(lv)&&(part==='mi'||part==='mü'));
+      if(!correct) continue;
+      push({type:'gram',word:mm[0],start:mm.index,end:mm.index+mm[0].length,
+        suggestions:[base+' '+part+suf],msg:'Soru eki "'+part+'" fiilden ayrı yazılır'});
+    }
+
+    const KI_OK=new Set(['sanki','oysaki','mademki','belki','halbuki','meğerki','illaki','oysakide','belkide','çünkü']);
+    const kiRx=/\b([\wığüşöçİĞÜŞÖÇ]{3,})(ki)\b/gi;
+    while((mm=kiRx.exec(text))!==null){
+      const base=mm[1];
+      if(KI_OK.has(tl(mm[0]))||KI_OK.has(tl(base))) continue;
+      if(/dik$|yor$|acak$|ecek$|miş$|mış$|muş$|müş$|malı$|meli$|sa$|se$|sun$|sin$|lar$|ler$|dı$|di$|du$|dü$|tı$|ti$|tu$|tü$/.test(tl(base))){
+        push({type:'gram',word:mm[0],start:mm.index,end:mm.index+mm[0].length,
+          suggestions:[base+' '+mm[2]],msg:'Bağlaç olan "ki" fiilden ayrı yazılır'});
+      }
+    }
   }
 
   // 3. Uyarı gerektiren durumlar (kullanıcı karar verir)
@@ -725,36 +749,6 @@ function analyze(text){
       push({type:'punct',word:lastCh,start:endPos-1,end:endPos,
         suggestions:[lastCh+'.',lastCh+'!',lastCh+'?'],
         msg:'Metin bir noktalama işaretiyle bitmelidir (., !, ?)'});
-    }
-  }
-
-
-  // --- Mİ SORU EKİ ayrı yazılır ---
-  const MI_EXC=new Set(['cami','gemi','resmi','azami','umumi','ilmi','harimi','mermi','hami','sami','nami','rumi','pazı','sızı','yazı','dizi','bazı','yani','peki','belki','sanki','bari','hani','üniversite','siyasi','askeri','milli','beni','seni','onu','bizi','sizi','onları']);
-  const miRx=/(\w+(?:[ığüşöç]\w*)?)(mı|mi|mu|mü)(sın|sin|sun|sün|m|ız|iz|uz|üz|nız|niz|nuz|nüz|lar|ler)?/gi;
-  while((m=miRx.exec(text))!==null){
-    const base=m[1],part=m[2],suf=m[3]||'';
-    const full=tl(base+part);
-    if(MI_EXC.has(full)||MI_EXC.has(tl(base))||base.length<=1) continue;
-    // son sesli uyumu kontrol et
-    const lv=getLastVowel(base);
-    if(!lv) continue;
-    const correct=('aıou'.includes(lv)&&(part==='mı'||part==='mu'))||('eiöü'.includes(lv)&&(part==='mi'||part==='mü'));
-    if(!correct) continue; // yanlış ek formu (ayrı yazım sorunu değil, uyum sorunu)
-    push({type:'gram',word:m[0],start:m.index,end:m.index+m[0].length,
-      suggestions:[base+' '+part+suf],msg:'Soru eki "'+part+'" fiilden ayrı yazılır'});
-  }
-
-  // --- FİİL EKİ + "ki" bağlacı ayrı yazılır ---
-  const KI_OK=new Set(['sanki','oysaki','mademki','belki','halbuki','meğerki','illaki','oysakide','belkide','çünkü']);
-  const kiRx=/(\w{3,})(ki)/gi;
-  while((m=kiRx.exec(text))!==null){
-    const base=m[1];
-    if(KI_OK.has(tl(m[0]))||KI_OK.has(tl(base))) continue;
-    // Sadece fiil eki ile bitiyorsa (zaman/kip/kişi eki)
-    if(/dik$|yor$|acak$|ecek$|miş$|mış$|muş$|müş$|malı$|meli$|sa$|se$|sun$|sin$|lar$|ler$|dı$|di$|du$|dü$|tı$|ti$|tu$|tü$/.test(tl(base))){
-      push({type:'gram',word:m[0],start:m.index,end:m.index+m[0].length,
-        suggestions:[base+' '+m[2]],msg:'Bağlaç olan "ki" fiilden ayrı yazılır'});
     }
   }
 
