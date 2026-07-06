@@ -94,6 +94,8 @@
   .wbt{font-size:.66rem;font-weight:700;text-transform:uppercase;color:var(--warn);margin-bottom:.28rem}
   .wbr{font-size:.76rem;color:var(--ink);line-height:1.4;margin-bottom:.3rem}
   .wbe{font-size:.71rem;color:var(--slate);font-style:italic;line-height:1.35}
+  .wgb{border-radius:7px;padding:.5rem .65rem;margin-bottom:.65rem;border:1px solid rgba(21,128,61,.25);background:rgba(21,128,61,.06);font-size:.74rem;color:var(--ink);line-height:1.4}
+  .obGuess{border-color:var(--green);background:rgba(21,128,61,.05)}
   .ol{font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--slate);margin-bottom:.32rem}
   .ob{display:flex;align-items:center;gap:.45rem;width:100%;text-align:left;padding:.4rem .55rem;border:1.5px solid var(--border);border-radius:7px;background:none;font-size:.83rem;cursor:pointer;color:var(--ink);font-family:var(--f);margin-bottom:.3rem;transition:border-color .12s,background .12s;font-weight:500}
   .ob:hover{border-color:var(--crimson);background:var(--mist)}
@@ -146,6 +148,7 @@
       <button class="btn btn-g btn-xs" id="fxSp">🔴 Yazım</button>
       <button class="btn btn-g btn-xs" id="fxGr">🟣 Dilbilgisi</button>
       <button class="btn btn-g btn-xs" id="fxPu">🟡 Noktalama</button>
+      <button class="btn btn-g btn-xs" id="fxWarn" title="Kontrol Et olarak işaretlenenlerde en olası tahmini uygular">🔎 Tahminle (Kontrol Et)</button>
     </div>
   </div>
 
@@ -527,6 +530,58 @@ const KI=[
 ];
 
 // ============================================================
+// TAHMİN YARDIMCILARI — "en olası" ayrı/bitişik tahmini için
+// (Kesin kural değildir; sadece kullanıcıya ipucu olarak gösterilir,
+//  karar her zaman kullanıcıya bırakılır.)
+// ============================================================
+const DATIVE_PRONOUNS=new Set(['bana','sana','ona','bize','size','onlara']);
+
+// Fiilin verilen şahıs zamiriyle uyumlu çekimlenip çekimlenmediğine dair kaba bir tahmin.
+function personAgrees(pron,verb){
+  const v=tl(verb);
+  const P1S=/(yorum|dım$|dim$|dum$|düm$|tım$|tim$|tum$|tüm$|mışım$|mişim$|muşum$|müşüm$|acağım$|eceğim$|sam$|sem$|malıyım$|meliyim$)/;
+  const P2S=/(yorsun|dın$|din$|dun$|dün$|tın$|tin$|tun$|tün$|mışsın$|mişsin$|muşsun$|müşsün$|acaksın$|eceksin$|malısın$|melisin$)/;
+  const P3S=/(yor$|dı$|di$|du$|dü$|tı$|ti$|tu$|tü$|mış$|miş$|muş$|müş$|acak$|ecek$|malı$|meli$)/;
+  const P1P=/(yoruz|dık$|dik$|duk$|dük$|tık$|tik$|tuk$|tük$|mışız$|mişiz$|muşuz$|müşüz$|acağız$|eceğiz$|malıyız$|meliyiz$)/;
+  const P2P=/(yorsunuz|dınız$|diniz$|dunuz$|dünüz$|tınız$|tiniz$|tunuz$|tünüz$|mışsınız$|mişsiniz$|muşsunuz$|müşsünüz$|acaksınız$|eceksiniz$|malısınız$|melisiniz$)/;
+  const P3P=/(yorlar$|dılar$|diler$|dular$|düler$|tılar$|tiler$|tular$|tüler$|mışlar$|mişler$|muşlar$|müşler$|acaklar$|ecekler$)/;
+  switch(pron){
+    case'ben':return P1S.test(v);
+    case'sen':return P2S.test(v);
+    case'o':return P3S.test(v);
+    case'biz':return P1P.test(v);
+    case'siz':return P2P.test(v)||P2S.test(v);
+    case'onlar':return P3P.test(v)||P3S.test(v); // 3. çoğulda fiil çekimsiz de kalabilir
+    default:return false;
+  }
+}
+
+// Zamir + "da/de" için en olası yorumu tahmin eder: 'A' (bağlaç) | 'B' (hâl eki) | null (belirsiz)
+function guessDeDa(m,text){
+  const pron=tl(m[1]);
+  if(DATIVE_PRONOUNS.has(pron)){
+    return{opt:'A',reason:'"'+m[1]+'" zaten yönelme hâlinde (-a/-e) olduğundan üzerine bir hâl eki daha almaz; bu yüzden "'+m[2]+'" burada neredeyse her zaman bağlaçtır.'};
+  }
+  const after=text.slice(m.index+m[0].length);
+  // "var/yok" genelde cümlenin sonunda gelir (ör. "bende para var"), bu yüzden sadece
+  // bir sonraki kelimeye değil, aynı cümle/tümce içindeki devamına bakıyoruz.
+  const clause=(after.match(/^[^.!?\n]*/)||[''])[0];
+  if(/(^|[^\wığüşöçİĞÜŞÖÇ])(var|yok)([^\wığüşöçİĞÜŞÖÇ]|$)/i.test(clause)){
+    return{opt:'B',reason:'Aynı cümlede "var/yok" geçmesi, sahiplik/bulunma anlamı (hâl eki) olduğuna işaret eder: "'+m[0]+clause+'".'};
+  }
+  const nx=after.match(/^\s*([\wığüşöçİĞÜŞÖÇ]+)/);
+  if(nx&&personAgrees(pron,nx[1])){
+    return{opt:'A',reason:'Ardından gelen "'+nx[1]+'" fiili "'+m[1]+'" ile aynı şahısta çekimli görünüyor; bu da bağlaç kullanımına işaret eder: "'+m[1]+' '+m[2]+' '+nx[1]+'".'};
+  }
+  return null;
+}
+
+// Hâl eki + "ki" için en olası yorum: virgül yoksa çoğu örnekte sıfat eki (bitişik) doğru kullanımdır.
+function guessKiHal(m,text){
+  return{opt:'A',reason:'Virgülle ayrılmadığı için çoğunlukla sıfat eki (bitişik) kullanımıdır: "'+m[1]+'ki".'};
+}
+
+// ============================================================
 // WARNS — Bağlama göre değişen (kullanıcı kararı gereken)
 // ============================================================
 const WARNS=[
@@ -534,6 +589,7 @@ const WARNS=[
     rx:/\b(ben|sen|o|biz|siz|onlar|bana|sana|ona|bize|size|onlara)(da|de)\b/gi,
     rule:'Zamir + "da/de"',
     detail:'HAL EKİ (üzerinde/yanında anlamı): "bende para var" ✓\nBĞLAÇ (de/da = "also"): "ben de geldim" ✓',
+    guess:guessDeDa,
     makeOpts:m=>({
       A:{label:'Bağlaç — ayrı yaz',sub:'"'+m[1]+' '+m[2]+'"',val:m[1]+' '+m[2]},
       B:{label:'Hâl eki — olduğu gibi bırak',sub:'"'+m[0]+'" bu haliyle doğru',val:null},
@@ -549,12 +605,14 @@ const WARNS=[
     },
     rule:'Hâl eki + "ki"',
     detail:'SIFAT EKİ (bitişik): "masadaki kitap" ✓\nBĞLAÇ (virgülle ayrı): "masada, ki bu önemli" ✓',
+    guess:guessKiHal,
     makeOpts:m=>({
       A:{label:'Sıfat eki — bitişik yaz',sub:'"'+m[1]+'ki"',val:m[1]+'ki'},
       B:{label:'Bağlaç — ayrı bırak',sub:'Gerekirse önüne virgül koy',val:null},
     })
   },
 ];
+
 
 
 function getLastVowel(w){const v=w.match(/[aeıioöuü]/gi);return v?v[v.length-1].toLowerCase():null}
@@ -651,9 +709,10 @@ function analyze(text){
       if(!ok(m.index,m.index+m[0].length)) continue;
       if(wp.preCheck&&!wp.preCheck(text,m)) continue;
       const opts=wp.makeOpts(m);
+      const guess=wp.guess?wp.guess(m,text):null;
       push({type:'warn',word:m[0],start:m.index,end:m.index+m[0].length,
         suggestions:opts.A.val?[opts.A.val]:[],
-        optA:opts.A,optB:opts.B,rule:wp.rule,detail:wp.detail,
+        optA:opts.A,optB:opts.B,rule:wp.rule,detail:wp.detail,guess:guess,
         msg:'Bağlama göre değişir — kontrol edin'});
     }
   }
@@ -812,13 +871,16 @@ window.TY={
     document.getElementById('pm').textContent=iss.msg;
     const body=document.getElementById('pbody');
     if(iss.type==='warn'){
+      const g=iss.guess;
+      const guessBox=g?`<div class="wgb">🔎 <b>En olası:</b> ${esc(g.opt==='A'?iss.optA.label:iss.optB.label)} — ${esc(g.reason)}</div>`:'';
       body.innerHTML=`<div class="wbox">
         <div class="wbt">📌 ${esc(iss.rule)}</div>
         <div class="wbr">${esc(iss.detail).replace(/\n/g,'<br>')}</div>
       </div>
+      ${guessBox}
       <div class="ol">Ne yapmak istersiniz?</div>
-      ${iss.optA.val?`<button class="ob" onclick="TY.fix(${idx},${escAttr(iss.optA.val)})"><span class="oi">✏️</span><span class="ot">${esc(iss.optA.label)}<span class="os">${esc(iss.optA.sub||'')}</span></span></button>`:''}
-      <button class="ob" onclick="TY.ign(${escAttr(iss.word)},${escAttr(iss.type)})"><span class="oi">✓</span><span class="ot">${esc(iss.optB.label)}<span class="os">${esc(iss.optB.sub||'')}</span></span></button>`;
+      ${iss.optA.val?`<button class="ob${g&&g.opt==='A'?' obGuess':''}" onclick="TY.fix(${idx},${escAttr(iss.optA.val)})"><span class="oi">✏️</span><span class="ot">${esc(iss.optA.label)}${g&&g.opt==='A'?' ⭐':''}<span class="os">${esc(iss.optA.sub||'')}</span></span></button>`:''}
+      <button class="ob${g&&g.opt==='B'?' obGuess':''}" onclick="TY.ign(${escAttr(iss.word)},${escAttr(iss.type)})"><span class="oi">✓</span><span class="ot">${esc(iss.optB.label)}${g&&g.opt==='B'?' ⭐':''}<span class="os">${esc(iss.optB.sub||'')}</span></span></button>`;
     } else if(iss.suggestions.length){
       body.innerHTML='<div class="sl">Öneriler</div>'+
         iss.suggestions.map(s=>`<button class="sb" onclick="TY.fix(${idx},${escAttr(s)})">${esc(s)}</button>`).join('');
@@ -871,6 +933,19 @@ function fixByType(types){
   curText=t;document.getElementById('inp').value=t;ignored.clear();run();
 }
 
+// "Kontrol Edin" (warn) türündeki sorunlarda en olası tahmini (varsa) toplu uygular.
+// Tahmin 'A' (ör. bağlaç) ise metni günceller; 'B' (ör. hâl eki, olduğu gibi doğru) ise
+// o kelimeyi bir daha uyarı olarak göstermemek için yoksayılanlara ekler.
+// Tahmini olmayan (belirsiz) durumlara dokunulmaz, onlar listede kalmaya devam eder.
+function fixWarnByGuess(){
+  const warns=curIssues.filter(i=>i.type==='warn'&&i.guess);
+  const toFix=warns.filter(i=>i.guess.opt==='A'&&i.optA.val).sort((a,b)=>b.start-a.start);
+  let t=curText;
+  for(const iss of toFix) t=t.slice(0,iss.start)+iss.optA.val+t.slice(iss.end);
+  for(const iss of warns.filter(i=>i.guess.opt==='B')) ignored.add('warn|'+tl(iss.word));
+  curText=t;document.getElementById('inp').value=t;run();
+}
+
 document.getElementById('chkBtn').addEventListener('click',run);
 document.getElementById('clrBtn').addEventListener('click',()=>{
   document.getElementById('inp').value='';
@@ -890,6 +965,7 @@ document.getElementById('fxAll').addEventListener('click',()=>fixByType(['spell'
 document.getElementById('fxSp').addEventListener('click',()=>fixByType(['spell']));
 document.getElementById('fxGr').addEventListener('click',()=>fixByType(['gram']));
 document.getElementById('fxPu').addEventListener('click',()=>fixByType(['punct']));
+document.getElementById('fxWarn').addEventListener('click',fixWarnByGuess);
 
 const inp=document.getElementById('inp');
 function autoResize(){
