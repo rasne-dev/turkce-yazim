@@ -611,7 +611,13 @@ function analyze(text){
   //     aynı konumda çakışıp elenmesinler diye erkenden, punct/suggest'ten önce çalışır)
   {
     const MI_EXC=new Set(['cami','gemi','resmi','azami','umumi','ilmi','harimi','mermi','hami','sami','nami','rumi','pazı','sızı','yazı','dizi','bazı','yani','peki','belki','sanki','bari','hani','üniversite','siyasi','askeri','milli','beni','seni','onu','bizi','sizi','onları']);
-    const miRx=/([\wığüşöçİĞÜŞÖÇ]+)(mı|mi|mu|mü)(sın|sin|sun|sün|m|ız|iz|uz|üz|nız|niz|nuz|nüz|lar|ler)?\b/gi;
+    // NOT: JS'nin yerleşik \b sınırı yalnızca [A-Za-z0-9_] karakterlerini "kelime karakteri" sayar.
+    // Bu yüzden ı/ğ/ü/ş/ö/ç harflerinden hemen sonra \b kullanmak YANLIŞ kelime sınırları üretir
+    // (ör. "kalmıyor" kelimesinde "mı"dan sonraki "yor" kısmı \b'yi tetikleyip "kalmı" + "yor" gibi
+    // hatalı bölünmelere, dolayısıyla "kal mıyor" gibi yanlış önerilere yol açıyordu).
+    // Bunun yerine dosyanın başında tanımlı, Türkçe harfleri de tanıyan WE (word-end) ileri-bakış
+    // ifadesini kullanıyoruz.
+    const miRx=new RegExp('([\\wığüşöçİĞÜŞÖÇ]+)(mı|mi|mu|mü)(sın|sin|sun|sün|m|ız|iz|uz|üz|nız|niz|nuz|nüz|lar|ler)?'+WE,'gi');
     let mm;
     while((mm=miRx.exec(text))!==null){
       const base=mm[1],part=mm[2],suf=mm[3]||'';
@@ -626,7 +632,8 @@ function analyze(text){
     }
 
     const KI_OK=new Set(['sanki','oysaki','mademki','belki','halbuki','meğerki','illaki','oysakide','belkide','çünkü']);
-    const kiRx=/\b([\wığüşöçİĞÜŞÖÇ]{3,})(ki)\b/gi;
+    // Aynı \b sorunu burada da olabileceği için Türkçe harfleri tanıyan WB/WE kullanılıyor.
+    const kiRx=new RegExp(WB+'([\\wığüşöçİĞÜŞÖÇ]{3,})(ki)'+WE,'gi');
     while((mm=kiRx.exec(text))!==null){
       const base=mm[1];
       if(KI_OK.has(tl(mm[0]))||KI_OK.has(tl(base))) continue;
