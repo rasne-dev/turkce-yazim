@@ -243,8 +243,8 @@ const SPELL=[
   ['bircok','birçok'],['birkac','birkaç'],
 
   // küçük, büyük
-  ['kucuk','küçük'],['kucuktur','küçüktür'],['kucuk','küçük'],
-  ['buyuk','büyük'],['buyuktur','büyüktür'],['buyuk','büyük'],
+  ['kucuk','küçük'],['kucuktur','küçüktür'],
+  ['buyuk','büyük'],['buyuktur','büyüktür'],
 
   // düşün ve türevleri
   ['dusun','düşün'],['dusunce','düşünce'],['dusunur','düşünür'],
@@ -383,7 +383,8 @@ const SPELL=[
   ['sirket','şirket'],['sirketin','şirketin'],
 
   // işte
-  ['iste','işte'],
+  // 'iste' → 'işte' kuralı kaldırıldı: 'iste' aynı zamanda 'istemek' fiilinin emir kipi
+  // ("Bunu iste!") olduğu için WARNS'a (bağlama göre soran) taşındı.
 
   // aşağı
   ['asagi','aşağı'],['asagida','aşağıda'],['asagidaki','aşağıdaki'],
@@ -424,7 +425,9 @@ const SPELL=[
   ['guzel','güzel'],['guzelde','güzelde'],
 
   // ünlü
-  ['unlu','ünlü'],
+  // 'unlu' → 'ünlü' kuralı kaldırıldı: 'unlu' aynı zamanda 'undan yapılan' anlamında
+  // gerçek bir kelime ("unlu mamuller" gibi çok yaygın bir ifadede) olduğu için
+  // WARNS'a (bağlama göre soran) taşındı.
 
   // güç
   ['guc','güç'],['guclu','güçlü'],['guctur','güçtür'],
@@ -483,7 +486,8 @@ const SPELL=[
   ['terketmek','terk etmek'],['terkediyorum','terk ediyorum'],
   ['arzetmek','arz etmek'],['arzetmedi','arz etmedi'],
 
-  ['bir takım','birtakım'], // bazı anlamındaysa
+  // 'bir takım' → 'birtakım' kuralı kaldırıldı: "bir takım" gerçek bir spor/grup takımı
+  // anlamında da kullanılabildiği için ("bir takım kurduk" gibi) WARNS'a taşındı.
   ['ilüzyon','illüzyon'],['iluzyon','illüzyon'],
   ['tabiki','tabii ki'],['tabi ki','tabii ki'],
   ['müsade','müsaade'],['müsaid','müsait'],
@@ -508,7 +512,10 @@ const DEDA=[
   ['bilede','bile de'],['oysakide','oysa ki de'],
   ['öncede','önce de'],['sonrada','sonra da'],['şimdide','şimdi de'],
   ['hepside','hepsi de'], // dikkat: 'hepsinde' (hal eki) farklıdır, o kural eklenmiyor
-  ['tekde','tek de'],['sadede','sade de'],
+  ['tekde','tek de'],
+  // 'sadede' → 'sade de' kuralı kaldırıldı: 'sadede' aynı zamanda "sadede gelmek/girmek"
+  // (konunun özüne gelmek) deyiminde bitişik ve doğru kullanılan gerçek bir kelime
+  // olduğu için WARNS'a (bağlama göre soran) taşındı.
 ];
 
 // ============================================================
@@ -581,6 +588,50 @@ function guessKiHal(m,text){
   return{opt:'A',reason:'Virgülle ayrılmadığı için çoğunlukla sıfat eki (bitişik) kullanımıdır: "'+m[1]+'ki".'};
 }
 
+// "iste": çoğunlukla "işte" (bakınız/şuracıkta) demektir; ama "izin/yardım/af iste" gibi
+// bir nesneden hemen sonra geliyorsa "istemek" fiilinin emir kipi olabilir.
+function guessIste(m,text){
+  const before=text.slice(Math.max(0,m.index-20),m.index);
+  const pw=before.match(/([\wığüşöçİĞÜŞÖÇ]+)\s*$/);
+  const prevWord=pw?tl(pw[1]):'';
+  const ISTE_TRIGGERS=new Set(['izin','yardım','af','özür','borç','para','ders','söz','hak']);
+  if(ISTE_TRIGGERS.has(prevWord)){
+    return{opt:'B',reason:'Önünde "'+pw[1]+'" gibi bir nesne olması, burada "istemek" fiilinin emir kipi ("iste!") olabileceğine işaret eder.'};
+  }
+  return{opt:'A',reason:'"işte" (bakınız/şuracıkta anlamında) günlük yazıda çok daha sık kullanılır.'};
+}
+
+// "sadede": "sadede gelmek/girmek" deyiminde bitişik ve doğrudur; "de/da" bağlaç
+// tekrarına işaret eden bir sıralama varsa ("sade de… X de…") ayrı bağlaç olabilir.
+function guessSadede(m,text){
+  const after=text.slice(m.index+m[0].length);
+  const clause=(after.match(/^[^.!?\n]*/)||[''])[0];
+  if(/\b(de|da)\b/i.test(clause)){
+    return{opt:'A',reason:'Aynı cümlede tekrar "de/da" geçmesi ("sade de… X de…" gibi bir sıralama), bağlaç kullanımına işaret eder.'};
+  }
+  return{opt:'B',reason:'"sadede gelmek/girmek" (konunun özüne gelmek) deyiminde bu haliyle bitişik ve doğru kullanılır.'};
+}
+
+// "unlu": "unlu mamuller" gibi undan yapılan anlamında da kullanılan gerçek bir kelime;
+// hemen ardından "mamul(ler)" gelmesi bu anlama işaret eder.
+function guessUnlu(m,text){
+  const after=text.slice(m.index+m[0].length,m.index+m[0].length+30);
+  if(/^\s*mam/i.test(after)){
+    return{opt:'B',reason:'Ardından "mamul/mamülleri" gelmesi "unlu mamuller" (undan yapılan ürünler) ifadesine işaret eder.'};
+  }
+  return{opt:'A',reason:'"ünlü" (meşhur anlamında) günlük yazıda çok daha sık kullanılır.'};
+}
+
+// "bir takım": spor/grup anlamındaki gerçek bir takımdan bahsediyorsa ayrı yazılır;
+// çevredeki kelimeler buna işaret ediyorsa "bir takım" olarak bırakılması önerilir.
+function guessBirTakim(m,text){
+  const ctx=text.slice(Math.max(0,m.index-40),m.index+m[0].length+40);
+  if(/\b(futbol|basketbol|voleybol|oyuncu|maç|lig|kurduk|kurdu|oluşturduk|oluşturdu|kaptan)\b/i.test(ctx)){
+    return{opt:'B',reason:'Çevredeki kelimeler (takım kurmak/futbol vb.) "bir takım"ın gerçek bir grup/ekip anlamında kullanıldığına işaret ediyor.'};
+  }
+  return{opt:'A',reason:'"birtakım" (bazı/çeşitli anlamında) yazıda çok daha sık kullanılan bitişik biçimdir.'};
+}
+
 // ============================================================
 // WARNS — Bağlama göre değişen (kullanıcı kararı gereken)
 // ============================================================
@@ -609,6 +660,46 @@ const WARNS=[
     makeOpts:m=>({
       A:{label:'Sıfat eki — bitişik yaz',sub:'"'+m[1]+'ki"',val:m[1]+'ki'},
       B:{label:'Bağlaç — ayrı bırak',sub:'Gerekirse önüne virgül koy',val:null},
+    })
+  },
+  {
+    rx:new RegExp(WB+'iste'+WE,'gi'),
+    rule:'"iste" mi, "işte" mi?',
+    detail:'İŞTE (bakınız/şuracıkta): "işte orada" ✓\nEMİR KİPİ (istemek fiili): "ondan izin iste" ✓',
+    guess:guessIste,
+    makeOpts:m=>({
+      A:{label:'"işte" — değiştir',sub:'bakınız/şuracıkta anlamı',val:'işte'},
+      B:{label:'"iste" — olduğu gibi bırak',sub:'istemek fiilinin emir kipi',val:null},
+    })
+  },
+  {
+    rx:new RegExp(WB+'sadede'+WE,'gi'),
+    rule:'"sadede" mi, "sade de" mi?',
+    detail:'DEYİM (bitişik): "sadede gelmek/girmek" ✓\nBĞLAÇ (ayrı): "kahve sade de olur, şekerli de" ✓',
+    guess:guessSadede,
+    makeOpts:m=>({
+      A:{label:'"sade de" — ayrı yaz',sub:'bağlaç kullanımı',val:'sade de'},
+      B:{label:'"sadede" — olduğu gibi bırak',sub:'"sadede gelmek/girmek" deyimi',val:null},
+    })
+  },
+  {
+    rx:new RegExp(WB+'unlu'+WE,'gi'),
+    rule:'"unlu" mu, "ünlü" mü?',
+    detail:'GERÇEK KELİME (undan yapılan): "unlu mamuller" ✓\nYANLIŞ YAZIM (meşhur anlamında): "ünlü sanatçı" ✓',
+    guess:guessUnlu,
+    makeOpts:m=>({
+      A:{label:'"ünlü" — değiştir',sub:'meşhur anlamı',val:'ünlü'},
+      B:{label:'"unlu" — olduğu gibi bırak',sub:'undan yapılan anlamı',val:null},
+    })
+  },
+  {
+    rx:new RegExp(WB+'bir'+WE+'\\s+'+WB+'takım'+WE,'gi'),
+    rule:'"bir takım" mı, "birtakım" mı?',
+    detail:'GERÇEK GRUP (ayrı): "bir takım kurduk" ✓\nBAZI/ÇEŞİTLİ (bitişik): "birtakım sorunlar" ✓',
+    guess:guessBirTakim,
+    makeOpts:m=>({
+      A:{label:'"birtakım" — bitişik yaz',sub:'bazı/çeşitli anlamı',val:'birtakım'},
+      B:{label:'"bir takım" — olduğu gibi bırak',sub:'gerçek bir grup/ekip anlamı',val:null},
     })
   },
 ];
