@@ -886,7 +886,8 @@ function analyze(text){
   }
 
   // Kısaltma/sayı + ek → kesme işareti
-  const r7=/([A-ZİĞÜŞÖÇ]{2,}|\d+)(nın|nin|nun|nün|nda|nde|ndan|nden|ya|ye|yı|yi|yu|yü|yla|yle|da|de|ta|te|dan|den|tan|ten|ın|in|un|ün|n|m)\b/g;
+  // (Aynı \b sorunu: "yı", "yü" gibi Türkçe harfle biten eklerden sonra WE kullanıyoruz.)
+  const r7=new RegExp('([A-ZİĞÜŞÖÇ]{2,}|\\d+)(nın|nin|nun|nün|nda|nde|ndan|nden|ya|ye|yı|yi|yu|yü|yla|yle|da|de|ta|te|dan|den|tan|ten|ın|in|un|ün|n|m)'+WE,'g');
   while((m=r7.exec(text))!==null){
     const prev=m.index>0?text[m.index-1]:null;
     if(prev==="'"||prev==='\u2019') continue;
@@ -1021,7 +1022,12 @@ function fixByType(types){
     .sort((a,b)=>b.start-a.start);
   let t=curText;
   for(const iss of safe) t=t.slice(0,iss.start)+iss.suggestions[0]+t.slice(iss.end);
-  curText=t;document.getElementById('inp').value=t;ignored.clear();run();
+  // NOT: Burada ignored.clear() ÇAĞRILMIYOR — aksi halde kullanıcının daha önce
+  // "Yoksay" dediği veya "Kontrol Edin" popup'ında "olduğu gibi bırak" seçtiği
+  // kelimeler, herhangi bir toplu düzelt butonuna basıldığında sessizce geri
+  // gelirdi. ignored kümesi kelime+tür bazlı olduğu için metin değişse de
+  // geçerliliğini korur, temizlemeye gerek yoktur.
+  curText=t;document.getElementById('inp').value=t;run();
 }
 
 // "Kontrol Edin" (warn) türündeki sorunlarda en olası tahmini (varsa) toplu uygular.
@@ -1095,6 +1101,12 @@ document.getElementById('smpBtn').addEventListener('click',()=>{
   autoResize.call(document.getElementById('inp'));
   document.getElementById('cc').textContent=
     document.getElementById('inp').value.length.toLocaleString('tr-TR')+' karakter';
+  // NOT: .value ataması JS'te 'input' olayını TETİKLEMEZ, bu yüzden otomatik
+  // analiz/kaydetme mekanizması (debounce'lu run() ve localStorage taslağı)
+  // devreye girmiyordu — örnek metin ekrana geliyor ama hiçbir hata
+  // işaretlenmiyordu, kullanıcı ayrıca "Kontrol Et"e basmak zorunda kalıyordu.
+  try{localStorage.setItem('ty_draft',val);}catch(e){}
+  run();
 });
 try{
   const saved=localStorage.getItem('ty_draft');
