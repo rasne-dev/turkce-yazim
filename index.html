@@ -33,6 +33,8 @@
   .tlb{display:flex;align-items:center;gap:.65rem;margin-top:1rem;flex-wrap:wrap}
   .btn{padding:.52rem 1.2rem;border:none;border-radius:7px;font-size:.88rem;font-weight:600;cursor:pointer;font-family:var(--f);transition:background .15s,transform .1s;display:inline-flex;align-items:center;gap:.3rem}
   .btn:active{transform:scale(.97)}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .btn:disabled:active{transform:none}
   .btn-p{background:var(--crimson);color:#fff}.btn-p:hover{background:var(--crimson2)}
   .btn-g{background:none;color:var(--slate);border:1.5px solid var(--border)}.btn-g:hover{border-color:var(--slate);color:var(--ink)}
   .btn-xs{padding:.35rem .75rem;font-size:.75rem;border-radius:6px}
@@ -61,6 +63,8 @@
   #otxt{font-size:1rem;line-height:1.85;white-space:pre-wrap;word-break:break-word}
   /* highlights */
   .h-sp,.h-gr,.h-wn,.h-pu,.h-su{cursor:pointer;border-radius:2px;padding:0 1px;text-decoration:underline;text-decoration-skip-ink:none}
+  .h-sp:focus-visible,.h-gr:focus-visible,.h-wn:focus-visible,.h-pu:focus-visible,.h-su:focus-visible{outline:2px solid var(--crimson);outline-offset:1px}
+  .ii:focus-visible{outline:2px solid var(--crimson);outline-offset:-1px}
   .h-sp{background:var(--red-bg);text-decoration-style:wavy;text-decoration-color:var(--red)}.h-sp:hover{background:rgba(192,57,43,.14)}
   .h-gr{background:var(--pur-bg);text-decoration-style:wavy;text-decoration-color:var(--purp)}.h-gr:hover{background:rgba(124,58,237,.13)}
   .h-wn{background:var(--war-bg);text-decoration-style:dotted;text-decoration-color:var(--warn)}.h-wn:hover{background:rgba(180,83,9,.13)}
@@ -126,7 +130,8 @@
     <div class="tlb">
       <button class="btn btn-p" id="chkBtn">✓ Kontrol Et</button>
       <button class="btn btn-g" id="clrBtn">✕ Temizle</button>
-      <span class="cc" id="cc">0 karakter</span>
+      <button class="btn btn-g" id="undoBtn" disabled title="Son işlemi geri al">↩ Geri Al</button>
+      <span class="cc" id="cc">0 karakter · 0 kelime</span>
     </div>
   </div>
 
@@ -920,13 +925,52 @@ function analyze(text){
 let curText='',curIssues=[];
 const ignored=new Set();
 const HC={spell:'h-sp',gram:'h-gr',warn:'h-wn',punct:'h-pu',suggest:'h-su'};
+const LBL={spell:'Yazım Hatası',gram:'Dilbilgisi',warn:'Kontrol Edin',punct:'Noktalama',suggest:'Öneri'};
+
+// Karakter + kelime sayacı metnini üretir (ör. "142 karakter · 23 kelime").
+function countLabel(t){
+  const chars=t.length;
+  const words=t.trim()?(t.trim().match(/[\wığüşöçİĞÜŞÖÇ]+/g)||[]).length:0;
+  return chars.toLocaleString('tr-TR')+' karakter · '+words.toLocaleString('tr-TR')+' kelime';
+}
+
+// Metin kutusunu (textarea değeri, boy, sayaç, taslak kaydı) tek yerden güncelleyen
+// ortak yardımcı. Önceden fixByType/fixWarnByGuess/TY.fix bu adımları atlıyor,
+// bu yüzden düzeltme sonrası kutu boyu ayarlanmıyor ve taslak kaydedilmiyordu.
+function setEditorText(t){
+  curText=t;
+  const el=document.getElementById('inp');
+  el.value=t;
+  autoResize.call(el);
+  document.getElementById('cc').textContent=countLabel(t);
+  try{localStorage.setItem('ty_draft',t);}catch(e){}
+}
+
+// ---- Geri Al (Undo) ----
+// Metni veya yoksayılanlar listesini değiştiren her işlemden önce anlık bir
+// kopya (snapshot) tutuyoruz; "↩ Geri Al" butonu bu kopyaları LIFO sırayla geri yükler.
+const undoStack=[];
+function snapshotUndo(){
+  undoStack.push({text:curText,ignored:new Set(ignored)});
+  if(undoStack.length>50) undoStack.shift();
+  const b=document.getElementById('undoBtn');if(b)b.disabled=false;
+}
+function undo(){
+  const st=undoStack.pop();
+  if(!st) return;
+  ignored.clear();
+  for(const v of st.ignored) ignored.add(v);
+  setEditorText(st.text);
+  closePop();run();
+  if(!undoStack.length){const b=document.getElementById('undoBtn');if(b)b.disabled=true;}
+}
 
 function renderOut(text,issues){
   let html='',pos=0;
   for(let i=0;i<issues.length;i++){
     const iss=issues[i];
     html+=esc(text.slice(pos,iss.start)).replace(/\n/g,'<br>');
-    html+=`<span class="${HC[iss.type]}" onclick="TY.pop(event,${i})">${esc(iss.word)||'&nbsp;&nbsp;'}</span>`;
+    html+=`<span class="${HC[iss.type]}" tabindex="0" role="button" aria-label="${esc(LBL[iss.type])}: ${esc(iss.word.trim()||'boşluk')}" onclick="TY.pop(event,${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();TY.pop(event,${i})}">${esc(iss.word)||'&nbsp;&nbsp;'}</span>`;
     pos=iss.end;
   }
   return html+esc(text.slice(pos)).replace(/\n/g,'<br>');
@@ -936,7 +980,7 @@ function renderSide(issues){
   return issues.map((iss,i)=>{
     const w=iss.word.trim()||'(boşluk)';
     const s=iss.suggestions[0]?`<div class="is">→ ${esc(iss.suggestions[0])}</div>`:'';
-    return`<div class="ii ${iss.type}" onclick="TY.pop(null,${i})">
+    return`<div class="ii ${iss.type}" tabindex="0" role="button" aria-label="${esc(LBL[iss.type])}: ${esc(w)} — ${esc(iss.msg)}" onclick="TY.pop(null,${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();TY.pop(null,${i})}">
       <div class="iw">${esc(w)}</div><div class="im">${esc(iss.msg)}</div>${s}</div>`;
   }).join('');
 }
@@ -957,7 +1001,6 @@ window.TY={
   pop(ev,idx){
     if(ev) ev.stopPropagation();
     const iss=curIssues[idx];if(!iss)return;
-    const LBL={spell:'Yazım Hatası',gram:'Dilbilgisi',warn:'Kontrol Edin',punct:'Noktalama',suggest:'Öneri'};
     const p=document.getElementById('pb');p.textContent=LBL[iss.type];p.className='pb '+iss.type;
     document.getElementById('pw').textContent=iss.word.trim()||'(boşluk)';
     document.getElementById('pm').textContent=iss.msg;
@@ -990,14 +1033,17 @@ window.TY={
   },
   fix(idx,sug){
     const iss=curIssues[idx];if(!iss)return;
-    curText=curText.slice(0,iss.start)+sug+curText.slice(iss.end);
-    document.getElementById('inp').value=curText;
+    snapshotUndo();
+    setEditorText(curText.slice(0,iss.start)+sug+curText.slice(iss.end));
     closePop();run();
   },
-  ign(word,type){ignored.add((type||'')+'|'+tl(word));closePop();run();}
+  ign(word,type){snapshotUndo();ignored.add((type||'')+'|'+tl(word));closePop();run();}
 };
 
 function closePop(){document.getElementById('pop').style.display='none'}
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&document.getElementById('pop').style.display!=='none') closePop();
+});
 
 function run(){
   curText=document.getElementById('inp').value;
@@ -1017,17 +1063,25 @@ function run(){
 }
 
 function fixByType(types){
-  const safe=curIssues
-    .filter(i=>types.includes(i.type)&&i.type!=='warn'&&i.suggestions.length===1)
-    .sort((a,b)=>b.start-a.start);
+  snapshotUndo();
   let t=curText;
-  for(const iss of safe) t=t.slice(0,iss.start)+iss.suggestions[0]+t.slice(iss.end);
-  // NOT: Burada ignored.clear() ÇAĞRILMIYOR — aksi halde kullanıcının daha önce
-  // "Yoksay" dediği veya "Kontrol Edin" popup'ında "olduğu gibi bırak" seçtiği
-  // kelimeler, herhangi bir toplu düzelt butonuna basıldığında sessizce geri
-  // gelirdi. ignored kümesi kelime+tür bazlı olduğu için metin değişse de
-  // geçerliliğini korur, temizlemeye gerek yoktur.
-  curText=t;document.getElementById('inp').value=t;run();
+  // NOT: Tek geçiş yeterli değildi — bir hatayı düzeltmek bazen (ör. boşluk/uzunluk
+  // değişimiyle) YENİ bir hatayı ortaya çıkarabiliyordu, bu da kullanıcının aynı
+  // butona birkaç kez basmasını gerektiriyordu. Artık her turda metni yeniden
+  // analiz edip, düzeltilecek bir şey kalmayana kadar (veya güvenlik sınırına
+  // ulaşana kadar) otomatik olarak tekrarlıyoruz.
+  for(let pass=0;pass<8;pass++){
+    const issues=analyze(t).filter(i=>!ignored.has(i.type+'|'+tl(i.word)));
+    const safe=issues
+      .filter(i=>types.includes(i.type)&&i.type!=='warn'&&i.suggestions.length===1)
+      .sort((a,b)=>b.start-a.start);
+    if(!safe.length) break;
+    for(const iss of safe) t=t.slice(0,iss.start)+iss.suggestions[0]+t.slice(iss.end);
+  }
+  // NOT: ignored.clear() ÇAĞRILMIYOR — aksi halde kullanıcının daha önce "Yoksay"
+  // dediği veya "Kontrol Edin" popup'ında "olduğu gibi bırak" seçtiği kelimeler,
+  // herhangi bir toplu düzelt butonuna basıldığında sessizce geri gelirdi.
+  setEditorText(t);run();
 }
 
 // "Kontrol Edin" (warn) türündeki sorunlarda en olası tahmini (varsa) toplu uygular.
@@ -1035,25 +1089,26 @@ function fixByType(types){
 // o kelimeyi bir daha uyarı olarak göstermemek için yoksayılanlara ekler.
 // Tahmini olmayan (belirsiz) durumlara dokunulmaz, onlar listede kalmaya devam eder.
 function fixWarnByGuess(){
+  snapshotUndo();
   const warns=curIssues.filter(i=>i.type==='warn'&&i.guess);
   const toFix=warns.filter(i=>i.guess.opt==='A'&&i.optA.val).sort((a,b)=>b.start-a.start);
   let t=curText;
   for(const iss of toFix) t=t.slice(0,iss.start)+iss.optA.val+t.slice(iss.end);
   for(const iss of warns.filter(i=>i.guess.opt==='B')) ignored.add('warn|'+tl(iss.word));
-  curText=t;document.getElementById('inp').value=t;run();
+  setEditorText(t);run();
 }
 
 document.getElementById('chkBtn').addEventListener('click',run);
 document.getElementById('clrBtn').addEventListener('click',()=>{
+  snapshotUndo();
   document.getElementById('inp').value='';
   ['statsBar','res'].forEach(id=>document.getElementById(id).style.display='none');
-  document.getElementById('cc').textContent='0 karakter';
+  document.getElementById('cc').textContent=countLabel('');
   curText='';curIssues=[];ignored.clear();closePop();
   try{localStorage.removeItem('ty_draft');}catch(e){}
 });
 document.getElementById('inp').addEventListener('input',()=>{
-  document.getElementById('cc').textContent=
-    document.getElementById('inp').value.length.toLocaleString('tr-TR')+' karakter';
+  document.getElementById('cc').textContent=countLabel(document.getElementById('inp').value);
 });
 document.getElementById('inp').addEventListener('keydown',e=>{
   if(e.ctrlKey&&e.key==='Enter'){e.preventDefault();run();}
@@ -1097,22 +1152,16 @@ document.getElementById('smpBtn').addEventListener('click',()=>{
     "masada ki kitabı hemde dün okudum, çünkü ki sınav vardı.\n"+
     "Türkiyede herkes bu konuyu biliyo.bu çok önemli bir konu!\n"+
     "bende para yok ama ben de bu konuya katılıyorum.";
-  document.getElementById('inp').value=val;
-  autoResize.call(document.getElementById('inp'));
-  document.getElementById('cc').textContent=
-    document.getElementById('inp').value.length.toLocaleString('tr-TR')+' karakter';
-  // NOT: .value ataması JS'te 'input' olayını TETİKLEMEZ, bu yüzden otomatik
-  // analiz/kaydetme mekanizması (debounce'lu run() ve localStorage taslağı)
-  // devreye girmiyordu — örnek metin ekrana geliyor ama hiçbir hata
-  // işaretlenmiyordu, kullanıcı ayrıca "Kontrol Et"e basmak zorunda kalıyordu.
-  try{localStorage.setItem('ty_draft',val);}catch(e){}
+  snapshotUndo();
+  setEditorText(val);
   run();
 });
+document.getElementById('undoBtn').addEventListener('click',undo);
 try{
   const saved=localStorage.getItem('ty_draft');
   if(saved){
     inp.value=saved;
-    document.getElementById('cc').textContent=saved.length.toLocaleString('tr-TR')+' karakter';
+    document.getElementById('cc').textContent=countLabel(saved);
     autoResize.call(inp);
     run();
   }
