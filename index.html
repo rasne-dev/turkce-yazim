@@ -35,13 +35,19 @@
   .btn:active{transform:scale(.97)}
   .btn:disabled{opacity:.4;cursor:not-allowed}
   .btn:disabled:active{transform:none}
+  .draftNotice{display:flex;align-items:center;justify-content:space-between;gap:.5rem;font-size:.76rem;color:var(--slate);background:rgba(37,99,235,.06);border:1px solid rgba(37,99,235,.15);border-radius:7px;padding:.4rem .6rem;margin-bottom:.5rem}
+  .draftNotice button{background:none;border:none;color:var(--slate);cursor:pointer;font-size:.8rem;padding:.1rem .3rem;line-height:1}
+  .draftNotice button:hover{color:var(--ink)}
   .btn-p{background:var(--crimson);color:#fff}.btn-p:hover{background:var(--crimson2)}
   .btn-g{background:none;color:var(--slate);border:1.5px solid var(--border)}.btn-g:hover{border-color:var(--slate);color:var(--ink)}
   .btn-xs{padding:.35rem .75rem;font-size:.75rem;border-radius:6px}
   .cc{font-size:.78rem;color:var(--slate);opacity:.7;margin-left:.25rem}
   /* stats */
   .sbar{display:flex;align-items:center;gap:.85rem;background:#fff;border-radius:var(--r);padding:.7rem 1.25rem;box-shadow:var(--shadow);margin-bottom:.6rem;flex-wrap:wrap}
-  .st{display:flex;align-items:center;gap:.38rem;font-size:.83rem;font-weight:600}
+  .st{display:flex;align-items:center;gap:.38rem;font-size:.83rem;font-weight:600;cursor:pointer;padding:.2rem .45rem;border-radius:6px;border:1.5px solid transparent;transition:background .12s,border-color .12s}
+  .st:hover{background:rgba(0,0,0,.035)}
+  .st.active{background:rgba(0,0,0,.05);border-color:currentColor}
+  .st:focus-visible{outline:2px solid var(--crimson);outline-offset:1px}
   .sd{width:8px;height:8px;border-radius:50%}
   .s-sp{color:var(--red)}.s-sp .sd{background:var(--red)}
   .s-gr{color:var(--purp)}.s-gr .sd{background:var(--purp)}
@@ -126,6 +132,10 @@
       <span class="lbl">Denetlenecek metin</span>
       <button class="smp" id="smpBtn">Örnek metin →</button>
     </div>
+    <div id="draftNotice" class="draftNotice" style="display:none">
+      💾 Önceki taslağınız geri yüklendi.
+      <button type="button" id="draftDismiss" aria-label="Bildirimi kapat">✕</button>
+    </div>
     <textarea id="inp" placeholder="Metni buraya yazın veya yapıştırın… (Ctrl+Enter: kontrol et)"></textarea>
     <div class="tlb">
       <button class="btn btn-p" id="chkBtn">✓ Kontrol Et</button>
@@ -137,12 +147,12 @@
 
   <div id="statsBar" style="display:none">
     <div class="sbar">
-      <div class="st s-sp"><div class="sd"></div><span id="cSp">0</span> yazım</div>
-      <div class="st s-gr"><div class="sd"></div><span id="cGr">0</span> dilbilgisi</div>
-      <div class="st s-wn"><div class="sd"></div><span id="cWn">0</span> kontrol et</div>
-      <div class="st s-pu"><div class="sd"></div><span id="cPu">0</span> noktalama</div>
-      <div class="st s-su"><div class="sd"></div><span id="cSu">0</span> öneri</div>
-      <div class="st" style="color:var(--ink)"><div class="sd" style="background:var(--ink)"></div><span id="cTo">0</span> toplam</div>
+      <div class="st s-sp" data-type="spell" tabindex="0" role="button" title="Sadece yazım hatalarını göster"><div class="sd"></div><span id="cSp">0</span> yazım</div>
+      <div class="st s-gr" data-type="gram" tabindex="0" role="button" title="Sadece dilbilgisi hatalarını göster"><div class="sd"></div><span id="cGr">0</span> dilbilgisi</div>
+      <div class="st s-wn" data-type="warn" tabindex="0" role="button" title="Sadece kontrol edilmesi gerekenleri göster"><div class="sd"></div><span id="cWn">0</span> kontrol et</div>
+      <div class="st s-pu" data-type="punct" tabindex="0" role="button" title="Sadece noktalama hatalarını göster"><div class="sd"></div><span id="cPu">0</span> noktalama</div>
+      <div class="st s-su" data-type="suggest" tabindex="0" role="button" title="Sadece önerileri göster"><div class="sd"></div><span id="cSu">0</span> öneri</div>
+      <div class="st active" data-type="" style="color:var(--ink)" tabindex="0" role="button" title="Tümünü göster"><div class="sd" style="background:var(--ink)"></div><span id="cTo">0</span> toplam</div>
       <div class="sbar-r">
         <button class="btn btn-g btn-xs" id="cpyBtn">⎘ Kopyala</button>
       </div>
@@ -922,7 +932,7 @@ function analyze(text){
 // ============================================================
 // DURUM & RENDER
 // ============================================================
-let curText='',curIssues=[];
+let curText='',curIssues=[],displayedIssues=[],activeFilter=null;
 const ignored=new Set();
 const HC={spell:'h-sp',gram:'h-gr',warn:'h-wn',punct:'h-pu',suggest:'h-su'};
 const LBL={spell:'Yazım Hatası',gram:'Dilbilgisi',warn:'Kontrol Edin',punct:'Noktalama',suggest:'Öneri'};
@@ -985,12 +995,19 @@ function renderSide(issues){
   }).join('');
 }
 
-function renderRes(issues){
-  if(!issues.length) return`<div class="okcard">
+function renderRes(issues,isFiltered){
+  if(!issues.length){
+    if(isFiltered) return`<div class="okcard">
+      <div style="font-size:2.5rem;margin-bottom:.75rem">🔍</div>
+      <div style="font-size:1.1rem;font-weight:700;color:var(--ink)">Bu türde hata yok.</div>
+      <div style="color:var(--slate);font-size:.85rem;margin-top:.4rem">Diğer hataları görmek için "toplam"a tıklayarak filtreyi kaldırın.</div>
+    </div>`;
+    return`<div class="okcard">
     <div style="font-size:2.5rem;margin-bottom:.75rem">✅</div>
     <div style="font-size:1.1rem;font-weight:700;color:var(--green)">Harika! Hata bulunamadı.</div>
     <div style="color:var(--slate);font-size:.85rem;margin-top:.4rem">Metninizde tespit edilebilen bir sorun yok.</div>
   </div>`;
+  }
   return`<div class="rgrid">
     <div class="ocard"><div class="ctit">Denetlenen Metin</div><div id="otxt">${renderOut(curText,issues)}</div></div>
     <div class="scard"><div class="ctit">Hatalar &amp; Öneriler (${issues.length})</div><div id="slist">${renderSide(issues)}</div></div>
@@ -1000,7 +1017,7 @@ function renderRes(issues){
 window.TY={
   pop(ev,idx){
     if(ev) ev.stopPropagation();
-    const iss=curIssues[idx];if(!iss)return;
+    const iss=displayedIssues[idx];if(!iss)return;
     const p=document.getElementById('pb');p.textContent=LBL[iss.type];p.className='pb '+iss.type;
     document.getElementById('pw').textContent=iss.word.trim()||'(boşluk)';
     document.getElementById('pm').textContent=iss.msg;
@@ -1024,15 +1041,26 @@ window.TY={
     if(iss.type!=='warn'){const b=document.createElement('button');b.className='pa';b.textContent='Yoksay';b.onclick=()=>TY.ign(iss.word,iss.type);ft.appendChild(b);}
     const pop=document.getElementById('pop');
     pop.style.display='block';pop.style.transform='';
-    if(ev){
+    // NOT: Klavye ile (Enter/Boşluk) açılan popup'larda 'ev' bir KeyboardEvent'tir ve
+    // clientX/clientY TANIMSIZDIR (fare olayları gibi koordinat taşımaz). Bunu fark
+    // etmeden ev.clientX kullanmak popup'ı "NaNpx" gibi geçersiz bir konuma
+    // gönderiyordu. Klavye tetiklemelerinde odaklanılan elemanın konumunu kullanıyoruz.
+    const isMouse=ev&&typeof ev.clientX==='number'&&(ev.clientX!==0||ev.clientY!==0||ev.type.startsWith('click')||ev.type.startsWith('mouse'));
+    if(isMouse){
       let x=ev.clientX+10,y=ev.clientY+14;
       if(x+276>window.innerWidth) x=ev.clientX-284;
       if(y+360>window.innerHeight) y=ev.clientY-370;
       pop.style.left=Math.max(4,x)+'px';pop.style.top=Math.max(4,y)+'px';
+    } else if(ev&&ev.target&&ev.target.getBoundingClientRect){
+      const r=ev.target.getBoundingClientRect();
+      let x=r.left,y=r.bottom+8;
+      if(x+276>window.innerWidth) x=r.right-276;
+      if(y+360>window.innerHeight) y=Math.max(4,r.top-368);
+      pop.style.left=Math.max(4,x)+'px';pop.style.top=Math.max(4,y)+'px';
     } else {pop.style.left='50%';pop.style.top='40%';pop.style.transform='translate(-50%,-50%)';}
   },
   fix(idx,sug){
-    const iss=curIssues[idx];if(!iss)return;
+    const iss=displayedIssues[idx];if(!iss)return;
     snapshotUndo();
     setEditorText(curText.slice(0,iss.start)+sug+curText.slice(iss.end));
     closePop();run();
@@ -1049,7 +1077,7 @@ function run(){
   curText=document.getElementById('inp').value;
   if(!curText.trim()){
     ['statsBar','res'].forEach(id=>document.getElementById(id).style.display='none');
-    curIssues=[];closePop();return;
+    curIssues=[];displayedIssues=[];closePop();return;
   }
   curIssues=analyze(curText).filter(i=>!ignored.has(i.type+'|'+tl(i.word)));
   document.getElementById('cSp').textContent=curIssues.filter(i=>i.type==='spell').length;
@@ -1059,8 +1087,29 @@ function run(){
   document.getElementById('cSu').textContent=curIssues.filter(i=>i.type==='suggest').length;
   document.getElementById('cTo').textContent=curIssues.length;
   document.getElementById('statsBar').style.display='block';
-  const ra=document.getElementById('res');ra.style.display='block';ra.innerHTML=renderRes(curIssues);
+  renderCurrent();
 }
+
+// Sadece görünümü (filtreye göre) yeniden çizer; metni tekrar analiz etmez.
+// Filtre değiştiğinde run()'ı (ve dolayısıyla analyze()'i) tekrar çağırmaya gerek yok.
+function renderCurrent(){
+  displayedIssues=activeFilter?curIssues.filter(i=>i.type===activeFilter):curIssues;
+  const ra=document.getElementById('res');ra.style.display='block';ra.innerHTML=renderRes(displayedIssues,!!activeFilter);
+}
+
+// İstatistik rozetlerine tıklayınca sadece o türdeki hataları gösteren filtre.
+// Aynı rozete tekrar tıklamak veya "toplam"a tıklamak filtreyi kaldırır.
+function setFilter(t){
+  activeFilter=(t===''||activeFilter===t)?null:t;
+  document.querySelectorAll('#statsBar .st[data-type]').forEach(el=>{
+    el.classList.toggle('active',activeFilter?el.dataset.type===activeFilter:el.dataset.type==='');
+  });
+  if(document.getElementById('res').style.display!=='none') renderCurrent();
+}
+document.querySelectorAll('#statsBar .st[data-type]').forEach(el=>{
+  el.addEventListener('click',()=>setFilter(el.dataset.type));
+  el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();setFilter(el.dataset.type);}});
+});
 
 function fixByType(types){
   snapshotUndo();
@@ -1104,7 +1153,8 @@ document.getElementById('clrBtn').addEventListener('click',()=>{
   document.getElementById('inp').value='';
   ['statsBar','res'].forEach(id=>document.getElementById(id).style.display='none');
   document.getElementById('cc').textContent=countLabel('');
-  curText='';curIssues=[];ignored.clear();closePop();
+  document.getElementById('draftNotice').style.display='none';
+  curText='';curIssues=[];displayedIssues=[];ignored.clear();closePop();
   try{localStorage.removeItem('ty_draft');}catch(e){}
 });
 document.getElementById('inp').addEventListener('input',()=>{
@@ -1154,6 +1204,7 @@ document.getElementById('smpBtn').addEventListener('click',()=>{
     "bende para yok ama ben de bu konuya katılıyorum.";
   snapshotUndo();
   setEditorText(val);
+  document.getElementById('draftNotice').style.display='none';
   run();
 });
 document.getElementById('undoBtn').addEventListener('click',undo);
@@ -1164,8 +1215,13 @@ try{
     document.getElementById('cc').textContent=countLabel(saved);
     autoResize.call(inp);
     run();
+    document.getElementById('draftNotice').style.display='flex';
   }
 }catch(e){}
+document.getElementById('draftDismiss').addEventListener('click',()=>{
+  document.getElementById('draftNotice').style.display='none';
+});
+inp.addEventListener('input',()=>{document.getElementById('draftNotice').style.display='none';},{once:true});
 document.getElementById('inp').focus();
 })();
 </script>
