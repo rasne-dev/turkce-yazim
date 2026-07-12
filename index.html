@@ -60,7 +60,14 @@
   .fbar-lbl{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--slate);margin-right:.2rem}
   /* results */
   .rgrid{display:grid;grid-template-columns:1fr 300px;gap:1rem;align-items:start}
-  @media(max-width:720px){.rgrid{grid-template-columns:1fr}}
+  @media(max-width:720px){
+    .rgrid{grid-template-columns:1fr}
+    .scard{position:static;max-height:none;overflow-y:visible}
+  }
+  @media(max-width:480px){
+    .hdr{padding:0 1rem}
+    .btag,.bdg{display:none}
+  }
   .ocard,.scard{background:#fff;border-radius:var(--r);box-shadow:var(--shadow);padding:1.5rem}
   .scard{max-height:600px;overflow-y:auto;position:sticky;top:1rem;padding:1.25rem}
   .scard::-webkit-scrollbar{width:3px}
@@ -92,7 +99,7 @@
   /* ok card */
   .okcard{background:#fff;border-radius:var(--r);box-shadow:var(--shadow);padding:3rem 2rem;text-align:center}
   /* popup */
-  #pop{position:fixed;background:#fff;border-radius:12px;box-shadow:0 8px 40px rgba(0,0,0,.18);padding:1.1rem;width:268px;z-index:9999;border:1px solid var(--border)}
+  #pop{position:fixed;background:#fff;border-radius:12px;box-shadow:0 8px 40px rgba(0,0,0,.18);padding:1.1rem;width:268px;max-width:calc(100vw - 24px);z-index:9999;border:1px solid var(--border)}
   .ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem}
   .pb{font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:.18rem .45rem;border-radius:4px}
   .pb.spell{background:var(--red-bg);color:var(--red)}.pb.gram{background:var(--pur-bg);color:var(--purp)}
@@ -170,8 +177,8 @@
   <div id="res" style="display:none"></div>
 </div>
 
-<div id="pop" style="display:none">
-  <div class="ph"><span class="pb" id="pb"></span><span class="pc" id="pc">×</span></div>
+<div id="pop" style="display:none" role="dialog" aria-modal="true" aria-labelledby="pw">
+  <div class="ph"><span class="pb" id="pb"></span><span class="pc" id="pc" tabindex="0" role="button" aria-label="Kapat">×</span></div>
   <div class="pw" id="pw"></div>
   <div class="pm" id="pm"></div>
   <div id="pbody"></div>
@@ -1058,6 +1065,8 @@ window.TY={
       if(y+360>window.innerHeight) y=Math.max(4,r.top-368);
       pop.style.left=Math.max(4,x)+'px';pop.style.top=Math.max(4,y)+'px';
     } else {pop.style.left='50%';pop.style.top='40%';pop.style.transform='translate(-50%,-50%)';}
+    lastFocused=(ev&&ev.target)||document.activeElement;
+    document.getElementById('pc').focus();
   },
   fix(idx,sug){
     const iss=displayedIssues[idx];if(!iss)return;
@@ -1068,7 +1077,15 @@ window.TY={
   ign(word,type){snapshotUndo();ignored.add((type||'')+'|'+tl(word));closePop();run();}
 };
 
-function closePop(){document.getElementById('pop').style.display='none'}
+let lastFocused=null;
+function closePop(){
+  document.getElementById('pop').style.display='none';
+  if(lastFocused&&lastFocused.focus){lastFocused.focus();}
+  lastFocused=null;
+}
+document.getElementById('pc').addEventListener('keydown',e=>{
+  if(e.key==='Enter'||e.key===' '){e.preventDefault();closePop();}
+});
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&document.getElementById('pop').style.display!=='none') closePop();
 });
