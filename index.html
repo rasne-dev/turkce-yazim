@@ -123,6 +123,11 @@
   .sb:hover{background:var(--mist);color:var(--crimson);font-weight:700}
   .pf{margin-top:.7rem;padding-top:.6rem;border-top:1px solid var(--border)}
   .pa{font-size:.71rem;color:var(--slate);background:none;border:none;cursor:pointer;font-family:var(--f);padding:0;text-decoration:underline;text-underline-offset:2px}
+  .pnav{display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-top:.6rem}
+  .pnb{font-size:.72rem;font-weight:600;color:var(--ink);background:none;border:1px solid var(--border);border-radius:6px;padding:.28rem .55rem;cursor:pointer;font-family:var(--f)}
+  .pnb:hover:not(:disabled){background:rgba(0,0,0,.04)}
+  .pnb:disabled{opacity:.35;cursor:not-allowed}
+  .pcnt{font-size:.7rem;color:var(--slate);font-weight:600}
   .pa:hover{color:var(--ink)}
 </style>
 </head>
@@ -166,10 +171,10 @@
     </div>
     <div class="fbar">
       <span class="fbar-lbl">Düzelt:</span>
-      <button class="btn btn-g btn-xs" id="fxAll">⚡ Tümünü</button>
-      <button class="btn btn-g btn-xs" id="fxSp">🔴 Yazım</button>
-      <button class="btn btn-g btn-xs" id="fxGr">🟣 Dilbilgisi</button>
-      <button class="btn btn-g btn-xs" id="fxPu">🟡 Noktalama</button>
+      <button class="btn btn-g btn-xs" id="fxAll" title="Tüm otomatik düzeltilebilir sorunları uygular">⚡ Tümünü</button>
+      <button class="btn btn-g btn-xs" id="fxSp" title="Sadece yazım hatalarını düzeltir">🔴 Yazım</button>
+      <button class="btn btn-g btn-xs" id="fxGr" title="Sadece dilbilgisi hatalarını düzeltir">🟣 Dilbilgisi</button>
+      <button class="btn btn-g btn-xs" id="fxPu" title="Sadece noktalama hatalarını düzeltir">🟡 Noktalama</button>
       <button class="btn btn-g btn-xs" id="fxWarn" title="Kontrol Et olarak işaretlenenlerde en olası tahmini uygular">🔎 Tahminle (Kontrol Et)</button>
     </div>
   </div>
@@ -299,7 +304,10 @@ const SPELL=[
 
   // değil mi (ayrı yazım)
   ['değilmi','değil mi'],['değilmiydi','değil miydi'],['değilmisin','değil misin'],
-  ['değilmisiniz','değil misiniz'],['değildir ki','değil dir ki'],
+  ['değilmisiniz','değil misiniz'],
+  // NOT: 'değildir ki' → 'değil dir ki' kuralı kaldırıldı. '-dir' bağlı bir ek olup
+  // ASLA ayrı bir kelime olarak yazılmaz; "değildir" zaten doğru yazımdır. Eski kural
+  // doğru yazılmış bir kelimeyi geçersiz bir biçime "düzeltiyordu".
   ['tamammı','tamam mı'],['olabilirmi','olabilir mi'],['mümkünmü','mümkün mü'],
   ['dogrumu','doğru mu'],
 
@@ -499,7 +507,7 @@ const SPELL=[
   ['antreman','antrenman'],
   ['döküman','doküman'],['dokumanı','dokümanı'],['dokumanda','dokümanda'],['insiyatif','inisiyatif'],
   ['mütevazi','mütevazı'],['klavuz','kılavuz'],
-  ['traş','tıraş'],['egzos','egzoz'],['eksoz','egzoz'],['egzos','egzoz'],
+  ['traş','tıraş'],['egzos','egzoz'],['eksoz','egzoz'],
   ['haftasonu','hafta sonu'],
   ['sağol','sağ ol'],['hoşgeldin','hoş geldin'],['hoşgeldiniz','hoş geldiniz'],
   ['yanyana','yan yana'],['elele','el ele'],['artarda','art arda'],
@@ -876,6 +884,12 @@ function analyze(text){
       suggestions:['…'],msg:'Üç nokta yerine "…" (elipsis) kullanılabilir'});
 
   // Cümle başı büyük harf
+  // NOT: Bir cümle "merhaba..." yerine "(merhaba...", "\"merhaba...", "-merhaba..."
+  // gibi açılış tırnağı/parantez/tire ile başlıyorsa, bu karakterler eskiden ss
+  // (cümle-başı) bayrağını erkenden sıfırlıyor ve asıl ilk harfe hiç ulaşılamadan
+  // büyük harf kontrolü devre dışı kalıyordu. Bu karakterleri, tam da bir cümle
+  // başlangıcındayken, boşluk gibi "şeffaf" sayıyoruz.
+  const OPEN_TRANSPARENT=/["'“‘«\(\[\{\-–—]/;
   let ss=true;
   for(let i=0;i<text.length;i++){
     const c=text[i];
@@ -884,7 +898,7 @@ function analyze(text){
       if(u!==c&&ok(i,i+1)){
         let isStart=true;
         let lb=i-1;
-        while(lb>=0&&/\s/.test(text[lb])) lb--;
+        while(lb>=0&&(/\s/.test(text[lb])||OPEN_TRANSPARENT.test(text[lb]))) lb--;
         if(lb>=0&&text[lb]==='.'){
           const pw=text.slice(0,lb).match(/[\wığüşöçİĞÜŞÖÇ]+$/);
           if(pw&&ABBRS.has(tl(pw[0]))) isStart=false;
@@ -904,7 +918,9 @@ function analyze(text){
         if(/\d/.test(text[i-1])&&/\d/.test(text[i+1])) isEnd=false;
       }
       if(isEnd) ss=true;
-    } else if(!/\s/.test(c)){ss=false;}
+    } else if(!/\s/.test(c)){
+      if(!(ss&&OPEN_TRANSPARENT.test(c))) ss=false;
+    }
   }
 
   // Kısaltma/sayı + ek → kesme işareti
@@ -1024,28 +1040,7 @@ function renderRes(issues,isFiltered){
 window.TY={
   pop(ev,idx){
     if(ev) ev.stopPropagation();
-    const iss=displayedIssues[idx];if(!iss)return;
-    const p=document.getElementById('pb');p.textContent=LBL[iss.type];p.className='pb '+iss.type;
-    document.getElementById('pw').textContent=iss.word.trim()||'(boşluk)';
-    document.getElementById('pm').textContent=iss.msg;
-    const body=document.getElementById('pbody');
-    if(iss.type==='warn'){
-      const g=iss.guess;
-      const guessBox=g?`<div class="wgb">🔎 <b>En olası:</b> ${esc(g.opt==='A'?iss.optA.label:iss.optB.label)} — ${esc(g.reason)}</div>`:'';
-      body.innerHTML=`<div class="wbox">
-        <div class="wbt">📌 ${esc(iss.rule)}</div>
-        <div class="wbr">${esc(iss.detail).replace(/\n/g,'<br>')}</div>
-      </div>
-      ${guessBox}
-      <div class="ol">Ne yapmak istersiniz?</div>
-      ${iss.optA.val?`<button class="ob${g&&g.opt==='A'?' obGuess':''}" onclick="TY.fix(${idx},${escAttr(iss.optA.val)})"><span class="oi">✏️</span><span class="ot">${esc(iss.optA.label)}${g&&g.opt==='A'?' ⭐':''}<span class="os">${esc(iss.optA.sub||'')}</span></span></button>`:''}
-      <button class="ob${g&&g.opt==='B'?' obGuess':''}" onclick="TY.ign(${escAttr(iss.word)},${escAttr(iss.type)})"><span class="oi">✓</span><span class="ot">${esc(iss.optB.label)}${g&&g.opt==='B'?' ⭐':''}<span class="os">${esc(iss.optB.sub||'')}</span></span></button>`;
-    } else if(iss.suggestions.length){
-      body.innerHTML='<div class="sl">Öneriler</div>'+
-        iss.suggestions.map(s=>`<button class="sb" onclick="TY.fix(${idx},${escAttr(s)})">${esc(s)}</button>`).join('');
-    } else { body.innerHTML='<div style="font-size:.76rem;color:var(--slate);font-style:italic">Öneri bulunamadı</div>'; }
-    const ft=document.getElementById('pf');ft.innerHTML='';
-    if(iss.type!=='warn'){const b=document.createElement('button');b.className='pa';b.textContent='Yoksay';b.onclick=()=>TY.ign(iss.word,iss.type);ft.appendChild(b);}
+    if(!TY.render(idx)) return;
     const pop=document.getElementById('pop');
     pop.style.display='block';pop.style.transform='';
     // NOT: Klavye ile (Enter/Boşluk) açılan popup'larda 'ev' bir KeyboardEvent'tir ve
@@ -1068,6 +1063,48 @@ window.TY={
     lastFocused=(ev&&ev.target)||document.activeElement;
     document.getElementById('pc').focus();
   },
+  // Popup içeriğini (konumunu DEĞİŞTİRMEDEN) çizer; hem ilk açılışta hem de
+  // "Sonraki/Önceki" ile gezinirken kullanılır. Başarılıysa true, geçersiz idx'te false döner.
+  render(idx){
+    const iss=displayedIssues[idx];if(!iss)return false;
+    curPopIdx=idx;
+    const p=document.getElementById('pb');p.textContent=LBL[iss.type];p.className='pb '+iss.type;
+    document.getElementById('pw').textContent=iss.word.trim()||'(boşluk)';
+    document.getElementById('pm').textContent=iss.msg;
+    const body=document.getElementById('pbody');
+    if(iss.type==='warn'){
+      const g=iss.guess;
+      const guessBox=g?`<div class="wgb">🔎 <b>En olası:</b> ${esc(g.opt==='A'?iss.optA.label:iss.optB.label)} — ${esc(g.reason)}</div>`:'';
+      body.innerHTML=`<div class="wbox">
+        <div class="wbt">📌 ${esc(iss.rule)}</div>
+        <div class="wbr">${esc(iss.detail).replace(/\n/g,'<br>')}</div>
+      </div>
+      ${guessBox}
+      <div class="ol">Ne yapmak istersiniz?</div>
+      ${iss.optA.val?`<button class="ob${g&&g.opt==='A'?' obGuess':''}" onclick="TY.fix(${idx},${escAttr(iss.optA.val)})"><span class="oi">✏️</span><span class="ot">${esc(iss.optA.label)}${g&&g.opt==='A'?' ⭐':''}<span class="os">${esc(iss.optA.sub||'')}</span></span></button>`:''}
+      <button class="ob${g&&g.opt==='B'?' obGuess':''}" onclick="TY.ign(${escAttr(iss.word)},${escAttr(iss.type)})"><span class="oi">✓</span><span class="ot">${esc(iss.optB.label)}${g&&g.opt==='B'?' ⭐':''}<span class="os">${esc(iss.optB.sub||'')}</span></span></button>`;
+    } else if(iss.suggestions.length){
+      body.innerHTML='<div class="sl">Öneriler</div>'+
+        iss.suggestions.map(s=>`<button class="sb" onclick="TY.fix(${idx},${escAttr(s)})">${esc(s)}</button>`).join('');
+    } else { body.innerHTML='<div style="font-size:.76rem;color:var(--slate);font-style:italic">Öneri bulunamadı</div>'; }
+    const ft=document.getElementById('pf');ft.innerHTML='';
+    if(iss.type!=='warn'){const b=document.createElement('button');b.className='pa';b.textContent='Yoksay';b.onclick=()=>TY.ign(iss.word,iss.type);ft.appendChild(b);}
+    if(displayedIssues.length>1){
+      const nav=document.createElement('div');nav.className='pnav';
+      const prevB=document.createElement('button');prevB.className='pnb';prevB.textContent='‹ Önceki';
+      prevB.disabled=idx<=0;prevB.onclick=(ev2)=>{ev2.stopPropagation();TY.nav(-1);};
+      const cnt=document.createElement('span');cnt.className='pcnt';cnt.textContent=(idx+1)+' / '+displayedIssues.length;
+      const nextB=document.createElement('button');nextB.className='pnb';nextB.textContent='Sonraki ›';
+      nextB.disabled=idx>=displayedIssues.length-1;nextB.onclick=(ev2)=>{ev2.stopPropagation();TY.nav(1);};
+      nav.append(prevB,cnt,nextB);ft.appendChild(nav);
+    }
+    return true;
+  },
+  nav(dir){
+    const ni=curPopIdx+dir;
+    if(ni<0||ni>=displayedIssues.length) return;
+    TY.render(ni);
+  },
   fix(idx,sug){
     const iss=displayedIssues[idx];if(!iss)return;
     snapshotUndo();
@@ -1076,6 +1113,7 @@ window.TY={
   },
   ign(word,type){snapshotUndo();ignored.add((type||'')+'|'+tl(word));closePop();run();}
 };
+let curPopIdx=-1;
 
 let lastFocused=null;
 function closePop(){
@@ -1088,6 +1126,10 @@ document.getElementById('pc').addEventListener('keydown',e=>{
 });
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&document.getElementById('pop').style.display!=='none') closePop();
+  if(document.getElementById('pop').style.display!=='none'){
+    if(e.key==='ArrowRight'){e.preventDefault();TY.nav(1);}
+    else if(e.key==='ArrowLeft'){e.preventDefault();TY.nav(-1);}
+  }
 });
 
 function run(){
@@ -1104,6 +1146,15 @@ function run(){
   document.getElementById('cSu').textContent=curIssues.filter(i=>i.type==='suggest').length;
   document.getElementById('cTo').textContent=curIssues.length;
   document.getElementById('statsBar').style.display='block';
+  // Bir kategoride otomatik düzeltilebilecek (tek öneriye sahip) hiç sorun yoksa,
+  // o kategorinin "Düzelt" butonu artık pasif — tıklayınca sessizce hiçbir şey
+  // olmaması yerine, buton zaten tıklanamaz görünüyor.
+  const fixable=t=>curIssues.some(i=>i.type===t&&i.suggestions.length===1);
+  document.getElementById('fxSp').disabled=!fixable('spell');
+  document.getElementById('fxGr').disabled=!fixable('gram');
+  document.getElementById('fxPu').disabled=!fixable('punct');
+  document.getElementById('fxAll').disabled=!['spell','gram','punct','suggest'].some(fixable);
+  document.getElementById('fxWarn').disabled=!curIssues.some(i=>i.type==='warn'&&i.guess);
   renderCurrent();
 }
 
@@ -1178,7 +1229,7 @@ document.getElementById('inp').addEventListener('input',()=>{
   document.getElementById('cc').textContent=countLabel(document.getElementById('inp').value);
 });
 document.getElementById('inp').addEventListener('keydown',e=>{
-  if(e.ctrlKey&&e.key==='Enter'){e.preventDefault();run();}
+  if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();run();}
 });
 document.getElementById('fxAll').addEventListener('click',()=>fixByType(['spell','gram','punct','suggest']));
 document.getElementById('fxSp').addEventListener('click',()=>fixByType(['spell']));
@@ -1202,10 +1253,32 @@ inp.addEventListener('input',()=>{
 });
 
 document.getElementById('cpyBtn').addEventListener('click',()=>{
-  navigator.clipboard.writeText(document.getElementById('inp').value).then(()=>{
-    const b=document.getElementById('cpyBtn');b.textContent='✓ Kopyalandı!';
+  const val=document.getElementById('inp').value;
+  const b=document.getElementById('cpyBtn');
+  const showResult=ok=>{
+    b.textContent=ok?'✓ Kopyalandı!':'✕ Kopyalanamadı';
     setTimeout(()=>b.textContent='⎘ Kopyala',2000);
-  });
+  };
+  // NOT: navigator.clipboard her ortamda mevcut değildir (HTTP gibi güvenli olmayan
+  // bağlamlarda tamamen tanımsızdır) ve writeText() izin reddi gibi sebeplerle
+  // reddedilebilir. Önceden bunlar hiç yakalanmıyordu — buton sessizce hiçbir şey
+  // yapmıyordu. Artık her iki durumda da eski execCommand yöntemine düşüyoruz ve
+  // kullanıcıya her zaman bir sonuç (başarılı/başarısız) gösteriyoruz.
+  const legacyCopy=()=>{
+    try{
+      const ta=document.createElement('textarea');
+      ta.value=val;ta.style.position='fixed';ta.style.opacity='0';
+      document.body.appendChild(ta);ta.focus();ta.select();
+      const ok=document.execCommand('copy');
+      document.body.removeChild(ta);
+      showResult(ok);
+    }catch(e){showResult(false);}
+  };
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(val).then(()=>showResult(true)).catch(legacyCopy);
+  } else {
+    legacyCopy();
+  }
 });
 document.getElementById('pc').addEventListener('click',closePop);
 document.addEventListener('click',e=>{
