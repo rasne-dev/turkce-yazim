@@ -1,0 +1,23 @@
+{
+  "name": "turkce-yazim",
+  "version": "2.0.0",
+  "description": "Türkçe metinler için açık kaynaklı, TDK uyumlu yazım, dilbilgisi, noktalama ve okunabilirlik denetleyicisi.",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "keywords": [
+    "turkce",
+    "yazim-denetimi",
+    "tdk",
+    "dilbilgisi",
+    "atesman",
+    "okunabilirlik",
+    "spellchecker"
+  ],
+  "author": "rasne-dev",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rasne-dev/turkce-yazim.git"
+  }
+}
