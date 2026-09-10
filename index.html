@@ -88,10 +88,6 @@
   .score-hard{background:rgba(249,115,22,.15);color:#ea580c}
   .score-veryhard{background:rgba(239,68,68,.15);color:#dc2626}
 
-  /* fix bar */
-  .fbar{background:var(--card-bg);border-radius:var(--r);padding:.6rem 1.25rem;box-shadow:var(--shadow);margin-bottom:1rem;display:flex;align-items:center;gap:.45rem;flex-wrap:wrap;border:1px solid var(--border)}
-  .fbar-lbl{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--slate);margin-right:.2rem}
-
   /* results layout */
   .rgrid{display:grid;grid-template-columns:1fr 320px;gap:1rem;align-items:start}
   @media(max-width:768px){
@@ -257,16 +253,9 @@
       <div class="st s-su" data-type="suggest" tabindex="0" role="button" title="Sadece önerileri göster"><div class="sd"></div><span id="cSu">0</span> öneri</div>
       <div class="st active" data-type="" style="color:var(--ink)" tabindex="0" role="button" title="Tümünü göster"><div class="sd" style="background:var(--ink)"></div><span id="cTo">0</span> toplam</div>
       <div class="sbar-r">
-        <button class="btn btn-g btn-xs" id="cpyBtn">⎘ Kopyala</button>
+        <button class="btn btn-p btn-xs" id="fxAll" title="Tüm otomatik düzeltilebilir sorunları uygular">⚡ Tümünü Düzelt</button>
+        <button class="btn btn-g btn-xs" id="cpyBtn" title="Metni panoya kopyala">⎘ Kopyala</button>
       </div>
-    </div>
-    <div class="fbar">
-      <span class="fbar-lbl">Düzelt:</span>
-      <button class="btn btn-g btn-xs" id="fxAll" title="Tüm otomatik düzeltilebilir sorunları uygular">⚡ Tümünü</button>
-      <button class="btn btn-g btn-xs" id="fxSp" title="Sadece yazım hatalarını düzeltir">🔴 Yazım</button>
-      <button class="btn btn-g btn-xs" id="fxGr" title="Sadece dilbilgisi hatalarını düzeltir">🟣 Dilbilgisi</button>
-      <button class="btn btn-g btn-xs" id="fxPu" title="Sadece noktalama hatalarını düzeltir">🟡 Noktalama</button>
-      <button class="btn btn-g btn-xs" id="fxWarn" title="Kontrol Et olarak işaretlenenlerde en olası tahmini uygular">🔎 Tahminle (Kontrol Et)</button>
     </div>
   </div>
 
@@ -1250,11 +1239,7 @@ function run(){
   document.getElementById('statsBar').style.display='block';
 
   const fixable=t=>curIssues.some(i=>i.type===t&&i.suggestions.length===1);
-  document.getElementById('fxSp').disabled=!fixable('spell');
-  document.getElementById('fxGr').disabled=!fixable('gram');
-  document.getElementById('fxPu').disabled=!fixable('punct');
   document.getElementById('fxAll').disabled=!['spell','gram','punct','suggest'].some(fixable);
-  document.getElementById('fxWarn').disabled=!curIssues.some(i=>i.type==='warn'&&i.guess);
   renderCurrent();
 }
 
@@ -1305,16 +1290,6 @@ function fixByType(types){
   setEditorText(t);run();
 }
 
-function fixWarnByGuess(){
-  snapshotUndo();
-  const warns=curIssues.filter(i=>i.type==='warn'&&i.guess);
-  const toFix=warns.filter(i=>i.guess.opt==='A'&&i.optA.val).sort((a,b)=>b.start-a.start);
-  let t=curText;
-  for(const iss of toFix) t=t.slice(0,iss.start)+iss.optA.val+t.slice(iss.end);
-  for(const iss of warns.filter(i=>i.guess.opt==='B')) ignored.add('warn|'+tl(iss.word));
-  setEditorText(t);run();
-}
-
 document.getElementById('chkBtn').addEventListener('click',run);
 document.getElementById('clrBtn').addEventListener('click',()=>{
   snapshotUndo();
@@ -1332,10 +1307,6 @@ document.getElementById('inp').addEventListener('keydown',e=>{
   if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();run();}
 });
 document.getElementById('fxAll').addEventListener('click',()=>fixByType(['spell','gram','punct','suggest']));
-document.getElementById('fxSp').addEventListener('click',()=>fixByType(['spell']));
-document.getElementById('fxGr').addEventListener('click',()=>fixByType(['gram']));
-document.getElementById('fxPu').addEventListener('click',()=>fixByType(['punct']));
-document.getElementById('fxWarn').addEventListener('click',fixWarnByGuess);
 
 const inp=document.getElementById('inp');
 function autoResize(){
