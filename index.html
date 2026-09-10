@@ -87,6 +87,10 @@
   .score-medium{background:rgba(234,179,8,.15);color:#ca8a04}
   .score-hard{background:rgba(249,115,22,.15);color:#ea580c}
   .score-veryhard{background:rgba(239,68,68,.15);color:#dc2626}
+  .info-tip{position:relative;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:var(--slate);margin-left:.25rem;font-size:.78rem}
+  .info-tip:hover,.info-tip:focus{color:var(--crimson)}
+  .tip-content{display:none;position:absolute;bottom:calc(100% + 8px);left:0;background:var(--card-bg);border:1px solid var(--border);color:var(--ink);padding:.6rem .75rem;border-radius:8px;font-size:.73rem;line-height:1.45;width:260px;box-shadow:var(--shadow-lg);z-index:100;font-weight:normal;text-transform:none}
+  .info-tip:hover .tip-content,.info-tip:focus .tip-content{display:block}
 
   /* results layout */
   .rgrid{display:grid;grid-template-columns:1fr 320px;gap:1rem;align-items:start}
@@ -228,7 +232,14 @@
   <div id="statsBar" style="display:none">
     <div class="read-card" id="readCard">
       <div class="read-item">
-        <span class="read-lbl">Ateşman Okunabilirlik</span>
+        <span class="read-lbl">
+          Ateşman Okunabilirlik
+          <span class="info-tip" tabindex="0" role="button" aria-label="Ateşman İndeksi Nedir?">ⓘ
+            <span class="tip-content">
+              <b>Ateşman Okunabilirlik İndeksi:</b> Metnin hece ve cümle uzunluklarına göre ne kadar kolay okunduğunu (0-100 puan) ölçer. Puan arttıkça metin daha akıcı ve kolay anlaşılır kabul edilir.
+            </span>
+          </span>
+        </span>
         <div class="read-val"><span id="readScore">-</span> <span class="read-badge" id="readBadge">-</span></div>
       </div>
       <div class="read-item">
