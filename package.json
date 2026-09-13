@@ -1,6 +1,6 @@
 {
   "name": "turkce-yazim",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Türkçe metinler için açık kaynaklı, TDK uyumlu yazım, dilbilgisi, noktalama ve okunabilirlik denetleyicisi.",
   "scripts": {
     "test": "node test.js"

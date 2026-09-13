@@ -6,15 +6,19 @@
 
 ---
 
-## 🚀 Yeni Özellikler (v2.0)
+## 🚀 Yeni Özellikler (v2.1)
 
+- **📖 Kişisel Sözlük (Özel Terim & Ad Hafızası):** TDK'de bulunmayan özel adları, teknik terimleri (örn. marka/yazılım adları) hata penceresinden tek tıkla sözlüğünüze ekleyin; `localStorage` ile cihazınızda saklansın ve bir daha hata olarak görünmesin. Üst çubuktan sözlüğü dilediğiniz gibi yönetin.
+- **✨ Değişiklikleri Göster (Düzeltme Özeti / Diff):** "⚡ Tümünü Düzelt" uygulandığında hangi kelimelerin neye dönüştürüldüğünü şeffaf bir özet banner'ı ve açılır diff dökümüyle gösterir.
+- **📄 Boşluksuz Karakter & Tahmini Sayfa Sayısı:** Editör altında ve okunabilirlik kartında akademik/yayıncılık standardı olan boşluksuz vuruş ve sayfa sayısı (~1.800 vuruş bazlı) ölçümü.
+- **🧹 Metin Biçimlendirici / Temizleyici:** PDF ve web kopyalamalarında oluşan bozuk satır sonlarını (cümle ortasında kırılan satırları), hece sonu tirelerini ve çift boşlukları tek tıkla toparlar (`Ctrl + Z` ile geri alınabilir).
 - **🏛️ TDK 2023 Güncellemeleri:** `ünvan` → `unvan`, `yeşilzeytin` → `yeşil zeytin`, `doğalgaz` → `doğal gaz`, `çevrimiçi` → `çevrim içi`, `kayyum` → `kayyım` vb.
 - **📊 Ateşman Türkçe Okunabilirlik İndeksi:** Bilimsel formülle metnin okunabilirlik seviyesini (*Çok Kolay, Kolay, Orta, Zor, Çok Zor*), tahmini okuma süresini ve cümle istatistiklerini hesaplar.
 - **🌙 Karanlık Mod (Dark Mode):** Sistem tercihiyle otomatik uyumlu veya tek tıkla geçiş yapılabilir modern karanlık tema.
 - **📁 Dosya İçe/Dışa Aktarma:** `.txt` ve `.md` dosyalarını sürükle-bırak veya butonla yükleme; düzeltilmiş metni anında `.txt` olarak indirme.
 - **⌨️ Klavye Kısayolları Modalı:** `?` tuşu ile açılan kısayol rehberi, `Ctrl + Enter` ile denetleme, `Ctrl + Shift + F` ile tümünü düzeltme, `Ctrl + Z` ile geri alma.
 - **🔍 Canlı Hata Arama:** Hatalar listesinde kelimeye veya kurala göre anında filtreleme.
-- **🧪 Otomatik Birim Test Paketi:** `npm test` ile kuralların doğruluğunu güvenceye alan Node.js testleri.
+- **🧪 Otomatik Birim Test Paketi:** `npm test` ile kuralların doğruluğunu güvenceye alan Node.js testleri (39 birim test).
 
 ---
 

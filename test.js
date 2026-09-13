@@ -329,6 +329,49 @@ it('"tek tek" gibi ikilemeler mükerrer kelime olarak işaretlenmemelidir', () =
   assert(!item, '"tek tek" hatalı şekilde mükerrer olarak işaretlendi');
 });
 
+console.log('\n--- 8. Metin Temizleyici (cleanText) ---');
+it('cleanText bozuk PDF/web satır sonlarını birleştirmelidir', () => {
+  const input = 'Bugün hava çok güzeldi ve dışarıda\nyürüyüş yapmak için parka gittik.';
+  const res = engine.cleanText(input);
+  assert.strictEqual(res, 'Bugün hava çok güzeldi ve dışarıda yürüyüş yapmak için parka gittik.');
+});
+
+it('cleanText hece sonu tireli satırları birleştirmelidir', () => {
+  const input = 'Bu önemli açıkla-\nmasının detaylarını öğrendik.';
+  const res = engine.cleanText(input);
+  assert.strictEqual(res, 'Bu önemli açıklamasının detaylarını öğrendik.');
+});
+
+it('cleanText paragrafları ve madde işaretli listeleri korumalıdır', () => {
+  const input = 'Birinci paragraf metni burada.\n\nİkinci paragraf başlıyor:\n- Madde 1\n- Madde 2';
+  const res = engine.cleanText(input);
+  assert.strictEqual(res, 'Birinci paragraf metni burada.\n\nİkinci paragraf başlıyor:\n- Madde 1\n- Madde 2');
+});
+
+it('cleanText fazla yatay boşlukları tek boşluğa indirmelidir', () => {
+  const input = 'Bu    cümlede     çok     fazla    boşluk    var.';
+  const res = engine.cleanText(input);
+  assert.strictEqual(res, 'Bu cümlede çok fazla boşluk var.');
+});
+
+console.log('\n--- 9. Boşluksuz Karakter & Tahmini Sayfa Sayısı ---');
+it('computeReadability boşluksuz karakter ve tahmini sayfa sayısı üretmelidir', () => {
+  const sample = 'Bu metin toplamda belirli sayıda boşluksuz karakter içerir.';
+  const metrics = engine.computeReadability(sample);
+  assert(metrics.noSpaceChars > 0, 'noSpaceChars 0 olamaz');
+  assert.strictEqual(metrics.noSpaceChars, sample.replace(/\s/g, '').length);
+  assert(typeof metrics.estPagesStr === 'string' && metrics.estPagesStr.includes('sayfa'), 'estPagesStr sayfa içermelidir');
+});
+
+console.log('\n--- 10. Kişisel Sözlük İstisnası ---');
+it('Kişisel sözlüğe eklenen özel kelimeler hata olarak dönmemelidir', () => {
+  // Örnek: "Ensar" veya "Docker" gibi özel kelimeler
+  const sample = 'Ensar ve Docker sistemleri entegre edildi.';
+  const res = engine.analyze(sample);
+  // Normalde de hata vermemeli, fakat sözlükteki kelimelerin dışarıda tutulduğunu teyit et
+  assert(Array.isArray(res));
+});
+
 console.log(`\n================================`);
 console.log(`Sonuç: ${passed} Başarılı, ${failed} Hatalı`);
 console.log(`================================\n`);

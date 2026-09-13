@@ -181,6 +181,23 @@
   .shortcut-row:last-child{border-bottom:none}
   .kbd{background:var(--mist);border:1px solid var(--border);padding:.18rem .45rem;border-radius:5px;font-size:.75rem;font-family:monospace;font-weight:700;color:var(--ink)}
 
+  /* diff banner */
+  .diff-banner{background:var(--green-bg);border:1px solid rgba(21,128,61,.3);border-radius:var(--r);padding:.75rem 1.1rem;margin-bottom:.75rem;animation:fadeIn .2s ease-in-out}
+  .diff-hd{display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap}
+  .diff-title{font-size:.84rem;font-weight:600;color:var(--green);display:flex;align-items:center;gap:.35rem}
+  .diff-details{margin-top:.6rem;padding-top:.6rem;border-top:1px dashed rgba(21,128,61,.25);display:flex;flex-wrap:wrap;gap:.4rem;max-height:160px;overflow-y:auto}
+  .diff-chip{background:var(--card-bg);border:1px solid var(--border);border-radius:6px;padding:.22rem .55rem;font-size:.76rem;display:inline-flex;align-items:center;gap:.35rem}
+  .diff-chip del{color:var(--red);text-decoration:line-through;opacity:.85}
+  .diff-chip ins{color:var(--green);text-decoration:none;font-weight:700}
+
+  /* personal dictionary */
+  .dict-chip{background:var(--mist);border:1px solid var(--border);border-radius:6px;padding:.25rem .55rem;font-size:.82rem;font-weight:600;display:inline-flex;align-items:center;gap:.4rem;color:var(--ink)}
+  .dict-del{background:none;border:none;color:var(--slate);cursor:pointer;font-size:.9rem;line-height:1;padding:0 3px;border-radius:3px}
+  .dict-del:hover{color:var(--red);background:rgba(239,68,68,.1)}
+  .toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--ink);color:var(--white);padding:.6rem 1rem;border-radius:8px;font-size:.83rem;font-weight:600;box-shadow:var(--shadow-lg);z-index:99999;opacity:0;transform:translateY(10px);transition:opacity .2s,transform .2s;pointer-events:none}
+  .toast.show{opacity:1;transform:translateY(0)}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+
   /* footer & privacy */
   .ftr{margin-top:2.5rem;padding-top:1.2rem;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.8rem;font-size:.76rem;color:var(--slate)}
   .ftr-privacy{display:flex;align-items:center;gap:.45rem;line-height:1.4}
@@ -197,6 +214,7 @@
   </div>
   <div class="hdr-r">
     <span class="bdg">TDK 2023+</span>
+    <button class="hdr-btn" id="dictBtn" title="Kişisel Sözlük" aria-label="Kişisel Sözlük">📖</button>
     <button class="hdr-btn" id="kbdBtn" title="Klavye Kısayolları (?)" aria-label="Klavye Kısayolları">⌨</button>
     <button class="hdr-btn" id="themeBtn" title="Karanlık / Aydınlık Mod" aria-label="Temayı Değiştir">🌙</button>
   </div>
@@ -222,11 +240,23 @@
     </div>
     <div class="tlb">
       <button class="btn btn-p" id="chkBtn">✓ Kontrol Et</button>
+      <button class="btn btn-g" id="cleanBtn" title="Bozuk PDF/web satır sonlarını birleştirir ve fazla boşlukları temizler">🧹 Biçimlendir</button>
       <button class="btn btn-g" id="clrBtn">✕ Temizle</button>
       <button class="btn btn-g" id="undoBtn" disabled title="Son işlemi geri al (Ctrl+Z)">↩ Geri Al</button>
       <button class="btn btn-g" id="downBtn" title="Düzeltilmiş metni .txt olarak indir">💾 İndir</button>
-      <span class="cc" id="cc">0 karakter · 0 kelime</span>
+      <span class="cc" id="cc">0 karakter (boşluksuz: 0) · 0 kelime</span>
     </div>
+  </div>
+
+  <div id="diffBanner" class="diff-banner" style="display:none">
+    <div class="diff-hd">
+      <div class="diff-title" id="diffSummaryText"></div>
+      <div style="display:flex;gap:.5rem;align-items:center">
+        <button class="smp" id="diffToggleBtn" style="font-size:.75rem">Ayrıntıları Göster ↓</button>
+        <button class="pc" id="diffDismiss" aria-label="Kapat" style="font-size:1.1rem;padding:0 4px">×</button>
+      </div>
+    </div>
+    <div id="diffDetails" class="diff-details" style="display:none"></div>
   </div>
 
   <div id="statsBar" style="display:none">
@@ -245,6 +275,21 @@
       <div class="read-item">
         <span class="read-lbl">Okuma Süresi</span>
         <div class="read-val" id="readTime">~0 dk</div>
+      </div>
+      <div class="read-item">
+        <span class="read-lbl">Boşluksuz Karakter</span>
+        <div class="read-val" id="stNoSpace">0</div>
+      </div>
+      <div class="read-item">
+        <span class="read-lbl">
+          Tahmini Sayfa
+          <span class="info-tip" tabindex="0" role="button" aria-label="Tahmini Sayfa Sayısı Nedir?">ⓘ
+            <span class="tip-content">
+              <b>Tahmini Sayfa Sayısı:</b> Standart Türk yayıncılık ve akademik tez ölçütü olan 1.800 boşluksuz vuruş (karakter) baz alınarak hesaplanır.
+            </span>
+          </span>
+        </span>
+        <div class="read-val" id="stEstPages">~0 sayfa</div>
       </div>
       <div class="read-item">
         <span class="read-lbl">Cümle Sayısı</span>
@@ -308,6 +353,29 @@
     </div>
   </div>
 </div>
+
+<div id="dictModal" class="modal-overlay" style="display:none">
+  <div class="modal-content">
+    <div class="modal-hd">
+      <div class="modal-title">📖 Kişisel Sözlük <span id="dictCount" style="font-size:.82rem;color:var(--slate);font-weight:normal"></span></div>
+      <button class="modal-close" id="dictClose" aria-label="Kapat">×</button>
+    </div>
+    <p style="font-size:.8rem;color:var(--slate);margin-bottom:.85rem;line-height:1.45">
+      Buraya eklediğiniz kişi adları, teknik terimler ve özel sözcükler yazım denetiminde hata olarak işaretlenmez.
+    </p>
+    <div style="display:flex;gap:.5rem;margin-bottom:1rem">
+      <input type="text" id="dictInp" placeholder="Yeni kelime veya terim ekleyin..." style="flex:1;padding:.45rem .65rem;border:1.5px solid var(--border);border-radius:6px;font-family:var(--f);font-size:.85rem;background:var(--mist);color:var(--ink)">
+      <button class="btn btn-p btn-xs" id="dictAddBtn">+ Ekle</button>
+    </div>
+    <div id="dictList" style="max-height:220px;overflow-y:auto;display:flex;flex-wrap:wrap;gap:.4rem;padding:.4rem 0"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:1rem;padding-top:.8rem;border-top:1px solid var(--border)">
+      <button class="smp" id="dictClearAll" style="color:var(--red);font-size:.76rem">Tümünü Temizle</button>
+      <button class="btn btn-g btn-xs" id="dictDoneBtn">Kapat</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
 
 <script>
 (function(){
@@ -756,6 +824,43 @@ const WARNS=[
 function getLastVowel(w){const v=w.match(/[aeıioöuü]/gi);return v?v[v.length-1].toLowerCase():null}
 
 // ============================================================
+// METİN BİÇİMLENDİRİCİ & TEMİZLEYİCİ
+// ============================================================
+function cleanText(text){
+  if(!text) return '';
+  let t=text.replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+  const paragraphs=t.split(/\n{2,}/);
+
+  const cleanedParagraphs=paragraphs.map(p=>{
+    const lines=p.split('\n').map(l=>l.trim()).filter(l=>l.length>0);
+    if(!lines.length) return '';
+
+    let merged='';
+    for(let i=0;i<lines.length;i++){
+      const line=lines[i];
+      if(i===0){
+        merged=line;
+      }else{
+        const prev=lines[i-1];
+        const isBullet=/^[-*•\d+\.]\s+/.test(line);
+        const prevEndsPunct=/[:]$/.test(prev);
+
+        if(isBullet||prevEndsPunct){
+          merged+='\n'+line;
+        }else if(/[-–]\s*$/.test(prev)){
+          merged=merged.replace(/[-–]\s*$/,'')+line;
+        }else{
+          merged+=' '+line;
+        }
+      }
+    }
+    return merged.replace(/[^\S\n]{2,}/g,' ');
+  });
+
+  return cleanedParagraphs.filter(p=>p.length>0).join('\n\n').trim();
+}
+
+// ============================================================
 // ATEŞMAN OKUNABİLİRLİK İNDEKSİ & İSTATİSTİK HESAPLAYICI
 // ============================================================
 function computeReadability(text){
@@ -787,12 +892,18 @@ function computeReadability(text){
   const mins=Math.ceil(totalWords/200);
   const readTimeStr=totalWords<50?'< 1 dk':(mins+' dk');
 
+  const noSpaceChars=clean.replace(/\s/g,'').length;
+  const estPages=Math.round((noSpaceChars/1800)*10)/10;
+  const estPagesStr=estPages<0.1?(noSpaceChars>0?'< 0,1 sayfa':'0 sayfa'):('~'+estPages.toLocaleString('tr-TR')+' sayfa');
+
   return{
     score,label,cls,
     readTimeStr,
     totalWords,
     totalSentences,
     totalSyllables,
+    noSpaceChars,
+    estPagesStr,
     avgSentenceLength:Math.round(avgSentenceLength*10)/10
   };
 }
@@ -1039,13 +1150,41 @@ function analyze(text){
 // ============================================================
 let curText='',curIssues=[],displayedIssues=[],activeFilter=null,searchQuery='';
 const ignored=new Set();
+
+function getCustomDict(){
+  try{
+    const raw=localStorage.getItem('ty_dict');
+    return raw?JSON.parse(raw):[];
+  }catch(e){return[];}
+}
+function saveCustomDict(list){
+  try{localStorage.setItem('ty_dict',JSON.stringify(list));}catch(e){}
+}
+let customDict=new Set(getCustomDict().map(tl));
+
+function isDictIgnored(w){
+  if(!w) return false;
+  const clean=tl(w.trim().replace(/^['"\(\[\{]+|['"\)\]\}.,;:!?]+$/g,''));
+  return customDict.has(clean)||customDict.has(tl(w.trim()));
+}
+
+function showToast(msg){
+  const el=document.getElementById('toast');
+  if(!el) return;
+  el.textContent=msg;
+  el.classList.add('show');
+  clearTimeout(showToast._timer);
+  showToast._timer=setTimeout(()=>{el.classList.remove('show');},2600);
+}
+
 const HC={spell:'h-sp',gram:'h-gr',warn:'h-wn',punct:'h-pu',suggest:'h-su'};
 const LBL={spell:'Yazım Hatası',gram:'Dilbilgisi',warn:'Kontrol Edin',punct:'Noktalama',suggest:'Öneri'};
 
 function countLabel(t){
   const chars=t.length;
+  const noSpace=t.replace(/\s/g,'').length;
   const words=t.trim()?(t.trim().match(/[\wığüşöçİĞÜŞÖÇ]+/g)||[]).length:0;
-  return chars.toLocaleString('tr-TR')+' karakter · '+words.toLocaleString('tr-TR')+' kelime';
+  return chars.toLocaleString('tr-TR')+' karakter (boşluksuz: '+noSpace.toLocaleString('tr-TR')+') · '+words.toLocaleString('tr-TR')+' kelime';
 }
 
 function setEditorText(t){
@@ -1071,6 +1210,9 @@ function undo(){
   setEditorText(st.text);
   closePop();run();
   if(!undoStack.length){const b=document.getElementById('undoBtn');if(b)b.disabled=true;}
+  const banner=document.getElementById('diffBanner');
+  if(banner) banner.style.display='none';
+  showToast('↩ Son işlem geri alındı.');
 }
 
 function renderOut(text,issues){
@@ -1164,7 +1306,14 @@ window.TY={
         iss.suggestions.map(s=>`<button class="sb" onclick="TY.fix(${idx},${escAttr(s)})">${esc(s)}</button>`).join('');
     } else { body.innerHTML='<div style="font-size:.76rem;color:var(--slate);font-style:italic">Öneri bulunamadı</div>'; }
     const ft=document.getElementById('pf');ft.innerHTML='';
-    if(iss.type!=='warn'){const b=document.createElement('button');b.className='pa';b.textContent='Yoksay';b.onclick=()=>TY.ign(iss.word,iss.type);ft.appendChild(b);}
+    if(iss.type!=='warn'){
+      const actRow=document.createElement('div');
+      actRow.style.cssText='display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;';
+      const b=document.createElement('button');b.className='pa';b.textContent='Yoksay';b.onclick=()=>TY.ign(iss.word,iss.type);
+      const d=document.createElement('button');d.className='pa';d.textContent='➕ Sözlüğe Ekle';d.onclick=()=>TY.addToDict(iss.word);
+      actRow.append(b,d);
+      ft.appendChild(actRow);
+    }
     if(displayedIssues.length>1){
       const nav=document.createElement('div');nav.className='pnav';
       const prevB=document.createElement('button');prevB.className='pnb';prevB.textContent='‹ Önceki';
@@ -1187,7 +1336,24 @@ window.TY={
     setEditorText(curText.slice(0,iss.start)+sug+curText.slice(iss.end));
     closePop();run();
   },
-  ign(word,type){snapshotUndo();ignored.add((type||'')+'|'+tl(word));closePop();run();}
+  ign(word,type){snapshotUndo();ignored.add((type||'')+'|'+tl(word));closePop();run();},
+  addToDict(word){
+    const clean=tl(word.trim().replace(/^['"\(\[\{]+|['"\)\]\}.,;:!?]+$/g,''));
+    if(!clean) return;
+    snapshotUndo();
+    customDict.add(clean);
+    saveCustomDict(Array.from(customDict));
+    closePop();run();
+    renderDictList();
+    showToast(`"${clean}" kişisel sözlüğe eklendi.`);
+  },
+  removeFromDict(word){
+    const clean=tl(word.trim());
+    customDict.delete(clean);
+    saveCustomDict(Array.from(customDict));
+    renderDictList();run();
+    showToast(`"${word}" sözlükten silindi.`);
+  }
 };
 let curPopIdx=-1;
 
@@ -1233,7 +1399,7 @@ function run(){
     ['statsBar','res'].forEach(id=>document.getElementById(id).style.display='none');
     curIssues=[];displayedIssues=[];closePop();return;
   }
-  curIssues=analyze(curText).filter(i=>!ignored.has(i.type+'|'+tl(i.word)));
+  curIssues=analyze(curText).filter(i=>!ignored.has(i.type+'|'+tl(i.word))&&!isDictIgnored(i.word));
 
   document.getElementById('cSp').textContent=curIssues.filter(i=>i.type==='spell').length;
   document.getElementById('cGr').textContent=curIssues.filter(i=>i.type==='gram').length;
@@ -1249,6 +1415,8 @@ function run(){
     b.textContent=rStats.label;
     b.className='read-badge '+rStats.cls;
     document.getElementById('readTime').textContent='~'+rStats.readTimeStr;
+    document.getElementById('stNoSpace').textContent=rStats.noSpaceChars.toLocaleString('tr-TR');
+    document.getElementById('stEstPages').textContent=rStats.estPagesStr;
     document.getElementById('stSent').textContent=rStats.totalSentences;
     document.getElementById('stAvgSent').textContent=rStats.avgSentenceLength+' kelime';
   }
@@ -1293,18 +1461,50 @@ document.querySelectorAll('#statsBar .st[data-type]').forEach(el=>{
   el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();setFilter(el.dataset.type);}});
 });
 
+function showDiffBanner(changes){
+  const banner=document.getElementById('diffBanner');
+  const sumText=document.getElementById('diffSummaryText');
+  const details=document.getElementById('diffDetails');
+  const toggleBtn=document.getElementById('diffToggleBtn');
+  if(!banner||!sumText||!details) return;
+
+  sumText.innerHTML=`⚡ <b>${changes.length} otomatik düzeltme yapıldı.</b>`;
+  const seen=new Set();
+  const unique=[];
+  for(const c of changes){
+    const key=c.before+'->'+c.after;
+    if(!seen.has(key)){
+      seen.add(key);
+      unique.push(c);
+    }
+  }
+  details.innerHTML=unique.map(c=>`
+    <span class="diff-chip"><del>${esc(c.before)}</del> → <ins>${esc(c.after)}</ins></span>
+  `).join('');
+  toggleBtn.textContent='Ayrıntıları Göster ↓';
+  details.style.display='none';
+  banner.style.display='block';
+}
+
 function fixByType(types){
   snapshotUndo();
   let t=curText;
+  const changes=[];
   for(let pass=0;pass<8;pass++){
-    const issues=analyze(t).filter(i=>!ignored.has(i.type+'|'+tl(i.word)));
+    const issues=analyze(t).filter(i=>!ignored.has(i.type+'|'+tl(i.word))&&!isDictIgnored(i.word));
     const safe=issues
       .filter(i=>types.includes(i.type)&&i.type!=='warn'&&i.suggestions.length===1)
       .sort((a,b)=>b.start-a.start);
     if(!safe.length) break;
-    for(const iss of safe) t=t.slice(0,iss.start)+iss.suggestions[0]+t.slice(iss.end);
+    for(const iss of safe){
+      changes.push({before:iss.word,after:iss.suggestions[0],type:iss.type});
+      t=t.slice(0,iss.start)+iss.suggestions[0]+t.slice(iss.end);
+    }
   }
   setEditorText(t);run();
+  if(changes.length>0){
+    showDiffBanner(changes);
+  }
 }
 
 document.getElementById('chkBtn').addEventListener('click',run);
@@ -1458,6 +1658,111 @@ kbdBtn.addEventListener('click',()=>kbdModal.style.display='flex');
 kbdClose.addEventListener('click',()=>kbdModal.style.display='none');
 kbdModal.addEventListener('click',e=>{if(e.target===kbdModal)kbdModal.style.display='none';});
 
+// === KİŞİSEL SÖZLÜK MODAL & ETKİLEŞİM ===
+function renderDictList(){
+  const listEl=document.getElementById('dictList');
+  const countEl=document.getElementById('dictCount');
+  if(!listEl) return;
+  const items=Array.from(customDict).sort();
+  if(countEl) countEl.textContent=items.length?`(${items.length} kelime)`:'';
+  if(!items.length){
+    listEl.innerHTML='<div style="font-size:.82rem;color:var(--slate);padding:.8rem 0;width:100%;text-align:center">Kişisel sözlüğünüzde henüz kayıtlı kelime yok.</div>';
+    return;
+  }
+  listEl.innerHTML=items.map(w=>`
+    <span class="dict-chip">${esc(w)} <button type="button" class="dict-del" onclick="TY.removeFromDict(${escAttr(w)})" aria-label="${esc(w)} kelimesini sil">×</button></span>
+  `).join('');
+}
+
+const dictBtn=document.getElementById('dictBtn');
+const dictModal=document.getElementById('dictModal');
+const dictClose=document.getElementById('dictClose');
+const dictDoneBtn=document.getElementById('dictDoneBtn');
+const dictInp=document.getElementById('dictInp');
+const dictAddBtn=document.getElementById('dictAddBtn');
+const dictClearAll=document.getElementById('dictClearAll');
+
+function openDictModal(){
+  renderDictList();
+  dictModal.style.display='flex';
+  if(dictInp) dictInp.focus();
+}
+function closeDictModal(){
+  dictModal.style.display='none';
+}
+if(dictBtn) dictBtn.addEventListener('click',openDictModal);
+if(dictClose) dictClose.addEventListener('click',closeDictModal);
+if(dictDoneBtn) dictDoneBtn.addEventListener('click',closeDictModal);
+if(dictModal) dictModal.addEventListener('click',e=>{if(e.target===dictModal)closeDictModal();});
+
+function addDictFromInput(){
+  const val=dictInp.value.trim();
+  if(!val) return;
+  const clean=tl(val.replace(/^['"\(\[\{]+|['"\)\]\}.,;:!?]+$/g,''));
+  if(!clean) return;
+  customDict.add(clean);
+  saveCustomDict(Array.from(customDict));
+  dictInp.value='';
+  renderDictList();
+  run();
+  showToast(`"${clean}" sözlüğe eklendi.`);
+}
+if(dictAddBtn) dictAddBtn.addEventListener('click',addDictFromInput);
+if(dictInp) dictInp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addDictFromInput();}});
+
+if(dictClearAll) dictClearAll.addEventListener('click',()=>{
+  if(!customDict.size) return;
+  if(confirm('Kişisel sözlükteki tüm kelimeleri silmek istediğinize emin misiniz?')){
+    customDict.clear();
+    saveCustomDict([]);
+    renderDictList();
+    run();
+    showToast('Kişisel sözlük temizlendi.');
+  }
+});
+
+// === METİN TEMİZLEYİCİ BUTONU ===
+const cleanBtn=document.getElementById('cleanBtn');
+if(cleanBtn){
+  cleanBtn.addEventListener('click',()=>{
+    const val=document.getElementById('inp').value;
+    if(!val.trim()){
+      showToast('Temizlenecek metin bulunamadı.');
+      return;
+    }
+    snapshotUndo();
+    const cleaned=cleanText(val);
+    if(cleaned===val){
+      showToast('Metin zaten temiz ve düzgün.');
+      return;
+    }
+    setEditorText(cleaned);
+    run();
+    showToast('🧹 Bozuk satırlar birleştirildi ve gereksiz boşluklar temizlendi.');
+  });
+}
+
+// === DEĞİŞİKLİK BİLDİRİMİ / DIFF TOGGLE ===
+const diffToggleBtn=document.getElementById('diffToggleBtn');
+if(diffToggleBtn){
+  diffToggleBtn.addEventListener('click',()=>{
+    const det=document.getElementById('diffDetails');
+    if(det.style.display==='none'){
+      det.style.display='flex';
+      diffToggleBtn.textContent='Ayrıntıları Gizle ↑';
+    } else {
+      det.style.display='none';
+      diffToggleBtn.textContent='Ayrıntıları Göster ↓';
+    }
+  });
+}
+const diffDismiss=document.getElementById('diffDismiss');
+if(diffDismiss){
+  diffDismiss.addEventListener('click',()=>{
+    document.getElementById('diffBanner').style.display='none';
+  });
+}
+
 try{
   const saved=localStorage.getItem('ty_draft');
   if(saved){
@@ -1474,7 +1779,7 @@ document.getElementById('draftDismiss').addEventListener('click',()=>{
 inp.addEventListener('input',()=>{document.getElementById('draftNotice').style.display='none';},{once:true});
 try{document.getElementById('inp').focus();}catch(e){}
 if(typeof module!=='undefined'&&module.exports){
-  module.exports={analyze,computeReadability,SPELL,DEDA,KI,WARNS};
+  module.exports={analyze,computeReadability,cleanText,SPELL,DEDA,KI,WARNS};
 }
 })();
 </script>
