@@ -534,17 +534,23 @@ const SPELL=[
   ['traş','tıraş'],['egzos','egzoz'],['eksoz','egzoz'],['egzozt','egzoz'],
   ['haftasonu','hafta sonu'],
   ['sağol','sağ ol'],['hoşgeldin','hoş geldin'],['hoşgeldiniz','hoş geldiniz'],
-  ['yanyana','yan yana'],['elele','el ele'],['artarda','art arda'],
   ['farketmek','fark etmek'],['farketmedi','fark etmedi'],['farketmedim','fark etmedim'],
-  ['farrerolduk','fark ettik'],
+  ['farkettik','fark ettik'],['farkettim','fark ettim'],['farketmiş','fark etmiş'],
+  ['farketti','fark etti'],['farkedecek','fark edecek'],
   ['farkediyorum','fark ediyorum'],['farkedilmez','fark edilmez'],
   ['terketmek','terk etmek'],['terkediyorum','terk ediyorum'],
   ['arzetmek','arz etmek'],['arzetmedi','arz etmedi'],
   ['ilüzyon','illüzyon'],['iluzyon','illüzyon'],
   ['tabiki','tabii ki'],['tabi ki','tabii ki'],
+  ['tabikide','tabii ki de'],['tabiikide','tabii ki de'],
   ['müsade','müsaade'],['müsaid','müsait'],
   ['pekçok','pek çok'],
-  ['herhangibir','herhangi bir'],
+  ['herhangibir','herhangi bir'],['herhangibiri','herhangi biri'],
+  ['meyva','meyve'],['meyvalar','meyveler'],
+  ['makina','makine'],['makinalar','makineler'],
+  ['kıravat','kravat'],
+  ['zatüre','zatürre'],
+  ['erözyon','erozyon'],
   ['gidicek','gidecek'],['yapıcak','yapacak'],['alıcak','alacak'],['gelicek','gelecek'],
   ['buluçak','bulacak'],['yapıcaksın','yapacaksın'],['gidiceksin','gideceksin'],
   ['vaz geçmek','vazgeçmek'],
@@ -867,7 +873,7 @@ function analyze(text){
   {
     const repRx=new RegExp(WB+'([a-zA-ZığüşöçİĞÜŞÖÇ]{2,})\\s+\\1'+WE,'gi');
     let rm;
-    const REP_EXC=new Set(['ağır','kara','yavaş','tatlı','güzel','iyi','kötü','derin','uzun','kısa','sarı','yeşil','mavi','ılık','tık','şak','çıt','bire','için','adım','göz','bir','yıl','gün','deste','avuç']);
+    const REP_EXC=new Set(['ağır','kara','yavaş','tatlı','güzel','iyi','kötü','derin','uzun','kısa','sarı','yeşil','mavi','ılık','tık','şak','çıt','bire','için','adım','göz','bir','yıl','gün','deste','avuç','tek','az','çok','hızlı','serin','sıcak','soğuk','erken','geç','tane','kat','ara','dizi','yudum','parça','damla','koşa','seve','gide','bile','yana','başa']);
     while((rm=repRx.exec(text))!==null){
       const word=tl(rm[1]);
       if(!REP_EXC.has(word)){

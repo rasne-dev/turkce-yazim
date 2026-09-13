@@ -302,6 +302,33 @@ it('29 ekim -> 29 Ekim belirli tarih ay kuralı', () => {
   assert.strictEqual(item.suggestions[0], '29 Ekim');
 });
 
+it('farkettik -> fark ettik düzeltilmelidir', () => {
+  const res = engine.analyze('Durumu sonradan farkettik.');
+  const item = res.find(r => r.word.toLowerCase() === 'farkettik');
+  assert(item, 'farkettik hatası bulunamadı');
+  assert.strictEqual(item.suggestions[0], 'fark ettik');
+});
+
+it('tabikide -> tabii ki de düzeltilmelidir', () => {
+  const res = engine.analyze('Bunu tabikide biliyorum.');
+  const item = res.find(r => r.word.toLowerCase() === 'tabikide');
+  assert(item, 'tabikide hatası bulunamadı');
+  assert.strictEqual(item.suggestions[0], 'tabii ki de');
+});
+
+it('meyva -> meyve düzeltilmelidir', () => {
+  const res = engine.analyze('Pazardan taze meyva aldık.');
+  const item = res.find(r => r.word.toLowerCase() === 'meyva');
+  assert(item, 'meyva hatası bulunamadı');
+  assert.strictEqual(item.suggestions[0], 'meyve');
+});
+
+it('"tek tek" gibi ikilemeler mükerrer kelime olarak işaretlenmemelidir', () => {
+  const res = engine.analyze('Konuklar içeriye tek tek girdi.');
+  const item = res.find(r => r.msg && r.msg.includes('Mükerrer'));
+  assert(!item, '"tek tek" hatalı şekilde mükerrer olarak işaretlendi');
+});
+
 console.log(`\n================================`);
 console.log(`Sonuç: ${passed} Başarılı, ${failed} Hatalı`);
 console.log(`================================\n`);
