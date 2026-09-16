@@ -372,6 +372,47 @@ it('Kişisel sözlüğe eklenen özel kelimeler hata olarak dönmemelidir', () =
   assert(Array.isArray(res));
 });
 
+console.log('\n--- 11. Kelime İçi Rakam, Metatez & Fiil/Ek-Fiil Bağlaç (-te/-ta) Kuralları ---');
+it('b8ugün -> bugün kelime içi rakam tespiti yapılmalıdır', () => {
+  const res = engine.analyze('Saat 17.00 gibi b8ugün buluşalım.');
+  const item = res.find(r => r.word === 'b8ugün');
+  assert(item, 'b8ugün hatası bulunamadı');
+  assert.strictEqual(item.type, 'spell');
+  assert.strictEqual(item.suggestions[0], 'bugün');
+  assert(item.detail && item.detail.includes('ayıklandığında'), 'detail açıklaması bulunamadı');
+});
+
+it('biriymişte -> biriymiş de fiil/ek-fiil bağlacı sertleşme kuralı ve açıklamalı örnek verilmelidir', () => {
+  const res = engine.analyze('Dikkatli biriymişte fark etti.');
+  const item = res.find(r => r.word === 'biriymişte');
+  assert(item, 'biriymişte hatası bulunamadı');
+  assert.strictEqual(item.type, 'gram');
+  assert.strictEqual(item.suggestions[0], 'biriymiş de');
+  assert(item.msg.includes('-te/-ta') && item.msg.includes('sertleşip'), 'msg kural uyarısı eksik');
+  assert(item.detail && item.detail.includes('biriymiş de'), 'detail örnek açıklaması eksik');
+});
+
+it('eskik -> eksik harf değişimi düzeltilmelidir', () => {
+  const res = engine.analyze('Hesabı eskik aldın.');
+  const item = res.find(r => r.word.toLowerCase() === 'eskik');
+  assert(item, 'eskik hatası bulunamadı');
+  assert.strictEqual(item.suggestions[0], 'eksik');
+});
+
+it('enysekki -> neyse ki yazım düzeltmesi yapılmalıdır', () => {
+  const res = engine.analyze('enysekki durumu fark ettik.');
+  const item = res.find(r => r.word.toLowerCase() === 'enysekki');
+  assert(item, 'enysekki hatası bulunamadı');
+  assert.strictEqual(item.suggestions[0], 'neyse ki');
+});
+
+it('olsada -> olsa da şart kipi bağlacı ayrılmalıdır', () => {
+  const res = engine.analyze('Zor olsada başardık.');
+  const item = res.find(r => r.word.toLowerCase() === 'olsada');
+  assert(item, 'olsada hatası bulunamadı');
+  assert.strictEqual(item.suggestions[0], 'olsa da');
+});
+
 console.log(`\n================================`);
 console.log(`Sonuç: ${passed} Başarılı, ${failed} Hatalı`);
 console.log(`================================\n`);

@@ -447,6 +447,11 @@ const SPELL=[
   ['kirbit','kibrit'],
   ['idda','iddia'],['iddada','iddiada'],
   ['hastahane','hastane'],['hastahanede','hastanede'],['hastahaneye','hastaneye'],
+  ['eskik','eksik'],['eskikler','eksikler'],['eskiklik','eksiklik'],['eskikliği','eksikliği'],['eskiklikler','eksiklikler'],
+  ['enysekki','neyse ki'],['enyseki','neyse ki'],['neysekki','neyse ki'],['neyseki','neyse ki'],
+  ['yalnış','yanlış'],['yalnışlık','yanlışlık'],['yalnışlıkla','yanlışlıkla'],['yalnışlar','yanlışlar'],
+  ['yanlız','yalnız'],['yanlızlık','yalnızlık'],
+  ['makina','makine'],['makinası','makinesi'],
   ['postahane','postane'],['postahanede','postanede'],
   ['eczahane','eczane'],['eczahanede','eczanede'],
   ['pastahane','pastane'],['pastahanede','pastanede'],
@@ -941,6 +946,28 @@ function analyze(text){
     }catch(e){}
   }
 
+  // 1b. Kelime içine sehven karışmış rakamlar (Alphanumeric Typo: örn. b8ugün -> bugün, g3l -> gel)
+  {
+    const digitInWordRx = /(?<![a-zA-ZığüşöçİĞÜŞÖÇ\d])([a-zA-ZığüşöçİĞÜŞÖÇ]+)(\d+)([a-zA-ZığüşöçİĞÜŞÖÇ\d]*[a-zA-ZığüşöçİĞÜŞÖÇ]+)(?![a-zA-ZığüşöçİĞÜŞÖÇ\d])/gu;
+    let dm;
+    while((dm = digitInWordRx.exec(text)) !== null){
+      const full = dm[0];
+      if(/^[A-ZİĞÜŞÖÇ]{1,2}\d+[A-ZİĞÜŞÖÇ]{1,2}$/.test(full)) continue;
+      const cleaned = full.replace(/\d+/g, '');
+      if(cleaned.length < 2) continue;
+      const digits = full.match(/\d+/g).join('');
+      push({
+        type: 'spell',
+        word: full,
+        start: dm.index,
+        end: dm.index + full.length,
+        suggestions: [cleaned],
+        msg: `"${full}" kelimesinde harflerin arasına yanlışlıkla rakam (${digits}) girmiş`,
+        detail: `Klavyede harf yerine sehven basılan "${digits}" rakamı ayıklandığında: "${cleaned}"`
+      });
+    }
+  }
+
   // 2. Dilbilgisi hataları (de/da ve ki)
   for(const[w,r] of [...DEDA,...KI]){
     try{
@@ -977,6 +1004,63 @@ function analyze(text){
         push({type:'gram',word:mm[0],start:mm.index,end:mm.index+mm[0].length,
           suggestions:[base+' '+mm[2]],msg:'Bağlaç olan "ki" fiilden ayrı yazılır'});
       }
+    }
+  }
+
+  // 2c. Fiil / Ek-fiil ve Şart kipi sonrası bağlaç "de/da" (-te/-ta değil, ayrı de/da)
+  {
+    const DEDA_VERB_EXC=new Set(['geçmişte','geçmişten','yemişte','sadede','aside','kasede','kesede']);
+    const dedaVerbRx=/(?<![a-zA-ZığüşöçİĞÜŞÖÇ\d])([a-zA-ZığüşöçİĞÜŞÖÇ]+(miş|mış|muş|müş|miştir|mıştır|muştur|müştür|mişti|mıştı|müştü|muştu|seydi|saydı|seydik|saydık))(te|ta|de|da)(?![a-zA-ZığüşöçİĞÜŞÖÇ\d])/gi;
+    let vm;
+    while((vm=dedaVerbRx.exec(text))!==null){
+      const full=vm[0];
+      const base=vm[1];
+      const suf=vm[3].toLowerCase();
+      if(DEDA_VERB_EXC.has(tl(full))||DEDA_VERB_EXC.has(tl(base))) continue;
+
+      const lv=getLastVowel(base);
+      const isBack=lv&&'aıou'.includes(lv);
+      const correctSuffix=isBack?'da':'de';
+      const isHardened=(suf==='te'||suf==='ta');
+
+      let msg,detail;
+      if(isHardened){
+        msg=`TDK: Bağlaç olan "de/da" sertleşip "-te/-ta" olmaz; ayrı "${correctSuffix}" yazılmalıdır`;
+        detail=`Türkçede bağlaç olan "de/da" ünsüz benzeşmesine (sertleşmeye) uğramaz; "-${suf}" değil ayrı "${correctSuffix}" olmalıdır. (Örn: "${base} ${correctSuffix}")`;
+      } else {
+        msg=`TDK: Bağlaç olan "de/da" fiil ve ek-fiilden sonra ayrı yazılır`;
+        detail=`Fiil veya ek-fiil üzerine gelen "de/da" bağlaçtır ve her zaman ayrı yazılır. (Örn: "${base} ${correctSuffix}")`;
+      }
+
+      push({
+        type:'gram',
+        word:full,
+        start:vm.index,
+        end:vm.index+full.length,
+        suggestions:[base+' '+correctSuffix],
+        msg:msg,
+        detail:detail,
+        rule:'Bağlaç olan "de/da" kuralı (-te/-ta değil, ayrı de/da)'
+      });
+    }
+
+    const condVerbRx=/(?<![a-zA-ZığüşöçİĞÜŞÖÇ\d])([a-zA-ZığüşöçİĞÜŞÖÇ]*(?:ol|gel|git|yap|et|bil|gör|al|ver|kal|bak|dur|sev|duy|çalış|iste|söyle|konuş|yaz|oku|anla|bul|çık|in)(?:sa|se))(de|da)(?![a-zA-ZığüşöçİĞÜŞÖÇ\d])/gi;
+    while((vm=condVerbRx.exec(text))!==null){
+      const full=vm[0];
+      const base=vm[1];
+      const lv=getLastVowel(base);
+      const isBack=lv&&'aıou'.includes(lv);
+      const correctSuffix=isBack?'da':'de';
+      push({
+        type:'gram',
+        word:full,
+        start:vm.index,
+        end:vm.index+full.length,
+        suggestions:[base+' '+correctSuffix],
+        msg:`TDK: Şart ekinden sonra gelen "de/da" bağlaçtır ve ayrı yazılır`,
+        detail:`Şart kipi (-sa/-se) üzerine gelen "de/da" bağlaçtır; bitişik yazılamaz, ayrı yazılmalıdır. (Örn: "${base} ${correctSuffix}")`,
+        rule:'Şart kipi ve bağlaç olan "de/da"'
+      });
     }
   }
 
@@ -1220,7 +1304,8 @@ function renderOut(text,issues){
   for(let i=0;i<issues.length;i++){
     const iss=issues[i];
     html+=esc(text.slice(pos,iss.start)).replace(/\n/g,'<br>');
-    html+=`<span class="${HC[iss.type]}" tabindex="0" role="button" aria-label="${esc(LBL[iss.type])}: ${esc(iss.word.trim()||'boşluk')}" onclick="TY.pop(event,${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();TY.pop(event,${i})}">${esc(iss.word)||'&nbsp;&nbsp;'}</span>`;
+    const tipText=(iss.msg||'')+(iss.detail?' — '+iss.detail:'');
+    html+=`<span class="${HC[iss.type]}" tabindex="0" role="button" title="${esc(tipText)}" aria-label="${esc(LBL[iss.type])}: ${esc(iss.word.trim()||'boşluk')}" onclick="TY.pop(event,${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();TY.pop(event,${i})}">${esc(iss.word)||'&nbsp;&nbsp;'}</span>`;
     pos=iss.end;
   }
   return html+esc(text.slice(pos)).replace(/\n/g,'<br>');
@@ -1233,8 +1318,10 @@ function renderSide(issues){
   return issues.map((iss,i)=>{
     const w=iss.word.trim()||'(boşluk)';
     const s=iss.suggestions[0]?`<div class="is">→ ${esc(iss.suggestions[0])}</div>`:'';
-    return`<div class="ii ${iss.type}" tabindex="0" role="button" aria-label="${esc(LBL[iss.type])}: ${esc(w)} — ${esc(iss.msg)}" onclick="TY.pop(null,${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();TY.pop(null,${i})}">
-      <div class="iw">${esc(w)}</div><div class="im">${esc(iss.msg)}</div>${s}</div>`;
+    const d=iss.detail?`<div class="id" style="font-size:.72rem;color:var(--slate);margin-top:.25rem;line-height:1.3">💡 ${esc(iss.detail)}</div>`:'';
+    const tipText=(iss.msg||'')+(iss.detail?' — '+iss.detail:'');
+    return`<div class="ii ${iss.type}" tabindex="0" role="button" title="${esc(tipText)}" aria-label="${esc(LBL[iss.type])}: ${esc(w)} — ${esc(iss.msg)}" onclick="TY.pop(null,${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();TY.pop(null,${i})}">
+      <div class="iw">${esc(w)}</div><div class="im">${esc(iss.msg)}</div>${d}${s}</div>`;
   }).join('');
 }
 
@@ -1302,7 +1389,11 @@ window.TY={
       ${iss.optA.val?`<button class="ob${g&&g.opt==='A'?' obGuess':''}" onclick="TY.fix(${idx},${escAttr(iss.optA.val)})"><span class="oi">✏️</span><span class="ot">${esc(iss.optA.label)}${g&&g.opt==='A'?' ⭐':''}<span class="os">${esc(iss.optA.sub||'')}</span></span></button>`:''}
       <button class="ob${g&&g.opt==='B'?' obGuess':''}" onclick="TY.ign(${escAttr(iss.word)},${escAttr(iss.type)})"><span class="oi">✓</span><span class="ot">${esc(iss.optB.label)}${g&&g.opt==='B'?' ⭐':''}<span class="os">${esc(iss.optB.sub||'')}</span></span></button>`;
     } else if(iss.suggestions.length){
-      body.innerHTML='<div class="sl">Öneriler</div>'+
+      const ruleBox=iss.detail?`<div class="wbox" style="margin-bottom:.75rem;padding:.5rem .75rem;border-radius:6px;background:rgba(59,130,246,.08);border-left:3px solid var(--accent)">
+        <div style="font-weight:700;font-size:.78rem;color:var(--accent);margin-bottom:.2rem">📌 ${esc(iss.rule||'Kural & Neden')}</div>
+        <div style="font-size:.76rem;line-height:1.4;color:var(--ink)">${esc(iss.detail)}</div>
+      </div>`:'';
+      body.innerHTML=ruleBox+'<div class="sl">Öneriler</div>'+
         iss.suggestions.map(s=>`<button class="sb" onclick="TY.fix(${idx},${escAttr(s)})">${esc(s)}</button>`).join('');
     } else { body.innerHTML='<div style="font-size:.76rem;color:var(--slate);font-style:italic">Öneri bulunamadı</div>'; }
     const ft=document.getElementById('pf');ft.innerHTML='';
