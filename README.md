@@ -6,8 +6,9 @@
 
 ---
 
-## 🚀 Yeni Özellikler (v2.1)
+## 🚀 Yeni Özellikler (v2.2)
 
+- **🎨 Özel Uygulama İkonu & PWA Desteği:** Vektörel SVG ve yüksek çözünürlüklü uygulama ikonları (`favicon.svg`, `favicon.ico`, `apple-touch-icon`, 192px/512px ikonlar) ve `manifest.json` entegrasyonu; mobilde ve masaüstünde tarayıcıdan tek tıkla "Uygulama Olarak Yükle" (PWA / Bağımsız Uygulama) özelliği.
 - **📖 Kişisel Sözlük (Özel Terim & Ad Hafızası):** TDK'de bulunmayan özel adları, teknik terimleri (örn. marka/yazılım adları) hata penceresinden tek tıkla sözlüğünüze ekleyin; `localStorage` ile cihazınızda saklansın ve bir daha hata olarak görünmesin. Üst çubuktan sözlüğü dilediğiniz gibi yönetin.
 - **✨ Değişiklikleri Göster (Düzeltme Özeti / Diff):** "⚡ Tümünü Düzelt" uygulandığında hangi kelimelerin neye dönüştürüldüğünü şeffaf bir özet banner'ı ve açılır diff dökümüyle gösterir.
 - **📄 Boşluksuz Karakter & Tahmini Sayfa Sayısı:** Editör altında ve okunabilirlik kartında akademik/yayıncılık standardı olan boşluksuz vuruş ve sayfa sayısı (~1.800 vuruş bazlı) ölçümü.

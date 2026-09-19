@@ -5,6 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TürkçeYazım — Yazım &amp; Dilbilgisi Denetleyici</title>
 <meta name="description" content="Türkçe metinler için açık kaynaklı, TDK uyumlu yazım, dilbilgisi ve noktalama denetleyicisi.">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+<link rel="alternate icon" href="favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#B5202A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="TürkçeYazım">
 <style>
   :root{
     --crimson:#B5202A;--crimson2:#8C1820;--ink:#1A1A2E;--slate:#4A4E69;
@@ -28,7 +38,8 @@
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
   body{font-family:var(--f);background:var(--mist);color:var(--ink);min-height:100vh;display:flex;flex-direction:column;transition:background .2s,color .2s}
   .hdr{background:var(--crimson);padding:0 2rem;height:60px;display:flex;align-items:center;gap:.85rem;box-shadow:0 2px 8px rgba(0,0,0,.2);position:relative;z-index:10}
-  .seal{width:36px;height:36px;background:#fff;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:900;color:#B5202A;flex-shrink:0}
+  .seal{width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.22)}
+  .seal img{width:100%;height:100%;object-fit:contain;display:block}
   .bname{color:#fff;font-size:1.15rem;font-weight:700;line-height:1}
   .btag{color:rgba(255,255,255,.75);font-size:.68rem;margin-top:3px}
   .hdr-r{margin-left:auto;display:flex;align-items:center;gap:.6rem}
@@ -207,7 +218,7 @@
 </head>
 <body>
 <header class="hdr">
-  <div class="seal">Tü</div>
+  <div class="seal"><img src="favicon.svg" alt="TürkçeYazım İkonu" width="38" height="38"></div>
   <div>
     <div class="bname">TürkçeYazım</div>
     <div class="btag">TDK Uyumlu Yazım, Dilbilgisi &amp; Okunabilirlik Denetleyici</div>
