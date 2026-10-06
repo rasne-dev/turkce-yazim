@@ -413,6 +413,53 @@ it('olsada -> olsa da şart kipi bağlacı ayrılmalıdır', () => {
   assert.strictEqual(item.suggestions[0], 'olsa da');
 });
 
+console.log('\n--- 12. Özel İsim Kesme İşareti, İkilemeler & Düzeltilen Kural Testleri ---');
+it('Türkiyede -> Türkiye\'de özel isim kesme işareti düzeltilmelidir', () => {
+  const res = engine.analyze('Türkiyede herkes bu konuyu biliyor.');
+  const item = res.find(r => r.word === 'Türkiyede');
+  assert(item, 'Türkiyede uyarısı bulunamadı');
+  assert.strictEqual(item.suggestions[0], "Türkiye'de");
+});
+
+it('İstanbulda ve Atatürkün kesme işareti düzeltilmelidir', () => {
+  const res = engine.analyze('İstanbulda yaşadı ve Atatürkün fikirlerini benimsedi.');
+  const item1 = res.find(r => r.word === 'İstanbulda');
+  const item2 = res.find(r => r.word === 'Atatürkün');
+  assert(item1 && item1.suggestions[0] === "İstanbul'da", 'İstanbulda tespit edilemedi');
+  assert(item2 && item2.suggestions[0] === "Atatürk'ün", 'Atatürkün tespit edilemedi');
+});
+
+it('yanyana -> yan yana ikilemesi ayrılmalıdır', () => {
+  const res = engine.analyze('İki bina yanyana inşa edildi.');
+  const item = res.find(r => r.word.toLowerCase() === 'yanyana');
+  assert(item, 'yanyana hatası bulunamadı');
+  assert.strictEqual(item.suggestions[0], 'yan yana');
+});
+
+it('artarda -> art arda düzeltilmelidir', () => {
+  const res = engine.analyze('Olaylar artarda gerçekleşti.');
+  const item = res.find(r => r.word.toLowerCase() === 'artarda');
+  assert(item, 'artarda hatası bulunamadı');
+  assert.strictEqual(item.suggestions[0], 'art arda');
+});
+
+it('Düzeltilen bug: pantalonu -> pantolonu doğru şekilde çalışmalı', () => {
+  const res = engine.analyze('Yeni pantalonu çok beğendi.');
+  const item = res.find(r => r.word.toLowerCase() === 'pantalonu');
+  assert(item, 'pantalonu hatası bulunamadı');
+  assert.strictEqual(item.suggestions[0], 'pantolonu');
+});
+
+it('Düzeltilen bug: doğru yazılan "orijinalliği", "yeşil zeytini", "pantolonu" kelimeleri hata vermemelidir', () => {
+  const res = engine.analyze('Bu eserin orijinalliği korundu. Kahvaltıda yeşil zeytini ve yeni pantolonu vardı.');
+  const itemOrig = res.find(r => r.word.toLowerCase() === 'orijinalliği');
+  const itemZeytin = res.find(r => r.word.toLowerCase().includes('yeşil zeytini'));
+  const itemPantolon = res.find(r => r.word.toLowerCase() === 'pantolonu');
+  assert(!itemOrig, 'Doğru yazılmış orijinalliği hatalı olarak işaretlendi!');
+  assert(!itemZeytin, 'Doğru yazılmış yeşil zeytini hatalı olarak işaretlendi!');
+  assert(!itemPantolon, 'Doğru yazılmış pantolonu hatalı olarak işaretlendi!');
+});
+
 console.log(`\n================================`);
 console.log(`Sonuç: ${passed} Başarılı, ${failed} Hatalı`);
 console.log(`================================\n`);
