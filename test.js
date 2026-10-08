@@ -460,6 +460,85 @@ it('Düzeltilen bug: doğru yazılan "orijinalliği", "yeşil zeytini", "pantolo
   assert(!itemPantolon, 'Doğru yazılmış pantolonu hatalı olarak işaretlendi!');
 });
 
+console.log('\n--- 13. Belirtme Hâli & İyelik Eki Sonrası Bağlaç (de/da) Kuralları ---');
+it('komisyonunuda -> komisyonunu da düzeltmesi yapılmalıdır', () => {
+  const res = engine.analyze('Platform komisyonunuda hesaba katarsak normal gibi.');
+  const item = res.find(r => r.word.toLowerCase() === 'komisyonunuda');
+  assert(item, 'komisyonunuda hatası tespit edilemedi');
+  assert.strictEqual(item.suggestions[0], 'komisyonunu da');
+});
+
+it('arabasınıda, kendisinide, evimide, gözünüde bağlaçları ayrılmalıdır', () => {
+  const res = engine.analyze('Arabasınıda getirdi, kendisinide gördük, evimide sattım, gözünüde kapattı.');
+  const w1 = res.find(r => r.word.toLowerCase() === 'arabasınıda');
+  const w2 = res.find(r => r.word.toLowerCase() === 'kendisinide');
+  const w3 = res.find(r => r.word.toLowerCase() === 'evimide');
+  const w4 = res.find(r => r.word.toLowerCase() === 'gözünüde');
+  assert(w1 && w1.suggestions[0] === 'Arabasını da', 'arabasınıda tespit edilemedi');
+  assert(w2 && w2.suggestions[0] === 'kendisini de', 'kendisinide tespit edilemedi');
+  assert(w3 && w3.suggestions[0] === 'evimi de', 'evimide tespit edilemedi');
+  assert(w4 && w4.suggestions[0] === 'gözünü de', 'gözünüde tespit edilemedi');
+});
+
+it('onuda, bunuda, şunuda zamir bağlaçları ayrılmalıdır', () => {
+  const res = engine.analyze('Onuda al, bunuda unutma, şunuda getir.');
+  const w1 = res.find(r => r.word.toLowerCase() === 'onuda');
+  const w2 = res.find(r => r.word.toLowerCase() === 'bunuda');
+  const w3 = res.find(r => r.word.toLowerCase() === 'şunuda');
+  assert(w1 && w1.suggestions[0] === 'Onu da', 'onuda tespit edilemedi');
+  assert(w2 && w2.suggestions[0] === 'bunu da', 'bunuda tespit edilemedi');
+  assert(w3 && w3.suggestions[0] === 'şunu da', 'şunuda tespit edilemedi');
+});
+
+it('Doğru yazılmış bulunma hâli (komisyonunda, arabasında, evinde, gemide) hata vermemelidir', () => {
+  const res = engine.analyze('Komisyonunda görevliydi. Arabasında eşya unuttu. Kendi evinde dinlendi. Gemide seyahat etti.');
+  const w1 = res.find(r => r.word.toLowerCase().includes('komisyonunda'));
+  const w2 = res.find(r => r.word.toLowerCase().includes('arabasında'));
+  const w3 = res.find(r => r.word.toLowerCase().includes('evinde'));
+  const w4 = res.find(r => r.word.toLowerCase().includes('gemide'));
+  assert(!w1, 'komisyonunda hatalı olarak işaretlendi!');
+  assert(!w2, 'arabasında hatalı olarak işaretlendi!');
+  assert(!w3, 'evinde hatalı olarak işaretlendi!');
+  assert(!w4, 'gemide hatalı olarak işaretlendi!');
+});
+
+console.log('\n--- 14. Yeni TDK Kuralları, Yönelme Zamiri Bağlaçları & Okunabilirlik ---');
+it('banada -> bana da ve sanada -> sana da yönelme zamirleri bağlaç olarak ayrılmalıdır', () => {
+  const res = engine.analyze('Banada haber ver, sanada hediye aldım.');
+  const item1 = res.find(r => r.word.toLowerCase() === 'banada');
+  const item2 = res.find(r => r.word.toLowerCase() === 'sanada');
+  assert(item1 && item1.suggestions[0] === 'Bana da', 'banada tespit edilemedi');
+  assert(item2 && item2.suggestions[0] === 'sana da', 'sanada tespit edilemedi');
+});
+
+it('sıradışı, yasadışı, yanısıra, gözardı ayrı yazılmalıdır', () => {
+  const res = engine.analyze('Sıradışı bir olay oldu, yanısıra yasadışı durumlarda gözardı edildi.');
+  const w1 = res.find(r => r.word.toLowerCase() === 'sıradışı');
+  const w2 = res.find(r => r.word.toLowerCase() === 'yanısıra');
+  const w3 = res.find(r => r.word.toLowerCase() === 'yasadışı');
+  const w4 = res.find(r => r.word.toLowerCase() === 'gözardı');
+  assert(w1 && w1.suggestions[0] === 'Sıra dışı', 'sıradışı tespit edilemedi');
+  assert(w2 && w2.suggestions[0] === 'yanı sıra', 'yanısıra tespit edilemedi');
+  assert(w3 && w3.suggestions[0] === 'yasa dışı', 'yasadışı tespit edilemedi');
+  assert(w4 && w4.suggestions[0] === 'göz ardı', 'gözardı tespit edilemedi');
+});
+
+it('profösör -> profesör ve gardrop -> gardırop düzeltilmelidir', () => {
+  const res = engine.analyze('Profösör odaya girdi ve gardrop kapağını açtı.');
+  const w1 = res.find(r => r.word.toLowerCase() === 'profösör');
+  const w2 = res.find(r => r.word.toLowerCase() === 'gardrop');
+  assert(w1 && w1.suggestions[0] === 'Profesör', 'profösör tespit edilemedi');
+  assert(w2 && w2.suggestions[0] === 'gardırop', 'gardrop tespit edilemedi');
+});
+
+it('computeReadability 8 kelimeden kısa metinlerde Kısa Metin etiketi üretmelidir', () => {
+  const shortText = 'Platform komisyonunu da hesaba katarsak normal gibi.';
+  const metrics = engine.computeReadability(shortText);
+  assert(metrics, 'metrik üretilmedi');
+  assert.strictEqual(metrics.isShort, true);
+  assert.strictEqual(metrics.label, 'Kısa Metin');
+});
+
 console.log(`\n================================`);
 console.log(`Sonuç: ${passed} Başarılı, ${failed} Hatalı`);
 console.log(`================================\n`);

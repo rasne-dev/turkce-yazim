@@ -104,6 +104,11 @@
   .info-tip:hover,.info-tip:focus{color:var(--crimson)}
   .tip-content{display:none;position:absolute;bottom:calc(100% + 8px);left:0;background:var(--card-bg);border:1px solid var(--border);color:var(--ink);padding:.6rem .75rem;border-radius:8px;font-size:.73rem;line-height:1.45;width:260px;box-shadow:var(--shadow-lg);z-index:100;font-weight:normal;text-transform:none}
   .info-tip:hover .tip-content,.info-tip:focus .tip-content{display:block}
+  @media(max-width:640px){
+    .read-card{display:grid;grid-template-columns:repeat(2,1fr);gap:.8rem .65rem;padding:.85rem}
+    .read-card .read-item:first-child{grid-column:span 2}
+    .read-val{font-size:.88rem}
+  }
 
   /* results layout */
   .rgrid{display:grid;grid-template-columns:1fr 320px;gap:1rem;align-items:start}
@@ -259,13 +264,14 @@
       <button type="button" id="draftDismiss" aria-label="Bildirimi kapat">✕</button>
     </div>
     <div class="drop-zone" id="dropZone">
-      <textarea id="inp" placeholder="Metni buraya yazın veya yapıştırın… Dosya sürükleyip bırakabilirsiniz. (Ctrl+Enter: kontrol et)"></textarea>
+      <textarea id="inp" spellcheck="false" placeholder="Metni buraya yazın veya yapıştırın… Dosya sürükleyip bırakabilirsiniz. (Ctrl+Enter: kontrol et)"></textarea>
     </div>
     <div class="tlb">
       <button class="btn btn-p" id="chkBtn">✓ Kontrol Et</button>
       <button class="btn btn-g" id="cleanBtn" title="Bozuk PDF/web satır sonlarını birleştirir ve fazla boşlukları temizler">🧹 Biçimlendir</button>
       <button class="btn btn-g" id="clrBtn">✕ Temizle</button>
       <button class="btn btn-g" id="undoBtn" disabled title="Son işlemi geri al (Ctrl+Z)">↩ Geri Al</button>
+      <button class="btn btn-g" id="cpyBtnTop" title="Metni panoya kopyala">⎘ Kopyala</button>
       <button class="btn btn-g" id="downBtn" title="Düzeltilmiş metni .txt olarak indir">💾 İndir</button>
       <span class="cc" id="cc">0 karakter (boşluksuz: 0) · 0 kelime</span>
     </div>
@@ -450,6 +456,13 @@ const SPELL=[
   ['yıldönümü','yıl dönümü'],['yıldönümünü','yıl dönümünü'],
   ['işbirliği','iş birliği'],['işbölümü','iş bölümü'],
   ['anadili','ana dili'],['anafikir','ana fikir'],['önsöz','ön söz'],
+  ['sıradışı','sıra dışı'],['yasadışı','yasa dışı'],['çağdışı','çağ dışı'],
+  ['akıldışı','akıl dışı'],['olağandışı','olağan dışı'],
+  ['yanısıra','yanı sıra'],['peşisıra','peşi sıra'],['ardısıra','ardı sıra'],
+  ['gözardı','göz ardı'],['gözardı etmek','göz ardı etmek'],
+  ['baştacı','baş tacı'],['baştacı etmek','baş tacı etmek'],
+  ['profösör','profesör'],['profösörü','profesörü'],['profösörler','profesörler'],
+  ['gardrop','gardırop'],['gardolap','gardırop'],
 
   // === TDK BİTİŞİK YAZILAN BİRLEŞİK KELİMELER (ANLAM DEĞİŞİMİ) ===
   ['kuş burnu','kuşburnu'],['gök kuşağı','gökkuşağı'],['su çiçeği','suçiçeği'],
@@ -674,6 +687,15 @@ const DEDA=[
   ['bilede','bile de'],['oysakide','oysa ki de'],
   ['öncede','önce de'],['sonrada','sonra da'],['şimdide','şimdi de'],
   ['hepside','hepsi de'],['tekde','tek de'],
+  ['onuda','onu da'],['bunuda','bunu da'],['şunuda','şunu da'],
+  ['onlarıda','onları da'],['bunlarıda','bunları da'],['şunlarıda','şunları da'],
+  ['benide','beni de'],['senide','seni de'],['bizide','bizi de'],['sizide','sizi de'],
+  ['kendinide','kendini de'],['kendisinide','kendisini de'],
+  ['hepsinide','hepsini de'],['hiçbirinide','hiçbirini de'],
+  ['kimseyide','kimseyi de'],['birçoğunuda','birçoğunu da'],['birkaçınıda','birkaçını da'],
+  ['paramıda','paramı da'],['annemide','annemi de'],['babamıda','babamı da'],['çantamıda','çantamı da'],
+  ['banada','bana da'],['sanada','sana da'],['onada','ona da'],
+  ['bizede','bize de'],['sizede','size de'],['onlarada','onlara da'],
 ];
 
 // ============================================================
@@ -784,7 +806,7 @@ function guessBirebir(m,text){
 // ============================================================
 const WARNS=[
   {
-    rx:/\b(ben|sen|o|biz|siz|onlar|bana|sana|ona|bize|size|onlara)(da|de)\b/gi,
+    rx:/\b(ben|sen|o|biz|siz|onlar)(da|de)\b/gi,
     rule:'Zamir + "da/de"',
     detail:'HAL EKİ (üzerinde/yanında): "bende para var" ✓\nBAĞLAÇ (de/da = dahi): "ben de geldim" ✓',
     guess:guessDeDa,
@@ -920,8 +942,12 @@ function computeReadability(text){
   let score=206.835-(62.8*avgWordLength)-(3.125*avgSentenceLength);
   score=Math.max(0,Math.min(100,Math.round(score)));
 
+  const isShort=totalWords<8;
   let label='',cls='';
-  if(score>=90){label='Çok Kolay (İlkokul)';cls='score-veryeasy';}
+  if(isShort){
+    label='Kısa Metin';
+    cls='score-easy';
+  } else if(score>=90){label='Çok Kolay (İlkokul)';cls='score-veryeasy';}
   else if(score>=70){label='Kolay (Ortaokul)';cls='score-easy';}
   else if(score>=50){label='Orta (Lise)';cls='score-medium';}
   else if(score>=30){label='Zor (Lisans)';cls='score-hard';}
@@ -935,7 +961,7 @@ function computeReadability(text){
   const estPagesStr=estPages<0.1?(noSpaceChars>0?'< 0,1 sayfa':'0 sayfa'):('~'+estPages.toLocaleString('tr-TR')+' sayfa');
 
   return{
-    score,label,cls,
+    score,isShort,label,cls,
     readTimeStr,
     totalWords,
     totalSentences,
@@ -1093,6 +1119,35 @@ function analyze(text){
         msg:`TDK: Şart ekinden sonra gelen "de/da" bağlaçtır ve ayrı yazılır`,
         detail:`Şart kipi (-sa/-se) üzerine gelen "de/da" bağlaçtır; bitişik yazılamaz, ayrı yazılmalıdır. (Örn: "${base} ${correctSuffix}")`,
         rule:'Şart kipi ve bağlaç olan "de/da"'
+      });
+    }
+  }
+
+  // 2d. Belirtme hâli ve iyelik ekleri sonrası bağlaç "de/da"
+  {
+    const ACC_DEDA_EXC=new Set(['çinide','sinide','dinide','sunuda','umuda']);
+    const accDedaRx=new RegExp(WB+'([a-zA-ZığüşöçİĞÜŞÖÇ]+?(?:[ıi]n[ıi]z[ıi]|[uü]n[uü]z[uü]|m[ıi]z[ıi]|m[uü]z[uü]|larını|lerini|[ıi]n[ıi]|[uü]n[uü]|[bcçdfgğhjklmnprsştvyz](?:ımı|imi|umu|ümü)))(da|de)'+WE,'gi');
+    let am;
+    while((am=accDedaRx.exec(text))!==null){
+      const full=am[0];
+      const base=am[1];
+      const lfull=tl(full);
+      const lbase=tl(base);
+      if(ACC_DEDA_EXC.has(lfull)||ACC_DEDA_EXC.has(lbase)) continue;
+
+      const lv=getLastVowel(base);
+      const isBack=lv&&'aıou'.includes(lv);
+      const correctSuffix=isBack?'da':'de';
+
+      push({
+        type:'gram',
+        word:full,
+        start:am.index,
+        end:am.index+full.length,
+        suggestions:[base+' '+correctSuffix],
+        msg:`TDK: Belirtme hâlinden sonra gelen "de/da" bağlaçtır ve ayrı yazılır`,
+        detail:`İsmin belirtme hâli (-ı/-i/-u/-ü) üzerine ikinci bir hâl eki gelemez; buradaki "de/da" bağlaçtır ve ayrı yazılmalıdır. (Örn: "${base} ${correctSuffix}")`,
+        rule:'Belirtme eki ve bağlaç olan "de/da"'
       });
     }
   }
@@ -1580,13 +1635,13 @@ function run(){
 
   const rStats=computeReadability(curText);
   if(rStats){
-    document.getElementById('readScore').textContent=rStats.score+' / 100';
+    document.getElementById('readScore').textContent=rStats.isShort?'- / 100':(rStats.score+' / 100');
     const b=document.getElementById('readBadge');
     b.textContent=rStats.label;
     b.className='read-badge '+rStats.cls;
     const meter=document.getElementById('readMeterFill');
     if(meter){
-      meter.style.width=Math.max(5,rStats.score)+'%';
+      meter.style.width=rStats.isShort?'0%':Math.max(5,rStats.score)+'%';
       let mColor='#ef4444';
       if(rStats.score>=90) mColor='#22c55e';
       else if(rStats.score>=70) mColor='#3b82f6';
@@ -1603,8 +1658,12 @@ function run(){
 
   document.getElementById('statsBar').style.display='block';
 
-  const fixable=t=>curIssues.some(i=>i.type===t&&i.suggestions.length===1);
-  document.getElementById('fxAll').disabled=!['spell','gram','punct','suggest'].some(fixable);
+  const fixableCount=curIssues.filter(i=>['spell','gram','punct','suggest'].includes(i.type)&&i.type!=='warn'&&i.suggestions.length===1).length;
+  const fxBtn=document.getElementById('fxAll');
+  if(fxBtn){
+    fxBtn.disabled=fixableCount===0;
+    fxBtn.textContent=fixableCount>0?`⚡ Tümünü Düzelt (${fixableCount})`:'⚡ Tümünü Düzelt';
+  }
   renderCurrent();
 }
 
@@ -1702,8 +1761,24 @@ function fixByType(types){
   }
 }
 
-document.getElementById('chkBtn').addEventListener('click',run);
+document.getElementById('chkBtn').addEventListener('click',()=>{
+  run();
+  if(!curText.trim()){
+    showToast('Lütfen denetlemek için bir metin girin.');
+    return;
+  }
+  const statsEl=document.getElementById('statsBar');
+  if(statsEl&&statsEl.style.display!=='none'){
+    statsEl.scrollIntoView({behavior:'smooth',block:'start'});
+  }
+  if(curIssues.length===0){
+    showToast('✅ Harika! Hiçbir yazım veya noktalama hatası bulunamadı.');
+  } else {
+    showToast(`🔍 ${curIssues.length} olası sorun tespit edildi.`);
+  }
+});
 document.getElementById('clrBtn').addEventListener('click',()=>{
+  if(!curText.trim()) return;
   snapshotUndo();
   const el=document.getElementById('inp');
   el.value='';
@@ -1716,12 +1791,17 @@ document.getElementById('clrBtn').addEventListener('click',()=>{
   document.getElementById('draftNotice').style.display='none';
   curText='';curIssues=[];displayedIssues=[];ignored.clear();closePop();
   try{localStorage.removeItem('ty_draft');}catch(e){}
+  showToast('🗑 Metin temizlendi. (Geri almak için: ↩ Geri Al)');
 });
+const cpyBtnTop=document.getElementById('cpyBtnTop');
+if(cpyBtnTop){
+  cpyBtnTop.addEventListener('click',()=>document.getElementById('cpyBtn').click());
+}
 document.getElementById('inp').addEventListener('input',()=>{
   document.getElementById('cc').textContent=countLabel(document.getElementById('inp').value);
 });
 document.getElementById('inp').addEventListener('keydown',e=>{
-  if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();run();}
+  if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();document.getElementById('chkBtn').click();}
 });
 document.getElementById('fxAll').addEventListener('click',()=>fixByType(['spell','gram','punct','suggest']));
 
