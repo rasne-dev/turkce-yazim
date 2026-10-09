@@ -463,11 +463,24 @@ const SPELL=[
   ['baştacı','baş tacı'],['baştacı etmek','baş tacı etmek'],
   ['profösör','profesör'],['profösörü','profesörü'],['profösörler','profesörler'],
   ['gardrop','gardırop'],['gardolap','gardırop'],
+  ['biran','bir an'],['ilkönce','ilk önce'],
+  ['artniyet','art niyet'],['artniyetli','art niyetli'],
+  ['hakketmek','hak etmek'],['hakketti','hak etti'],['hakkediyor','hak ediyor'],['hakketmedi','hak etmedi'],
+  ['kabuletmek','kabul etmek'],['kabuletti','kabul etti'],['kabulediyorum','kabul ediyorum'],
+  ['devametmek','devam etmek'],['devametti','devam etti'],['devamediyor','devam ediyor'],
+  ['iptaletmek','iptal etmek'],['iptaletti','iptal etti'],['iptaledildi','iptal edildi'],
+  ['sözetmek','söz etmek'],['sözetti','söz etti'],['sözediyor','söz ediyor'],
+  ['yardımetmek','yardım etmek'],['yardımetti','yardım etti'],
+  ['teslimetmek','teslim etmek'],['teslimetti','teslim etti'],
+  ['notetmek','not etmek'],['notetti','not etti'],
+  ['ricaetmek','rica etmek'],['ricaetti','rica etti'],
 
   // === TDK BİTİŞİK YAZILAN BİRLEŞİK KELİMELER (ANLAM DEĞİŞİMİ) ===
   ['kuş burnu','kuşburnu'],['gök kuşağı','gökkuşağı'],['su çiçeği','suçiçeği'],
   ['it dirseği','itdirseği'],['aslan ağzı','aslanağzı'],['bülbül yuvası','bülbülyuvası'],
   ['baş yapıt','başyapıt'],['baş rol','başrol'],
+  ['sağ duyu','sağduyu'],['sağ duyulu','sağduyulu'],
+  ['var sayım','varsayım'],['var saymak','varsaymak'],
 
   // === YAYGIN SÖZCÜK HATALARI ===
   ['orjinal','orijinal'],['orjinali','orijinali'],['orjinalini','orijinalini'],['orjinalliği','orijinalliği'],
@@ -475,6 +488,7 @@ const SPELL=[
   ['sofor','şoför'],['soför','şoför'],['şofor','şoför'],
   ['pantalon','pantolon'],['pantalonu','pantolonu'],
   ['laboratuar','laboratuvar'],['laboratuarı','laboratuvarı'],
+  ['labaratuar','laboratuvar'],['labaratuarı','laboratuvarı'],
   ['karnıbahar','karnabahar'],
   ['dinazor','dinozor'],['dinazorlar','dinozorlar'],
   ['muhattap','muhatap'],['muhattabı','muhatabı'],
@@ -1054,6 +1068,14 @@ function analyze(text){
         suggestions:[base+' '+part+suf],msg:'Soru eki "'+part+'" fiilden ayrı yazılır'});
     }
 
+    const miKesmeRx=new RegExp(WB+'([a-zA-ZığüşöçİĞÜŞÖÇ]{2,})[\'\u2019](mı|mi|mu|mü)(sın|sin|sun|sün|m|ız|iz|uz|üz|nız|niz|nuz|nüz|lar|ler)?'+WE,'gi');
+    let mkm;
+    while((mkm=miKesmeRx.exec(text))!==null){
+      const base=mkm[1],part=mkm[2],suf=mkm[3]||'';
+      push({type:'gram',word:mkm[0],start:mkm.index,end:mkm.index+mkm[0].length,
+        suggestions:[base+' '+part+suf],msg:'TDK: Soru eki "'+part+'" kesme işaretiyle ayrılmaz; kelimeden ayrı yazılır'});
+    }
+
     const KI_OK=new Set(['sanki','oysaki','mademki','belki','halbuki','meğerki','illaki','oysakide','belkide','çünkü']);
     const kiRx=new RegExp(WB+'([\\wığüşöçİĞÜŞÖÇ]{3,})(ki)'+WE,'gi');
     while((mm=kiRx.exec(text))!==null){
@@ -1224,12 +1246,13 @@ function analyze(text){
       msg:'Kapatılmamış açılış parantezi "(" tespit edildi'});
   }
 
-  // İkilemeler arasına noktalama işareti konmaz (TDK İmla)
-  const ikilemeVirgul=new RegExp(WB+'([a-zA-ZığüşöçİĞÜŞÖÇ]{3,})\\s*,\\s*\\1'+WE,'gi');
-  let ivm;
-  while((ivm=ikilemeVirgul.exec(text))!==null){
-    push({type:'punct',word:ivm[0],start:ivm.index,end:ivm.index+ivm[0].length,
-      suggestions:[ivm[1]+' '+ivm[1]],msg:'TDK: İkilemeler arasına virgül konmaz ("'+ivm[1]+' '+ivm[1]+'")'});
+  // İkilemeler arasına noktalama işareti konmaz (virgül veya kısa çizgi) (TDK İmla)
+  const ikilemePunct=new RegExp(WB+'([a-zA-ZığüşöçİĞÜŞÖÇ]{3,})\\s*([,-])\\s*\\1'+WE,'gi');
+  let ipm;
+  while((ipm=ikilemePunct.exec(text))!==null){
+    const isHyphen=ipm[2]==='-';
+    push({type:'punct',word:ipm[0],start:ipm.index,end:ipm.index+ipm[0].length,
+      suggestions:[ipm[1]+' '+ipm[1]],msg:`TDK: İkilemeler arasına ${isHyphen?'kısa çizgi':'virgül'} konmaz ("${ipm[1]} ${ipm[1]}")`});
   }
 
   // Sayı sonrası ünsüz sertleşmesi (3'de -> 3'te, 1985'de -> 1985'te)
@@ -2065,6 +2088,11 @@ document.getElementById('draftDismiss').addEventListener('click',()=>{
 });
 inp.addEventListener('input',()=>{document.getElementById('draftNotice').style.display='none';},{once:true});
 try{document.getElementById('inp').focus();}catch(e){}
+try{
+  if(typeof window!=='undefined'&&'serviceWorker' in navigator&&location.protocol.startsWith('http')){
+    window.addEventListener('load',()=>{navigator.serviceWorker.register('./sw.js').catch(()=>{});});
+  }
+}catch(e){}
 if(typeof module!=='undefined'&&module.exports){
   module.exports={analyze,computeReadability,cleanText,SPELL,DEDA,KI,WARNS};
 }

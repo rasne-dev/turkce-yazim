@@ -539,6 +539,49 @@ it('computeReadability 8 kelimeden kısa metinlerde Kısa Metin etiketi üretmel
   assert.strictEqual(metrics.label, 'Kısa Metin');
 });
 
+console.log('\n--- 15. Birleşik Fiiller, İkileme Noktalaması & Soru Eki Kuralları ---');
+it('biran, ilkönce, artniyet ayrı yazılmalıdır', () => {
+  const res = engine.analyze('Biran durdu, ilkönce düşündü, artniyet aramadı.');
+  const w1 = res.find(r => r.word.toLowerCase() === 'biran');
+  const w2 = res.find(r => r.word.toLowerCase() === 'ilkönce');
+  const w3 = res.find(r => r.word.toLowerCase() === 'artniyet');
+  assert(w1 && w1.suggestions[0] === 'Bir an', 'biran tespit edilemedi');
+  assert(w2 && w2.suggestions[0] === 'ilk önce', 'ilkönce tespit edilemedi');
+  assert(w3 && w3.suggestions[0] === 'art niyet', 'artniyet tespit edilemedi');
+});
+
+it('hakketmek, kabuletmek, devametmek birleşik fiilleri ayrılmalıdır', () => {
+  const res = engine.analyze('Bunu hiç hakketmedi, teklifi kabuletti ve yola devametti.');
+  const w1 = res.find(r => r.word.toLowerCase() === 'hakketmedi');
+  const w2 = res.find(r => r.word.toLowerCase() === 'kabuletti');
+  const w3 = res.find(r => r.word.toLowerCase() === 'devametti');
+  assert(w1 && w1.suggestions[0] === 'hak etmedi', 'hakketmedi tespit edilemedi');
+  assert(w2 && w2.suggestions[0] === 'kabul etti', 'kabuletti tespit edilemedi');
+  assert(w3 && w3.suggestions[0] === 'devam etti', 'devametti tespit edilemedi');
+});
+
+it('yavaş-yavaş ikilemesindeki kısa çizgi kaldırılmalıdır', () => {
+  const res = engine.analyze('Yağmurda yavaş-yavaş yürüdük.');
+  const item = res.find(r => r.word.toLowerCase() === 'yavaş-yavaş');
+  assert(item, 'yavaş-yavaş tespit edilemedi');
+  assert.strictEqual(item.suggestions[0], 'yavaş yavaş');
+});
+
+it('Ahmet\'mi ve Ankara\'mı soru ekleri kesme işaretinden ayrılmalıdır', () => {
+  const res = engine.analyze("Ahmet'mi geldi, Ankara'mı daha güzel?");
+  const w1 = res.find(r => r.word === "Ahmet'mi");
+  const w2 = res.find(r => r.word === "Ankara'mı");
+  assert(w1 && w1.suggestions[0] === 'Ahmet mi', "Ahmet'mi tespit edilemedi");
+  assert(w2 && w2.suggestions[0] === 'Ankara mı', "Ankara'mı tespit edilemedi");
+});
+
+it('labaratuar -> laboratuvar düzeltilmelidir', () => {
+  const res = engine.analyze('Yeni labaratuar açıldı.');
+  const item = res.find(r => r.word.toLowerCase() === 'labaratuar');
+  assert(item, 'labaratuar tespit edilemedi');
+  assert.strictEqual(item.suggestions[0], 'laboratuvar');
+});
+
 console.log(`\n================================`);
 console.log(`Sonuç: ${passed} Başarılı, ${failed} Hatalı`);
 console.log(`================================\n`);
