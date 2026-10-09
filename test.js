@@ -582,6 +582,72 @@ it('labaratuar -> laboratuvar düzeltilmelidir', () => {
   assert.strictEqual(item.suggestions[0], 'laboratuvar');
 });
 
+console.log('\n--- 16. Şahıs Zamiri Bağlaçları (de/da), Çift Nokta & Eşitlik Zamirleri ---');
+it('Asgari ücretli ölsün sizde kurtulun.. metninde sizde ve .. tespit edilmelidir', () => {
+  const res = engine.analyze('Asgari ücretli ölsün sizde kurtulun.. Kamuda 6 ayda bir zam var...');
+  const sizdeItem = res.find(r => r.word.toLowerCase() === 'sizde');
+  const dotItem = res.find(r => r.word === '..');
+  assert(sizdeItem, 'sizde hatası tespit edilemedi');
+  assert.strictEqual(sizdeItem.type, 'gram');
+  assert.strictEqual(sizdeItem.suggestions[0], 'siz de');
+  assert(dotItem, '.. noktalama hatası tespit edilemedi');
+  assert.strictEqual(dotItem.type, 'punct');
+  assert.strictEqual(dotItem.suggestions[0], '.');
+});
+
+it('Şahıs zamirleri yüklemle uyuştuğunda bağlaç olarak tespit edilmelidir (bende geldim, sende gel, bizde gidelim, sizde haklısınız)', () => {
+  const t1 = engine.analyze('Bende geldim.');
+  const t2 = engine.analyze('Sende baksana.');
+  const t3 = engine.analyze('Bizde gelelim.');
+  const t4 = engine.analyze('Onlarda görsünler.');
+  const t5 = engine.analyze('Sizde haklısınız.');
+
+  assert.strictEqual(t1[0].suggestions[0], 'Ben de');
+  assert.strictEqual(t1[0].type, 'gram');
+  assert.strictEqual(t2[0].suggestions[0], 'Sen de');
+  assert.strictEqual(t2[0].type, 'gram');
+  assert.strictEqual(t3[0].suggestions[0], 'Biz de');
+  assert.strictEqual(t3[0].type, 'gram');
+  assert.strictEqual(t4[0].suggestions[0], 'Onlar da');
+  assert.strictEqual(t4[0].type, 'gram');
+  assert.strictEqual(t5[0].suggestions[0], 'Siz de');
+  assert.strictEqual(t5[0].type, 'gram');
+});
+
+it('Doğru bulunma hâli zamirleri (bende para var, sizde anahtar kaldı) kesin dilbilgisi hatası sayılmamalıdır', () => {
+  const t1 = engine.analyze('Bende para var.');
+  const t2 = engine.analyze('Sizde anahtar kaldı.');
+  const i1 = t1.find(r => r.word.toLowerCase() === 'bende');
+  const i2 = t2.find(r => r.word.toLowerCase() === 'sizde');
+  assert(i1 && i1.type === 'warn', 'bende para var gramer hatası olmamalı, warn kalmalı');
+  assert(i2 && i2.type === 'warn', 'sizde anahtar kaldı gramer hatası olmamalı, warn kalmalı');
+});
+
+it('bencede, sencede, bizcede, sizcede bağlaçları ayrılmalıdır', () => {
+  const res = engine.analyze('Bencede çok doğru, sencede öyle değil mi?');
+  const w1 = res.find(r => r.word.toLowerCase() === 'bencede');
+  const w2 = res.find(r => r.word.toLowerCase() === 'sencede');
+  assert(w1 && w1.suggestions[0] === 'Bence de', 'bencede tespit edilemedi');
+  assert(w2 && w2.suggestions[0] === 'sence de', 'sencede tespit edilemedi');
+});
+
+it('buradada, oradada, evdede, işte de çift hâl eki bağlaçları ayrılmalıdır', () => {
+  const res = engine.analyze('Buradada kaldık, oradada gördük, evdede bulamadık.');
+  const w1 = res.find(r => r.word.toLowerCase() === 'buradada');
+  const w2 = res.find(r => r.word.toLowerCase() === 'oradada');
+  const w3 = res.find(r => r.word.toLowerCase() === 'evdede');
+  assert(w1 && w1.suggestions[0] === 'Burada da', 'buradada tespit edilemedi');
+  assert(w2 && w2.suggestions[0] === 'orada da', 'oradada tespit edilemedi');
+  assert(w3 && w3.suggestions[0] === 'evde de', 'evdede tespit edilemedi');
+});
+
+it('Dört veya daha fazla nokta (...) olarak düzeltilmelidir', () => {
+  const res = engine.analyze('Bekliyorum....');
+  const item = res.find(r => r.word === '....');
+  assert(item, '.... tespit edilemedi');
+  assert.strictEqual(item.suggestions[0], '...');
+});
+
 console.log(`\n================================`);
 console.log(`Sonuç: ${passed} Başarılı, ${failed} Hatalı`);
 console.log(`================================\n`);

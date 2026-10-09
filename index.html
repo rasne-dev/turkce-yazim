@@ -710,6 +710,9 @@ const DEDA=[
   ['paramıda','paramı da'],['annemide','annemi de'],['babamıda','babamı da'],['çantamıda','çantamı da'],
   ['banada','bana da'],['sanada','sana da'],['onada','ona da'],
   ['bizede','bize de'],['sizede','size de'],['onlarada','onlara da'],
+  ['bencede','bence de'],['sencede','sence de'],['bizcede','bizce de'],['sizcede','sizce de'],
+  ['buradada','burada da'],['şuradada','şurada da'],['oradada','orada da'],
+  ['evdede','evde de'],['iştede','işte de'],
 ];
 
 // ============================================================
@@ -731,17 +734,27 @@ const KI=[
 // ============================================================
 const DATIVE_PRONOUNS=new Set(['bana','sana','ona','bize','size','onlara']);
 
+const P2S_ROOTS=new Set([
+  'gel','git','yap','et','al','ver','bak','gör','dur','çık','in',
+  'oku','yaz','dinle','söyle','anla','kurtul','ye','iç','sev','bil',
+  'çalış','iste','bekle','bırak','başla','bitir','konuş','otur','kalk'
+]);
+
 function personAgrees(pron,verb){
-  const v=tl(verb);
-  const P1S=/(yorum|dım$|dim$|dum$|düm$|tım$|tim$|tum$|tüm$|mışım$|mişim$|muşum$|müşüm$|acağım$|eceğim$|sam$|sem$|malıyım$|meliyim$)/;
-  const P2S=/(yorsun|dın$|din$|dun$|dün$|tın$|tin$|tun$|tün$|mışsın$|mişsin$|muşsun$|müşsün$|acaksın$|eceksin$|malısın$|melisin$)/;
-  const P3S=/(yor$|dı$|di$|du$|dü$|tı$|ti$|tu$|tü$|mış$|miş$|muş$|müş$|acak$|ecek$|malı$|meli$)/;
-  const P1P=/(yoruz|dık$|dik$|duk$|dük$|tık$|tik$|tuk$|tük$|mışız$|mişiz$|muşuz$|müşüz$|acağız$|eceğiz$|malıyız$|meliyiz$)/;
-  const P2P=/(yorsunuz|dınız$|diniz$|dunuz$|dünüz$|tınız$|tiniz$|tunuz$|tünüz$|mışsınız$|mişsiniz$|muşsunuz$|müşsünüz$|acaksınız$|eceksiniz$|malısınız$|melisiniz$)/;
-  const P3P=/(yorlar$|dılar$|diler$|dular$|düler$|tılar$|tiler$|tular$|tüler$|mışlar$|mişler$|muşlar$|müşler$|acaklar$|ecekler$)/;
+  if(!verb) return false;
+  const v=tl(verb.trim().replace(/^['"\(\[\{]+|['"\)\]\}.,;:!?]+$/g,''));
+  if(!v) return false;
+
+  const P1S=/(yorum|dım$|dim$|dum$|düm$|tım$|tim$|tum$|tüm$|mışım$|mişim$|muşum$|müşüm$|acağım$|eceğim$|sam$|sem$|malıyım$|meliyim$|[ae]y[ıiuü]m$|[aeıiuü]r[ıiuü]m$|m[ae]m$|[y]?[ıiuü]m$)/;
+  const P2S=/(yorsun|dın$|din$|dun$|dün$|tın$|tin$|tun$|tün$|mışsın$|mişsin$|muşsun$|müşsün$|acaksın$|eceksin$|malısın$|melisin$|sana$|sene$|[aeıiuü]rs[ıiuü]n$|m[ae]zs[ıiuü]n$|s[ıiuü]n$)/;
+  const P3S=/(yor$|dı$|di$|du$|dü$|tı$|ti$|tu$|tü$|mış$|miş$|muş$|müş$|acak$|ecek$|malı$|meli$|s[ıiuü]n$|[aeıiuü]r$|m[ae]z$)/;
+  const P1P=/(yoruz|dık$|dik$|duk$|dük$|tık$|tik$|tuk$|tük$|mışız$|mişiz$|muşuz$|müşüz$|acağız$|eceğiz$|malıyız$|meliyiz$|[ae]l[ıiuü]m$|[aeıiuü]r[ıiuü]z$|m[ae]y[ıiuü]z$|[y]?[ıiuü]z$)/;
+  const P2P=/(yorsunuz|dınız$|diniz$|dunuz$|dünüz$|tınız$|tiniz$|tunuz$|tünüz$|mışsınız$|mişsiniz$|muşsunuz$|müşsünüz$|acaksınız$|eceksiniz$|malısınız$|melisiniz$|[y]?[ıiuü]n$|[y]?[ıiuü]n[ıiuü]z$|[ae]s[ıiuü]n[ıiuü]z$|[aeıiuü]rs[ıiuü]n[ıiuü]z$|m[ae]zs[ıiuü]n[ıiuü]z$|s[ıiuü]n[ıiuü]z$)/;
+  const P3P=/(yorlar$|dılar$|diler$|dular$|düler$|tılar$|tiler$|tular$|tüler$|mışlar$|mişler$|muşlar$|müşler$|acaklar$|ecekler$|s[ıiuü]nl[ae]r$|[aeıiuü]rl[ae]r$|m[ae]zl[ae]r$|l[ae]r$)/;
+
   switch(pron){
     case'ben':return P1S.test(v);
-    case'sen':return P2S.test(v);
+    case'sen':return P2S.test(v)||P2S_ROOTS.has(v);
     case'o':return P3S.test(v);
     case'biz':return P1P.test(v);
     case'siz':return P2P.test(v)||P2S.test(v);
@@ -756,13 +769,22 @@ function guessDeDa(m,text){
     return{opt:'A',reason:'"'+m[1]+'" yönelme hâlinde olduğundan üzerine hâl eki almaz; "'+m[2]+'" burada bağlaçtır.'};
   }
   const after=text.slice(m.index+m[0].length);
-  const clause=(after.match(/^[^.!?\n]*/)||[''])[0];
+  const clause=(after.match(/^[^.!?;\n]*/)||[''])[0];
   if(/(^|[^\wığüşöçİĞÜŞÖÇ])(var|yok)([^\wığüşöçİĞÜŞÖÇ]|$)/i.test(clause)){
     return{opt:'B',reason:'Cümlede "var/yok" geçmesi bulunma/sahiplik anlamına (hâl eki) işaret eder.'};
   }
-  const nx=after.match(/^\s*([\wığüşöçİĞÜŞÖÇ]+)/);
-  if(nx&&personAgrees(pron,nx[1])){
-    return{opt:'A',reason:'Ardından gelen "'+nx[1]+'" fiili "'+m[1]+'" ile aynı şahısta çekimlidir; bağlaç kullanımıdır.'};
+  const words=clause.trim().split(/\s+/).filter(Boolean);
+  for(let i=0;i<Math.min(words.length,3);i++){
+    const cw=words[i].replace(/[.,;:!?]+$/,'');
+    if(personAgrees(pron,cw)){
+      return{opt:'A',reason:'Cümledeki "'+cw+'" yüklemi "'+m[1]+'" ile aynı şahısta çekimlidir; bağlaç kullanımıdır.'};
+    }
+  }
+  if(words.length>3){
+    const lastW=words[words.length-1].replace(/[.,;:!?]+$/,'');
+    if(personAgrees(pron,lastW)){
+      return{opt:'A',reason:'Cümledeki "'+lastW+'" yüklemi "'+m[1]+'" ile aynı şahısta çekimlidir; bağlaç kullanımıdır.'};
+    }
   }
   return null;
 }
@@ -1174,6 +1196,53 @@ function analyze(text){
     }
   }
 
+  // 2e. Şahıs zamiri + bağlaç olan "de/da" (yüklem/fiil şahısla uyuşuyorsa kesin bağlaçtır)
+  {
+    const pronDedaRx = new RegExp(WB + '(ben|sen|biz|siz|onlar)(da|de)' + WE, 'gi');
+    let pdm;
+    while((pdm = pronDedaRx.exec(text)) !== null) {
+      if(!ok(pdm.index, pdm.index + pdm[0].length)) continue;
+      const pron = tl(pdm[1]);
+      const suf = pdm[2];
+      const after = text.slice(pdm.index + pdm[0].length);
+      const clause = (after.match(/^[^.!?;\n]*/)||[''])[0];
+
+      // Eğer cümlede var/yok varsa veya hâl eki bağlamıysa kesin bağlaç sayma (WARNS devralacak)
+      if(/(^|[^\wığüşöçİĞÜŞÖÇ])(var|yok)([^\wığüşöçİĞÜŞÖÇ]|$)/i.test(clause)) continue;
+
+      const words = clause.trim().split(/\s+/).filter(Boolean);
+      if(!words.length) continue;
+
+      let matchedVerb = null;
+      for(let i = 0; i < Math.min(words.length, 3); i++) {
+        const cw = words[i].replace(/[.,;:!?]+$/, '');
+        if(personAgrees(pron, cw)) {
+          matchedVerb = cw;
+          break;
+        }
+      }
+      if(!matchedVerb && words.length > 3) {
+        const lastW = words[words.length - 1].replace(/[.,;:!?]+$/, '');
+        if(personAgrees(pron, lastW)) {
+          matchedVerb = lastW;
+        }
+      }
+
+      if(matchedVerb) {
+        push({
+          type: 'gram',
+          word: pdm[0],
+          start: pdm.index,
+          end: pdm.index + pdm[0].length,
+          suggestions: [pdm[1] + ' ' + suf],
+          msg: `TDK: Bağlaç olan "de/da" zamirden ayrı yazılır ("${pdm[1]} ${suf}")`,
+          detail: `Cümledeki "${matchedVerb}" yüklemi "${pdm[1]}" şahsı ile çekimli olduğundan buradaki "${suf}" bulunma hâli değil bağlaçtır; ayrı yazılmalıdır.`,
+          rule: 'Zamir ve bağlaç olan "de/da"'
+        });
+      }
+    }
+  }
+
   // 3. Tekrarlanan Mükerrer Kelimeler
   {
     const repRx=new RegExp(WB+'([a-zA-ZığüşöçİĞÜŞÖÇ]{2,})\\s+\\1'+WE,'gi');
@@ -1204,6 +1273,68 @@ function analyze(text){
   }
 
   // 5. Noktalama Hataları
+  // Yan yana iki nokta (..) veya fazla nokta (....+)
+  {
+    const multiDotRx = /(?<!\.)\.{2,}(?!\.)/g;
+    let mdm;
+    while((mdm = multiDotRx.exec(text)) !== null) {
+      const dots = mdm[0];
+      const start = mdm.index;
+      const end = start + dots.length;
+      if(!ok(start, end)) continue;
+
+      const afterChar = text[end];
+      const isTwo = dots.length === 2;
+      const isMoreThanThree = dots.length >= 4;
+
+      if(isTwo) {
+        const needsSpace = afterChar && /[A-ZİĞÜŞÖÇa-zığüşöç]/.test(afterChar);
+        const sug = needsSpace ? '. ' : '.';
+        push({
+          type: 'punct',
+          word: dots,
+          start: start,
+          end: end,
+          suggestions: [sug],
+          msg: 'Türkçede yan yana iki nokta ("..") kullanılmaz; tek nokta (".") olmalıdır',
+          detail: 'TDK noktalama kurallarında ".." şeklinde bir işaret yoktur. Cümle bitimi için tek nokta (".") kullanılmalıdır.'
+        });
+      } else if(isMoreThanThree) {
+        const needsSpace = afterChar && /[A-ZİĞÜŞÖÇa-zığüşöç]/.test(afterChar);
+        const sug = needsSpace ? '... ' : '...';
+        push({
+          type: 'punct',
+          word: dots,
+          start: start,
+          end: end,
+          suggestions: [sug],
+          msg: `Üç nokta yerine ${dots.length} nokta konulmuş; "..." olmalıdır`,
+          detail: 'TDK kuralına göre eksiltili cümlelerde 3 nokta kullanılır; 4 veya daha fazla nokta kullanılmaz.'
+        });
+      }
+    }
+
+    const multiCommaRx = /(?<!,),{2,}(?!,)/g;
+    let mcm;
+    while((mcm = multiCommaRx.exec(text)) !== null) {
+      const commas = mcm[0];
+      const start = mcm.index;
+      const end = start + commas.length;
+      if(!ok(start, end)) continue;
+      const afterChar = text[end];
+      const needsSpace = afterChar && /[A-ZİĞÜŞÖÇa-zığüşöç]/.test(afterChar);
+      push({
+        type: 'punct',
+        word: commas,
+        start: start,
+        end: end,
+        suggestions: [needsSpace ? ', ' : ','],
+        msg: 'Gereksiz birden fazla virgül kullanımı',
+        detail: 'Yan yana birden fazla virgül kullanılmaz; tek virgül (",") olmalıdır.'
+      });
+    }
+  }
+
   let m;
   const r1=/,(?=[^ \n\r"'»)\].,;!?\u2019\d])/g;
   while((m=r1.exec(text))!==null)
@@ -2094,7 +2225,7 @@ try{
   }
 }catch(e){}
 if(typeof module!=='undefined'&&module.exports){
-  module.exports={analyze,computeReadability,cleanText,SPELL,DEDA,KI,WARNS};
+  module.exports={analyze,computeReadability,cleanText,SPELL,DEDA,KI,WARNS,personAgrees};
 }
 })();
 </script>
