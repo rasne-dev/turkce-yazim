@@ -648,6 +648,42 @@ it('Dört veya daha fazla nokta (...) olarak düzeltilmelidir', () => {
   assert.strictEqual(item.suggestions[0], '...');
 });
 
+it('askeri ücret, tesekkurler, farketmez, hakkaten yaygın hataları düzeltilmelidir', () => {
+  const res = engine.analyze('Askeri ücret zammı için tesekkurler, ama farketmez hakkaten.');
+  const w1 = res.find(r => r.word.toLowerCase() === 'askeri ücret');
+  const w2 = res.find(r => r.word.toLowerCase() === 'tesekkurler');
+  const w3 = res.find(r => r.word.toLowerCase() === 'farketmez');
+  const w4 = res.find(r => r.word.toLowerCase() === 'hakkaten');
+  assert(w1 && w1.suggestions[0] === 'Asgari ücret', 'askeri ücret tespit edilemedi');
+  assert(w2 && w2.suggestions[0] === 'teşekkürler', 'tesekkurler tespit edilemedi');
+  assert(w3 && w3.suggestions[0] === 'fark etmez', 'farketmez tespit edilemedi');
+  assert(w4 && w4.suggestions[0] === 'hakikaten', 'hakkaten tespit edilemedi');
+});
+
+console.log('\n--- 17. Metin Karşılaştırma & Kelime Bazlı Fark (Diff) ---');
+it('computeWordDiff aynı metin için boş dizi dönmelidir', () => {
+  const diff = engine.computeWordDiff('Bugün hava çok güzel.', 'Bugün hava çok güzel.');
+  assert(Array.isArray(diff), 'Sonuç dizi olmalıdır');
+  assert.strictEqual(diff.length, 0, 'Aynı metin için fark olmamalıdır');
+});
+
+it('computeWordDiff kelime düzeltmelerini del ve ins olarak tespit etmelidir', () => {
+  const diff = engine.computeWordDiff('ali nin topu orjinal', 'Ali\'nin topu orijinal');
+  assert(Array.isArray(diff) && diff.length > 0, 'Fark tespit edilmelidir');
+  const dels = diff.filter(d => d.type === 'del').map(d => d.val.trim());
+  const inss = diff.filter(d => d.type === 'ins').map(d => d.val.trim());
+  assert(dels.some(d => d.includes('ali')), 'ali silinen olarak işaretlenmeli');
+  assert(inss.some(i => i.includes('Ali')), 'Ali eklenen olarak işaretlenmeli');
+  assert(dels.some(d => d.includes('orjinal')), 'orjinal silinen olarak işaretlenmeli');
+  assert(inss.some(i => i.includes('orijinal')), 'orijinal eklenen olarak işaretlenmeli');
+});
+
+it('computeWordDiff eklenen ve çıkarılan kelimeleri doğru ayırmalıdır', () => {
+  const diff = engine.computeWordDiff('Kitabı hemen oku.', 'Kitabı dikkatle ve hemen oku.');
+  const inss = diff.filter(d => d.type === 'ins').map(d => d.val.trim());
+  assert(inss.some(i => i.includes('dikkatle')), 'eklenen kelime ins olarak işaretlenmelidir');
+});
+
 console.log(`\n================================`);
 console.log(`Sonuç: ${passed} Başarılı, ${failed} Hatalı`);
 console.log(`================================\n`);
