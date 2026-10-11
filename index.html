@@ -260,8 +260,22 @@
   .active-mark{outline:2px solid var(--crimson)!important;outline-offset:2px;border-radius:4px;box-shadow:0 0 0 4px rgba(181,32,42,.18)}
   .case-wrap{position:relative;display:inline-flex}
   .rep-words-bar{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--r);padding:.55rem 1.1rem;margin-bottom:.6rem;font-size:.78rem;color:var(--slate);display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;box-shadow:var(--shadow)}
-  .rep-chip{background:var(--mist);border:1px solid var(--border);border-radius:12px;padding:.12rem .55rem;font-size:.74rem;font-weight:600;color:var(--ink);display:inline-flex;align-items:center;gap:.25rem}
+  .rep-chip{background:var(--mist);border:1px solid var(--border);border-radius:12px;padding:.15rem .6rem;font-size:.74rem;font-weight:600;color:var(--ink);display:inline-flex;align-items:center;gap:.25rem;cursor:pointer;font-family:var(--f);transition:border-color .15s,background .15s,transform .1s}
+  .rep-chip:hover{border-color:var(--crimson);transform:translateY(-1px)}
+  .rep-chip.active{background:var(--red-bg);border-color:var(--crimson);color:var(--crimson)}
   .rep-chip b{color:var(--crimson)}
+  .h-rep{background:rgba(234,179,8,.28);border-bottom:2px solid #ca8a04;border-radius:3px;padding:0 2px}
+  body.dark .h-rep{background:rgba(250,204,21,.22);border-bottom-color:#facc15}
+  .find-bar{display:none;align-items:center;gap:.5rem;flex-wrap:wrap;margin-top:.85rem;padding:.65rem .85rem;background:var(--mist);border:1px solid var(--border);border-radius:8px;animation:fadeIn .15s ease-out}
+  .find-bar.open{display:flex}
+  .find-inp{flex:1;min-width:140px;padding:.38rem .65rem;border:1.5px solid var(--border);border-radius:6px;font-size:.82rem;font-family:var(--f);background:var(--card-bg);color:var(--ink)}
+  .find-inp:focus{outline:none;border-color:var(--crimson)}
+  .find-cnt{font-size:.74rem;color:var(--slate);font-weight:600;min-width:58px;text-align:center}
+  .ii-top{display:flex;align-items:flex-start;justify-content:space-between;gap:.4rem}
+  .ii-acts{display:inline-flex;align-items:center;gap:.25rem;flex-shrink:0}
+  .ii-qbtn{border:1px solid var(--border);background:var(--card-bg);color:var(--slate);border-radius:5px;padding:.1rem .38rem;font-size:.7rem;font-weight:700;cursor:pointer;font-family:var(--f);line-height:1.2;transition:all .12s}
+  .ii-qbtn.fix:hover{background:var(--green-bg);color:var(--green);border-color:var(--green)}
+  .ii-qbtn.ign:hover{background:var(--red-bg);color:var(--red);border-color:var(--red)}
   .empty-hints{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;background:var(--card-bg);border:1px dashed var(--border);border-radius:var(--r);padding:.9rem 1.25rem;margin-bottom:1rem;font-size:.8rem;color:var(--slate)}
   .empty-hints-items{display:flex;align-items:center;gap:1.1rem;flex-wrap:wrap}
   .empty-hint-pill{display:inline-flex;align-items:center;gap:.35rem}
@@ -335,12 +349,21 @@
           <button type="button" class="dropdown-item" data-case="title">✨ Başlık Düzeni (Kelime Başı Büyük)</button>
         </div>
       </div>
+      <button class="btn btn-g" id="findToggleBtn" title="Türkçe duyarlı Bul ve Değiştir (Ctrl+H)" aria-expanded="false">🔍 Bul &amp; Değiştir</button>
       <button class="btn btn-g" id="clrBtn">✕ Temizle</button>
       <button class="btn btn-g" id="undoBtn" disabled title="Son işlemi geri al (Ctrl+Z)">↩ Geri Al</button>
       <button class="btn btn-g" id="redoBtn" disabled title="Son işlemi ileri al (Ctrl+Y)">↪ İleri Al</button>
       <button class="btn btn-g" id="cpyBtnTop" title="Metni panoya kopyala">⎘ Kopyala</button>
       <button class="btn btn-g" id="downBtn" title="Metni farklı formatlarda dışa aktar (.txt, .md, .html)">💾 Dışa Aktar</button>
       <span class="cc" id="cc">0 karakter (boşluksuz: 0) · 0 kelime</span>
+    </div>
+    <div class="find-bar" id="findBar" role="region" aria-label="Bul ve Değiştir">
+      <input type="text" class="find-inp" id="findInp" placeholder="Aranan kelime veya ifade (İ/i, I/ı uyumlu)...">
+      <input type="text" class="find-inp" id="replaceInp" placeholder="Yeni ifade...">
+      <span class="find-cnt" id="findCount">0 eşleşme</span>
+      <button type="button" class="btn btn-g btn-xs" id="replaceOneBtn">Değiştir</button>
+      <button type="button" class="btn btn-p btn-xs" id="replaceAllBtn">Tümünü Değiştir</button>
+      <button type="button" class="pc" id="findCloseBtn" aria-label="Bul ve Değiştir çubuğunu kapat" style="font-size:1.1rem;padding:0 5px">×</button>
     </div>
   </div>
 
@@ -470,6 +493,7 @@
     <div class="shortcut-list">
       <div class="shortcut-row"><span>Metni Denetle</span><span class="kbd">Ctrl + Enter</span></div>
       <div class="shortcut-row"><span>Tümünü Düzelt</span><span class="kbd">Ctrl + Shift + F</span></div>
+      <div class="shortcut-row"><span>Bul ve Değiştir</span><span class="kbd">Ctrl + H</span></div>
       <div class="shortcut-row"><span>Son İşlemi Geri Al</span><span class="kbd">Ctrl + Z</span></div>
       <div class="shortcut-row"><span>Son İşlemi İleri Al</span><span class="kbd">Ctrl + Y</span></div>
       <div class="shortcut-row"><span>Metni Kopyala</span><span class="kbd">Ctrl + Alt + C</span></div>
@@ -567,8 +591,7 @@
 'use strict';
 function tl(s){return s.replace(/İ/g,'i').replace(/I/g,'ı').toLowerCase()}
 function tu(s){if(!s)return s;const c=s[0];return(c==='i'?'İ':c==='ı'?'I':c.toUpperCase())+s.slice(1)}
-function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
-function escAttr(v){return JSON.stringify(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
 
 const WB='(?<![\\wığüşöçİĞÜŞÖÇ\'\u2019\u02bc])';
 const WE='(?![\\wığüşöçİĞÜŞÖÇ\'\u2019\u02bc])';
@@ -1001,7 +1024,7 @@ function guessBirebir(m,text){
 // ============================================================
 const WARNS=[
   {
-    rx:/\b(ben|sen|o|biz|siz|onlar)(da|de)\b/gi,
+    rx:new RegExp(WB+'(ben|sen|o|biz|siz|onlar)(da|de)'+WE,'gi'),
     rule:'Zamir + "da/de"',
     detail:'HAL EKİ (üzerinde/yanında): "bende para var" ✓\nBAĞLAÇ (de/da = dahi): "ben de geldim" ✓',
     guess:guessDeDa,
@@ -1011,7 +1034,7 @@ const WARNS=[
     })
   },
   {
-    rx:/([a-zA-ZığüşöçİĞÜŞÖÇ]{3,}(?:nda|nde|ında|inde|da|de|ta|te)) (ki)\b/gi,
+    rx:new RegExp(WB+'([a-zA-ZığüşöçİĞÜŞÖÇ]{3,}(?:nda|nde|ında|inde|da|de|ta|te)) (ki)'+WE,'gi'),
     preCheck:(txt,m)=>{
       const pre=txt.slice(Math.max(0,m.index-3),m.index).trim();
       return !pre.endsWith(',')&&!pre.endsWith(';');
@@ -1137,7 +1160,7 @@ function cleanText(text){
         merged=line;
       }else{
         const prev=lines[i-1];
-        const isBullet=/^[-*•\d+\.]\s+/.test(line);
+        const isBullet=/^(?:[-*•]|(?:\d+|[a-zA-Z])[.)])\s+/.test(line);
         const prevEndsPunct=/[:]$/.test(prev);
 
         if(isBullet||prevEndsPunct){
@@ -1155,15 +1178,42 @@ function cleanText(text){
   return cleanedParagraphs.filter(p=>p.length>0).join('\n\n').trim();
 }
 
+function findAndReplace(text,findStr,replaceStr,all=true){
+  if(!text||!findStr) return{text:text||'',count:0,replaced:0};
+  const lText=tl(text);
+  const lFind=tl(findStr);
+  const fLen=findStr.length;
+  if(!fLen||lFind.length!==fLen){
+    const escRx=findStr.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    const rx=new RegExp(escRx,all?'gi':'i');
+    const matches=text.match(new RegExp(escRx,'gi'))||[];
+    if(!matches.length) return{text,count:0,replaced:0};
+    return{text:text.replace(rx,replaceStr),count:matches.length,replaced:all?matches.length:1};
+  }
+  let pos=0,idx=-1,count=0,replaced=0,out='';
+  while((idx=lText.indexOf(lFind,pos))!==-1){
+    count++;
+    if(all||replaced===0){
+      out+=text.slice(pos,idx)+replaceStr;
+      replaced++;
+    } else {
+      out+=text.slice(pos,idx+fLen);
+    }
+    pos=idx+fLen;
+  }
+  out+=text.slice(pos);
+  return{text:out,count,replaced};
+}
+
 // ============================================================
 // ATEŞMAN OKUNABİLİRLİK İNDEKSİ & İSTATİSTİK HESAPLAYICI
 // ============================================================
-const STOP_WORDS=new Set(['bir','bu','şu','o','ve','ile','için','de','da','ki','mi','mı','mu','mü','ama','fakat','lakin','ancak','çok','daha','en','gibi','kadar','olarak','olan','oldu','olur','var','yok','ben','sen','biz','siz','onlar','ne','her','hem','ya','veya','ise','diye','sonra','önce','üzere','गöre','göre','karşı','bile','sadece','zaten','artık','yine','gene','hiç']);
+const STOP_WORDS=new Set(['bir','bu','şu','o','ve','ile','için','de','da','ki','mi','mı','mu','mü','ama','fakat','lakin','ancak','çok','daha','en','gibi','kadar','olarak','olan','oldu','olur','var','yok','ben','sen','biz','siz','onlar','ne','her','hem','ya','veya','ise','diye','sonra','önce','üzere','göre','karşı','bile','sadece','zaten','artık','yine','gene','hiç']);
 
 function computeReadability(text){
   const clean=text.trim();
   if(!clean) return null;
-  const words=clean.match(/[\wığüşöçİĞÜŞÖÇ]+/g)||[];
+  const words=clean.match(/[\wığüşöçİĞÜŞÖÇ]+(?:['\u2019][\wığüşöçİĞÜŞÖÇ]+)*/g)||[];
   const totalWords=words.length;
   if(totalWords===0) return null;
 
@@ -1301,11 +1351,13 @@ function analyze(text){
   function push(iss){
     if(ok(iss.start,iss.end)){
       if(iss.suggestions&&iss.suggestions.length){
+        const w=iss.word||'';
+        const isAllCaps=w.length>1&&w===tuAll(w)&&w!==tl(w);
+        const fc=w[0];
+        const isFirstCap=fc&&fc===tu(fc)&&fc!==tl(fc);
         iss.suggestions=iss.suggestions.map(sug=>{
-          const fc=iss.word[0];
-          if(fc&&fc===fc.toUpperCase()&&fc!==fc.toLowerCase()){
-            return tu(sug);
-          }
+          if(isAllCaps) return tuAll(sug);
+          if(isFirstCap) return tu(sug);
           return sug;
         });
       }
@@ -1393,58 +1445,100 @@ function analyze(text){
 
   // 2c. Fiil / Ek-fiil ve Şart kipi sonrası bağlaç "de/da" (-te/-ta değil, ayrı de/da)
   {
-    const DEDA_VERB_EXC=new Set(['geçmişte','geçmişten','yemişte','sadede','aside','kasede','kesede']);
-    const dedaVerbRx=/(?<![a-zA-ZığüşöçİĞÜŞÖÇ\d])([a-zA-ZığüşöçİĞÜŞÖÇ]+(miş|mış|muş|müş|miştir|mıştır|muştur|müştür|mişti|mıştı|müştü|muştu|seydi|saydı|seydik|saydık))(te|ta|de|da)(?![a-zA-ZığüşöçİĞÜŞÖÇ\d])/gi;
-    let vm;
-    while((vm=dedaVerbRx.exec(text))!==null){
-      const full=vm[0];
-      const base=vm[1];
-      const suf=vm[3].toLowerCase();
-      if(DEDA_VERB_EXC.has(tl(full))||DEDA_VERB_EXC.has(tl(base))) continue;
+    const DEDA_VERB_EXC=new Set([
+      'geçmişte','geçmişten','yemişte','sadede','aside','kasede','kesede',
+      'elmalıda','kıymalıda','hurmalıda','sarmalıda','asmalıda','kreigde',
+      'masada','kasada','yasada','anayasada','tasada','pasada','borsada','arsada','kısada',
+      'bursada','manisada','pırasada','yarasada','asada','lisede','kilisede','hissede',
+      'cüssede','ensede','korsede','kimsede','elbisede','hadisede','vesvesede','medresede',
+      'mukayesede','müessesede','insanda','lisanda','nisanda','ihsanda','korsanda','tavşanda',
+      'eksende','desende','yasakta','kuşakta','kavşakta','başakta','uşakta','döşekte',
+      'fişekte','eşekte','şimşekte','dirsekte','yüksekte','tümsekte','gerçekte','mercekte',
+      'ölçekte','çiçekte','böcekte','kapsamda','susamda','masalarda','kasalarda','yasalarda',
+      'borsalarda','arsalarda','liselerde','kiliselerde','kaselerde','hisselerde','elbiselerde','hadiselerde'
+    ]);
 
+    function pushVerbDeda(full,base,rawSuf,index,ruleTitle,customMsg,customDetail){
+      const suf=tl(rawSuf);
       const lv=getLastVowel(base);
       const isBack=lv&&'aıou'.includes(lv);
       const correctSuffix=isBack?'da':'de';
       const isHardened=(suf==='te'||suf==='ta');
-
-      let msg,detail;
+      let msg=customMsg,detail=customDetail;
       if(isHardened){
         msg=`TDK: Bağlaç olan "de/da" sertleşip "-te/-ta" olmaz; ayrı "${correctSuffix}" yazılmalıdır`;
         detail=`Türkçede bağlaç olan "de/da" ünsüz benzeşmesine (sertleşmeye) uğramaz; "-${suf}" değil ayrı "${correctSuffix}" olmalıdır. (Örn: "${base} ${correctSuffix}")`;
-      } else {
-        msg=`TDK: Bağlaç olan "de/da" fiil ve ek-fiilden sonra ayrı yazılır`;
-        detail=`Fiil veya ek-fiil üzerine gelen "de/da" bağlaçtır ve her zaman ayrı yazılır. (Örn: "${base} ${correctSuffix}")`;
       }
-
       push({
         type:'gram',
         word:full,
-        start:vm.index,
-        end:vm.index+full.length,
+        start:index,
+        end:index+full.length,
         suggestions:[base+' '+correctSuffix],
         msg:msg,
         detail:detail,
-        rule:'Bağlaç olan "de/da" kuralı (-te/-ta değil, ayrı de/da)'
+        rule:ruleTitle
       });
     }
 
-    const condVerbRx=/(?<![a-zA-ZığüşöçİĞÜŞÖÇ\d])([a-zA-ZığüşöçİĞÜŞÖÇ]*(?:ol|gel|git|yap|et|bil|gör|al|ver|kal|bak|dur|sev|duy|çalış|iste|söyle|konuş|yaz|oku|anla|bul|çık|in)(?:sa|se))(de|da)(?![a-zA-ZığüşöçİĞÜŞÖÇ\d])/gi;
-    while((vm=condVerbRx.exec(text))!==null){
-      const full=vm[0];
-      const base=vm[1];
+    const dedaVerbRx=/(?<![a-zA-ZığüşöçİĞÜŞÖÇ\d])([a-zA-ZığüşöçİĞÜŞÖÇ]{2,}(?:miş|mış|muş|müş|miştir|mıştır|muştur|müştür|mişti|mıştı|müştü|muştu|seydi|saydı|seydik|saydık|seymiş|saymış|ıyor|iyor|uyor|üyor|ıyorum|iyorum|uyorum|üyorum|ıyorsun|iyorsun|uyorsun|üyorsun|ıyoruz|iyoruz|uyoruz|üyoruz|ıyorsunuz|iyorsunuz|uyorsunuz|üyorsunuz|ıyorlar|iyorlar|uyorlar|üyorlar|ıyordu|iyordu|uyordu|üyordu|ayım|eyim|alım|elim|malı|meli|malıyım|meliyim|malısın|melisin|malıyız|meliyiz|dılar|diler|dular|düler|tılar|tiler|tular|tüler))(te|ta|de|da)(?![a-zA-ZığüşöçİĞÜŞÖÇ\d])/gi;
+    let vm;
+    while((vm=dedaVerbRx.exec(text))!==null){
+      const full=vm[0],base=vm[1],suf=vm[2];
+      if(DEDA_VERB_EXC.has(tl(full))||DEDA_VERB_EXC.has(tl(base))) continue;
       const lv=getLastVowel(base);
-      const isBack=lv&&'aıou'.includes(lv);
-      const correctSuffix=isBack?'da':'de';
-      push({
-        type:'gram',
-        word:full,
-        start:vm.index,
-        end:vm.index+full.length,
-        suggestions:[base+' '+correctSuffix],
-        msg:`TDK: Şart ekinden sonra gelen "de/da" bağlaçtır ve ayrı yazılır`,
-        detail:`Şart kipi (-sa/-se) üzerine gelen "de/da" bağlaçtır; bitişik yazılamaz, ayrı yazılmalıdır. (Örn: "${base} ${correctSuffix}")`,
-        rule:'Şart kipi ve bağlaç olan "de/da"'
-      });
+      const correctSuffix=(lv&&'aıou'.includes(lv))?'da':'de';
+      pushVerbDeda(
+        full,base,suf,vm.index,
+        'Bağlaç olan "de/da" kuralı (-te/-ta değil, ayrı de/da)',
+        'TDK: Bağlaç olan "de/da" fiil ve ek-fiilden sonra ayrı yazılır',
+        `Fiil veya ek-fiil üzerine gelen "de/da" bağlaçtır ve her zaman ayrı yazılır. (Örn: "${base} ${correctSuffix}")`
+      );
+    }
+
+    // Olumsuz şart kipi (-masa/-mese + şahıs + de/da: olmasada -> olmasa da, gelmesede -> gelmese de)
+    const negCondRx=/(?<![a-zA-ZığüşöçİĞÜŞÖÇ\d])([a-zA-ZığüşöçİĞÜŞÖÇ]{2,}(?:masa|mese|masam|mesem|masan|mesen|masak|mesek|masanız|meseniz|masalar|meseler))(de|da|te|ta)(?![a-zA-ZığüşöçİĞÜŞÖÇ\d])/gi;
+    while((vm=negCondRx.exec(text))!==null){
+      const full=vm[0],base=vm[1],suf=vm[2];
+      if(DEDA_VERB_EXC.has(tl(full))||DEDA_VERB_EXC.has(tl(base))) continue;
+      const lv=getLastVowel(base);
+      const correctSuffix=(lv&&'aıou'.includes(lv))?'da':'de';
+      pushVerbDeda(
+        full,base,suf,vm.index,
+        'Şart kipi (-masa/-mese) ve bağlaç olan "de/da"',
+        'TDK: Şart ekinden sonra gelen "de/da" bağlaçtır ve ayrı yazılır',
+        `Olumsuz şart kipi (-masa/-mese) üzerine gelen "de/da" bağlaçtır; bitişik yazılamaz, ayrı yazılmalıdır. (Örn: "${base} ${correctSuffix}")`
+      );
+    }
+
+    // Birleşik şart kipleri (-dıysa/-diyse, -mışsa/-mişse, -arsa/-erse/-ırsa/-irse/-ursa/-ürse, -mazsa/-mezse, -abilse/-ebilse, -ysa/-yse)
+    const compCondRx=/(?<![a-zA-ZığüşöçİĞÜŞÖÇ\d])([a-zA-ZığüşöçİĞÜŞÖÇ]{2,}(?:dıysa|diyse|duysa|düyse|tıysa|tiyse|tuysa|tüyse|mışsa|mişse|muşsa|müşse|acaksa|ecekse|ıyorsa|iyorsa|uyorsa|üyorsa|mazsa|mezse|abilse|ebilse|abilirse|ebilirse|arsa|erse|ırsa|irse|ursa|ürse|ysa|yse)(?:m|n|k|nız|niz|lar|ler)?)(de|da|te|ta)(?![a-zA-ZığüşöçİĞÜŞÖÇ\d])/gi;
+    while((vm=compCondRx.exec(text))!==null){
+      const full=vm[0],base=vm[1],suf=vm[2];
+      if(DEDA_VERB_EXC.has(tl(full))||DEDA_VERB_EXC.has(tl(base))) continue;
+      const lv=getLastVowel(base);
+      const correctSuffix=(lv&&'aıou'.includes(lv))?'da':'de';
+      pushVerbDeda(
+        full,base,suf,vm.index,
+        'Şart kipi ve bağlaç olan "de/da"',
+        'TDK: Şart ekinden sonra gelen "de/da" bağlaçtır ve ayrı yazılır',
+        `Şart kipi (-sa/-se) üzerine gelen "de/da" bağlaçtır; bitişik yazılamaz, ayrı yazılmalıdır. (Örn: "${base} ${correctSuffix}")`
+      );
+    }
+
+    // Basit şart kipi (olsada -> olsa da, gelsede -> gelse de, olsakta -> olsak da vb.)
+    const condVerbRx=/(?<![a-zA-ZığüşöçİĞÜŞÖÇ\d])([a-zA-ZığüşöçİĞÜŞÖÇ]*(?:ol|gel|git|yap|et|bil|gör|al|ver|kal|bak|dur|sev|duy|çalış|iste|söyle|konuş|yaz|oku|anla|bul|çık|in|gir|de|ye|tut|at|sat|yat|kat|bat|bit|yet|değ|geç|seç|iç|aç|kaç|koş|düş|öl|gül|böl|sil|bin|kır|vur|sor|otur|uyu|başla|bekle|izle|dinle|anlat|unut|kazan|kaybet|inan|kullan|katıl|yapıl|edil|bilin|görün|düşün|var|yok)(?:sa|se|sam|sem|san|sen|sak|sek|sanız|seniz|salar|seler))(de|da|te|ta)(?![a-zA-ZığüşöçİĞÜŞÖÇ\d])/gi;
+    while((vm=condVerbRx.exec(text))!==null){
+      const full=vm[0],base=vm[1],suf=vm[2];
+      if(DEDA_VERB_EXC.has(tl(full))||DEDA_VERB_EXC.has(tl(base))) continue;
+      const lv=getLastVowel(base);
+      const correctSuffix=(lv&&'aıou'.includes(lv))?'da':'de';
+      pushVerbDeda(
+        full,base,suf,vm.index,
+        'Şart kipi ve bağlaç olan "de/da"',
+        'TDK: Şart ekinden sonra gelen "de/da" bağlaçtır ve ayrı yazılır',
+        `Şart kipi (-sa/-se) üzerine gelen "de/da" bağlaçtır; bitişik yazılamaz, ayrı yazılmalıdır. (Örn: "${base} ${correctSuffix}")`
+      );
     }
   }
 
@@ -1693,8 +1787,75 @@ function analyze(text){
       suggestions:[ipm[1]+' '+ipm[1]],msg:`TDK: İkilemeler arasına ${isHyphen?'kısa çizgi':'virgül'} konmaz ("${ipm[1]} ${ipm[1]}")`});
   }
 
+  // Eş görevli kalıp ve sıralı cümle virgül denetimleri (TDK Noktalama)
+  {
+    // 1) "bilmem ne X şöyle Y böyle Z" veya "şöyle X böyle Y" eş görevli kelime grupları
+    const soyleBoyle3Rx=new RegExp(WB+'(bilmem\\s+ne\\s+[a-zA-ZığüşöçİĞÜŞÖÇ]+)\\s+(şöyle\\s+[a-zA-ZığüşöçİĞÜŞÖÇ]+)\\s+(böyle\\s+[a-zA-ZığüşöçİĞÜŞÖÇ]+)'+WE,'gi');
+    let sbm;
+    while((sbm=soyleBoyle3Rx.exec(text))!==null){
+      push({
+        type:'punct',
+        word:sbm[0],
+        start:sbm.index,
+        end:sbm.index+sbm[0].length,
+        suggestions:[`${sbm[1]}, ${sbm[2]}, ${sbm[3]}`],
+        msg:'TDK: Eş görevli kelime grupları arasına virgül konmalıdır',
+        detail:`Eş görevli sıfat/zarf öbekleri ("${sbm[1]}, ${sbm[2]}, ${sbm[3]}") virgülle ayrılır.`
+      });
+    }
+
+    const soyleBoyle2Rx=new RegExp(WB+'(şöyle\\s+[a-zA-ZığüşöçİĞÜŞÖÇ]+)\\s+(böyle\\s+[a-zA-ZığüşöçİĞÜŞÖÇ]+)'+WE,'gi');
+    while((sbm=soyleBoyle2Rx.exec(text))!==null){
+      push({
+        type:'punct',
+        word:sbm[0],
+        start:sbm.index,
+        end:sbm.index+sbm[0].length,
+        suggestions:[`${sbm[1]}, ${sbm[2]}`],
+        msg:'TDK: Eş görevli kelime grupları arasına virgül konmalıdır',
+        detail:`Eş görevli kelime grupları ("${sbm[1]}, ${sbm[2]}") virgülle ayrılır.`
+      });
+    }
+
+    // 2) Sıralı cümlede "değil" yükleminden sonra virgül ("öyle çok iyi değil yoklukta..." -> "öyle çok iyi değil, yoklukta...")
+    const DEGIL_NEXT_EXC=new Set(['ama','fakat','lakin','ancak','yalnız','oysa','oysaki','halbuki','çünkü','zira','ki','de','da','mi','mı','mu','mü','midir','mıdır','mudur','müdür','miydi','mıydı','muydu','müydü','ve','veya','ya','yahut','bile','dahi','gibi','kadar','için','üzere','olarak','diye','ise','tabii','elbette','zaten','hani','işte','artık']);
+    const degilClauseRx=new RegExp(WB+'((?:çok|pek|hiç|fazla|gayet|öyle|o\\s+kadar)\\s+[a-zA-ZığüşöçİĞÜŞÖÇ]+\\s+değil)\\s+([a-zA-ZığüşöçİĞÜŞÖÇ]{3,})'+WE,'gi');
+    let dcm;
+    while((dcm=degilClauseRx.exec(text))!==null){
+      const nextW=tl(dcm[2]);
+      if(DEGIL_NEXT_EXC.has(nextW)) continue;
+      const beforeText=tl(text.slice(Math.max(0,dcm.index-25),dcm.index));
+      if(/\b(sadece|yalnız|yalnızca|tek)\b/.test(beforeText)) continue;
+      push({
+        type:'punct',
+        word:dcm[0],
+        start:dcm.index,
+        end:dcm.index+dcm[0].length,
+        suggestions:[`${dcm[1]}, ${dcm[2]}`],
+        msg:'TDK: Sıralı cümleleri birbirinden ayırmak için yüklemden ("değil") sonra virgül konur',
+        detail:`"${dcm[1]}" yargısından sonra yeni bir cümleye geçildiği için araya virgül konulmalıdır.`
+      });
+    }
+
+    // 3) Ardışık eş görevli "-lıkta/-likte/-lukta/-lükte" veya "-lıktan/-likten/-luktan/-lükten" kelimeleri arasına virgül ("yoklukta üşengeçlikte" -> "yoklukta, üşengeçlikte")
+    const coordLocRx=new RegExp(WB+'([a-zA-ZığüşöçİĞÜŞÖÇ]{2,}l(?:ı|i|u|ü)k(?:ta|te|tan|ten))\\s+([a-zA-ZığüşöçİĞÜŞÖÇ]{2,}l(?:ı|i|u|ü)k(?:ta|te|tan|ten))'+WE,'gi');
+    let clm;
+    while((clm=coordLocRx.exec(text))!==null){
+      if(tl(clm[1])===tl(clm[2])) continue;
+      push({
+        type:'punct',
+        word:clm[0],
+        start:clm.index,
+        end:clm.index+clm[0].length,
+        suggestions:[`${clm[1]}, ${clm[2]}`],
+        msg:'TDK: Eş görevli kelimeler arasına virgül konmalıdır',
+        detail:`Aynı görevde ardışık kullanılan "${clm[1]}" ve "${clm[2]}" kelimeleri virgülle ayrılmalıdır.`
+      });
+    }
+  }
+
   // Sayı sonrası ünsüz sertleşmesi ve ünlü uyumu (3'de -> 3'te, 1985'de -> 1985'te, 60'de -> 60'ta, 40'dan -> 40'tan)
-  const sertSayiRx=/\b(\d+)['\u2019](de|da|te|ta|den|dan|ten|tan)\b/gi;
+  const sertSayiRx=new RegExp(WB+'(\\d+)[\'\\u2019](de|da|te|ta|den|dan|ten|tan)'+WE,'gi');
   let ssm;
   while((ssm=sertSayiRx.exec(text))!==null){
     const numStr=ssm[1];
@@ -1706,8 +1867,8 @@ function analyze(text){
     }
   }
 
-  // Belirli tarih bildiren ay adları büyük harfle başlar (29 ekim -> 29 Ekim)
-  const tarihAyRx=/\b(\d{1,2})\s+(ocak|şubat|mart|nisan|mayıs|haziran|temmuz|ağustos|eylül|ekim|kasım|aralık)\b/gi;
+  // Belirli tarih bildiren ay adları büyük harfle başlar (29 ekim -> 29 Ekim, 29 ekim'de -> 29 Ekim'de)
+  const tarihAyRx=new RegExp(WB+'(\\d{1,2})\\s+(ocak|şubat|mart|nisan|mayıs|haziran|temmuz|ağustos|eylül|ekim|kasım|aralık)(?![\\wığüşöçİĞÜŞÖÇ])','gi');
   let tam;
   while((tam=tarihAyRx.exec(text))!==null){
     const buyukAy=tu(tam[2]);
@@ -1718,10 +1879,6 @@ function analyze(text){
   }
 
   // 6. Öneriler
-  const r6=/\.{3}/g;
-  while((m=r6.exec(text))!==null)
-    push({type:'suggest',word:'...',start:m.index,end:m.index+3,
-      suggestions:['…'],msg:'Üç nokta yerine "…" (elipsis) kullanılabilir'});
 
   const OPEN_TRANSPARENT=/["'“‘«\(\[\{\-–—]/;
   let ss=true;
@@ -1806,8 +1963,11 @@ function analyze(text){
     while(endPos>0&&/[)\]"'»"'\u2019]/.test(trimmed[endPos-1])) endPos--;
     const lastCh=trimmed[endPos-1];
     if(lastCh&&/[\wığüşöçİĞÜŞÖÇ]/.test(lastCh)&&ok(endPos-1,endPos)){
+      const lastSent=(trimmed.split(/[.!?\n]/).pop()||'');
+      const isQ=new RegExp(WB+'(mı|mi|mu|mü|mısın|misin|musun|müsün|mıyız|miyiz|muyuz|müyüz|mısınız|misiniz|musunuz|müsünüz)'+WE,'i').test(lastSent);
+      const sugs=isQ?[lastCh+'?',lastCh+'.',lastCh+'!']:[lastCh+'.',lastCh+'!',lastCh+'?'];
       push({type:'punct',word:lastCh,start:endPos-1,end:endPos,
-        suggestions:[lastCh+'.',lastCh+'!',lastCh+'?'],
+        suggestions:sugs,
         msg:'Metin bir noktalama işaretiyle bitmelidir (., !, ?)'});
     }
   }
@@ -1819,7 +1979,7 @@ function analyze(text){
 // ============================================================
 // DURUM & RENDER
 // ============================================================
-let curText='',curIssues=[],displayedIssues=[],activeFilter=null,searchQuery='';
+let curText='',curIssues=[],displayedIssues=[],activeFilter=null,searchQuery='',activeRepWord=null;
 const ignored=new Set();
 
 function getCustomDict(){
@@ -1854,7 +2014,7 @@ const LBL={spell:'Yazım Hatası',gram:'Dilbilgisi',warn:'Kontrol Edin',punct:'N
 function countLabel(t){
   const chars=t.length;
   const noSpace=t.replace(/\s/g,'').length;
-  const words=t.trim()?(t.trim().match(/[\wığüşöçİĞÜŞÖÇ]+/g)||[]).length:0;
+  const words=t.trim()?(t.trim().match(/[\wığüşöçİĞÜŞÖÇ]+(?:['\u2019][\wığüşöçİĞÜŞÖÇ]+)*/g)||[]).length:0;
   return chars.toLocaleString('tr-TR')+' karakter (boşluksuz: '+noSpace.toLocaleString('tr-TR')+') · '+words.toLocaleString('tr-TR')+' kelime';
 }
 
@@ -1871,8 +2031,8 @@ let initialInputText='',viewMode='text';
 
 function computeWordDiff(orig,curr){
   if(orig===curr) return [];
-  const a=orig.match(/([a-zA-ZığüşöçİĞÜŞÖÇ0-9]+|[^\s\wığüşöçİĞÜŞÖÇ]+|\s+)/gu)||[];
-  const b=curr.match(/([a-zA-ZığüşöçİĞÜŞÖÇ0-9]+|[^\s\wığüşöçİĞÜŞÖÇ]+|\s+)/gu)||[];
+  const a=orig.match(/([a-zA-ZığüşöçİĞÜŞÖÇ0-9]+(?:['\u2019][a-zA-ZığüşöçİĞÜŞÖÇ0-9]+)*|[^\s\wığüşöçİĞÜŞÖÇ]+|\s+)/gu)||[];
+  const b=curr.match(/([a-zA-ZığüşöçİĞÜŞÖÇ0-9]+(?:['\u2019][a-zA-ZığüşöçİĞÜŞÖÇ0-9]+)*|[^\s\wığüşöçİĞÜŞÖÇ]+|\s+)/gu)||[];
   let start=0;
   while(start<a.length&&start<b.length&&a[start]===b[start]) start++;
   let endA=a.length-1,endB=b.length-1;
@@ -2002,16 +2162,26 @@ function setLiveStatus(state,text){
   txt.textContent=text;
 }
 
+function renderPlainSeg(seg){
+  if(!seg) return '';
+  if(!activeRepWord) return esc(seg).replace(/\n/g,'<br>');
+  const parts=seg.split(/([\wığüşöçİĞÜŞÖÇ]+(?:['\u2019][\wığüşöçİĞÜŞÖÇ]+)*)/g);
+  return parts.map(p=>{
+    if(p&&tl(p)===activeRepWord) return `<mark class="h-rep" title="Sık tekrarlanan kelime">${esc(p)}</mark>`;
+    return esc(p).replace(/\n/g,'<br>');
+  }).join('');
+}
+
 function renderOut(text,issues){
   let html='',pos=0;
   for(let i=0;i<issues.length;i++){
     const iss=issues[i];
-    html+=esc(text.slice(pos,iss.start)).replace(/\n/g,'<br>');
+    html+=renderPlainSeg(text.slice(pos,iss.start));
     const tipText=(iss.msg||'')+(iss.detail?' — '+iss.detail:'');
     html+=`<span class="${HC[iss.type]}" id="mark-${i}" tabindex="0" role="button" title="${esc(tipText)}" aria-label="${esc(LBL[iss.type])}: ${esc(iss.word.trim()||'boşluk')}" onclick="TY.pop(event,${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();TY.pop(event,${i})}">${esc(iss.word)||'&nbsp;&nbsp;'}</span>`;
     pos=iss.end;
   }
-  return html+esc(text.slice(pos)).replace(/\n/g,'<br>');
+  return html+renderPlainSeg(text.slice(pos));
 }
 
 function renderSide(issues){
@@ -2023,8 +2193,11 @@ function renderSide(issues){
     const s=iss.suggestions[0]?`<div class="is">→ ${esc(iss.suggestions[0])}</div>`:'';
     const d=iss.detail?`<div class="id" style="font-size:.72rem;color:var(--slate);margin-top:.25rem;line-height:1.3">💡 ${esc(iss.detail)}</div>`:'';
     const tipText=(iss.msg||'')+(iss.detail?' — '+iss.detail:'');
+    const canQuickFix=iss.type!=='warn'&&iss.suggestions&&iss.suggestions.length>0;
+    const qFixBtn=canQuickFix?`<button type="button" class="ii-qbtn fix" title="Tek tıkla düzelt: ${esc(iss.suggestions[0])}" aria-label="Tek tıkla düzelt" onclick="TY.qfix(event,${i})">✓</button>`:'';
+    const qIgnBtn=`<button type="button" class="ii-qbtn ign" title="Yoksay" aria-label="Yoksay" onclick="TY.qign(event,${i})">✕</button>`;
     return`<div class="ii ${iss.type}" tabindex="0" role="button" title="${esc(tipText)}" aria-label="${esc(LBL[iss.type])}: ${esc(w)} — ${esc(iss.msg)}" onclick="TY.pop(null,${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();TY.pop(null,${i})}">
-      <div class="iw">${esc(w)}</div><div class="im">${esc(iss.msg)}</div>${d}${s}</div>`;
+      <div class="ii-top"><div class="iw">${esc(w)}</div><div class="ii-acts">${qFixBtn}${qIgnBtn}</div></div><div class="im">${esc(iss.msg)}</div>${d}${s}</div>`;
   }).join('');
 }
 
@@ -2186,6 +2359,18 @@ window.TY={
     setEditorText(curText.slice(0,iss.start)+sug+curText.slice(iss.end));
     closePop();run();
   },
+  qfix(ev,idx){
+    if(ev) ev.stopPropagation();
+    const iss=displayedIssues[idx];
+    if(!iss||!iss.suggestions||!iss.suggestions[0]) return;
+    TY.fix(idx,iss.suggestions[0]);
+  },
+  qign(ev,idx){
+    if(ev) ev.stopPropagation();
+    const iss=displayedIssues[idx];
+    if(!iss) return;
+    TY.ign(iss.word,iss.type);
+  },
   ign(word,type){snapshotUndo();ignored.add((type||'')+'|'+tl(word));closePop();run();},
   addToDict(word){
     const clean=tl(word.trim().replace(/^['"\(\[\{]+|['"\)\]\}.,;:!?]+$/g,''));
@@ -2223,6 +2408,8 @@ document.addEventListener('keydown',e=>{
     if(document.getElementById('kbdModal').style.display!=='none') document.getElementById('kbdModal').style.display='none';
     if(document.getElementById('dictModal').style.display!=='none') document.getElementById('dictModal').style.display='none';
     if(document.getElementById('exportModal').style.display!=='none') document.getElementById('exportModal').style.display='none';
+    const fb=document.getElementById('findBar');
+    if(fb&&fb.style.display!=='none') fb.style.display='none';
     if(typeof toggleFxMenu==='function') toggleFxMenu(false);
     if(typeof toggleCaseMenu==='function') toggleCaseMenu(false);
   }
@@ -2230,9 +2417,13 @@ document.addEventListener('keydown',e=>{
     if(e.key==='ArrowRight'){e.preventDefault();TY.nav(1);}
     else if(e.key==='ArrowLeft'){e.preventDefault();TY.nav(-1);}
   }
-  if(e.key==='?'&&document.activeElement!==inp){
+  if(e.key==='?'&&document.activeElement!==inp&&!['INPUT','TEXTAREA'].includes((document.activeElement||{}).tagName)){
     e.preventDefault();
     document.getElementById('kbdModal').style.display='flex';
+  }
+  if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&!e.altKey&&(e.key==='h'||e.key==='H')){
+    e.preventDefault();
+    if(typeof toggleFindBar==='function') toggleFindBar(true);
   }
   if((e.ctrlKey||e.metaKey)&&e.shiftKey&&(e.key==='F'||e.key==='f')){
     e.preventDefault();
@@ -2254,12 +2445,13 @@ document.addEventListener('keydown',e=>{
 
 function run(){
   curText=document.getElementById('inp').value;
+  if(typeof updateFindCount==='function') updateFindCount();
   const emptyHints=document.getElementById('emptyHints');
   if(emptyHints) emptyHints.style.display=curText.trim()?'none':'flex';
   if(!curText.trim()){
     ['statsBar','res'].forEach(id=>document.getElementById(id).style.display='none');
     setLiveStatus('','Hazır');
-    curIssues=[];displayedIssues=[];closePop();return;
+    curIssues=[];displayedIssues=[];activeRepWord=null;closePop();return;
   }
   curIssues=analyze(curText).filter(i=>!ignored.has(i.type+'|'+tl(i.word))&&!isDictIgnored(i.word));
   setLiveStatus('done','✓ Denetlendi');
@@ -2297,10 +2489,12 @@ function run(){
     const repBar=document.getElementById('repWordsBar');
     if(repBar){
       if(rStats.topRepeated&&rStats.topRepeated.length>0){
+        if(activeRepWord&&!rStats.topRepeated.some(r=>r.word===activeRepWord)) activeRepWord=null;
         repBar.style.display='flex';
-        repBar.innerHTML='<span>🔁 <b>Sık Tekrarlanan Kelimeler:</b></span>'+
-          rStats.topRepeated.map(({word,count})=>`<span class="rep-chip">${esc(word)} <b>${count}×</b></span>`).join('');
+        repBar.innerHTML='<span>🔁 <b>Sık Tekrarlanan Kelimeler</b> <small style="opacity:.75">(vurgulamak için tıklayın)</small>:</span>'+
+          rStats.topRepeated.map(({word,count})=>`<span class="rep-chip${activeRepWord===word?' active':''}" tabindex="0" role="button" data-rep-word="${esc(word)}" title="Metin içinde '${esc(word)}' kelimesini vurgula">${esc(word)} <b>${count}×</b></span>`).join('');
       } else {
+        activeRepWord=null;
         repBar.style.display='none';
       }
     }
@@ -2313,8 +2507,8 @@ function run(){
 
 function updateFxButton(){
   const allowedTypes=activeFilter?[activeFilter]:['spell','gram','punct','suggest'];
-  const fixableCount=curIssues.filter(i=>allowedTypes.includes(i.type)&&i.type!=='warn'&&i.suggestions.length===1).length;
-  const totalFixable=curIssues.filter(i=>['spell','gram','punct','suggest'].includes(i.type)&&i.type!=='warn'&&i.suggestions.length===1).length;
+  const fixableCount=curIssues.filter(i=>allowedTypes.includes(i.type)&&i.type!=='warn'&&i.suggestions.length>0).length;
+  const totalFixable=curIssues.filter(i=>['spell','gram','punct','suggest'].includes(i.type)&&i.type!=='warn'&&i.suggestions.length>0).length;
 
   const fxBtn=document.getElementById('fxAll');
   if(fxBtn){
@@ -2427,7 +2621,7 @@ function fixByType(types){
   for(let pass=0;pass<8;pass++){
     const issues=analyze(t).filter(i=>!ignored.has(i.type+'|'+tl(i.word))&&!isDictIgnored(i.word));
     const safe=issues
-      .filter(i=>types.includes(i.type)&&i.type!=='warn'&&i.suggestions.length===1)
+      .filter(i=>types.includes(i.type)&&i.type!=='warn'&&i.suggestions.length>0)
       .sort((a,b)=>b.start-a.start);
     if(!safe.length) break;
     for(const iss of safe){
@@ -3005,6 +3199,115 @@ if(dictImportBtn&&dictFileInp){
   });
 }
 
+// === SIK TEKRARLANAN KELİME VURGULAMA ===
+const repWordsBarEl=document.getElementById('repWordsBar');
+if(repWordsBarEl){
+  const handleRepToggle=chip=>{
+    if(!chip) return;
+    const w=chip.getAttribute('data-rep-word');
+    if(!w) return;
+    activeRepWord=(activeRepWord===w)?null:w;
+    repWordsBarEl.querySelectorAll('.rep-chip').forEach(c=>{
+      c.classList.toggle('active',c.getAttribute('data-rep-word')===activeRepWord);
+    });
+    if(viewMode==='diff') viewMode='text';
+    renderCurrent();
+    if(activeRepWord){
+      const firstMark=document.querySelector('#otxt .h-rep');
+      if(firstMark) firstMark.scrollIntoView({behavior:'smooth',block:'center'});
+      showToast(`🔁 "${activeRepWord}" kelimesi metin içinde vurgulandı.`);
+    }
+  };
+  repWordsBarEl.addEventListener('click',e=>{
+    const chip=e.target.closest('.rep-chip');
+    if(chip) handleRepToggle(chip);
+  });
+  repWordsBarEl.addEventListener('keydown',e=>{
+    if(e.key==='Enter'||e.key===' '){
+      const chip=e.target.closest('.rep-chip');
+      if(chip){e.preventDefault();handleRepToggle(chip);}
+    }
+  });
+}
+
+// === BUL VE DEĞİŞTİR ÇUBUĞU ===
+const findToggleBtn=document.getElementById('findToggleBtn');
+const findBar=document.getElementById('findBar');
+const findInp=document.getElementById('findInp');
+const replaceInp=document.getElementById('replaceInp');
+const findCount=document.getElementById('findCount');
+const replaceOneBtn=document.getElementById('replaceOneBtn');
+const replaceAllBtn=document.getElementById('replaceAllBtn');
+const findCloseBtn=document.getElementById('findCloseBtn');
+
+function updateFindCount(){
+  if(!findCount||!findInp) return;
+  const f=findInp.value;
+  if(!f){
+    findCount.textContent='0 eşleşme';
+    return;
+  }
+  const res=findAndReplace(document.getElementById('inp').value,f,'',false);
+  findCount.textContent=`${res.count} eşleşme`;
+}
+function toggleFindBar(open){
+  if(!findBar) return;
+  const show=typeof open==='boolean'?open:findBar.style.display==='none';
+  findBar.style.display=show?'flex':'none';
+  if(show&&findInp){
+    const selStart=inp.selectionStart,selEnd=inp.selectionEnd;
+    if(typeof selStart==='number'&&typeof selEnd==='number'&&selStart!==selEnd){
+      const sel=inp.value.slice(selStart,selEnd).trim();
+      if(sel&&!sel.includes('\n')) findInp.value=sel;
+    }
+    updateFindCount();
+    findInp.focus();
+    findInp.select();
+  }
+}
+if(findToggleBtn) findToggleBtn.addEventListener('click',()=>toggleFindBar());
+if(findCloseBtn) findCloseBtn.addEventListener('click',()=>toggleFindBar(false));
+if(findInp){
+  findInp.addEventListener('input',updateFindCount);
+  findInp.addEventListener('keydown',e=>{
+    if(e.key==='Enter'){
+      e.preventDefault();
+      if(replaceInp) replaceInp.focus();
+    }
+  });
+}
+function execReplace(all){
+  if(!findInp) return;
+  const f=findInp.value;
+  if(!f){
+    showToast('Lütfen aranacak kelime veya ifadeyi girin.');
+    findInp.focus();
+    return;
+  }
+  const r=replaceInp?replaceInp.value:'';
+  const current=document.getElementById('inp').value;
+  const res=findAndReplace(current,f,r,all);
+  if(res.replaced===0){
+    showToast(`"${f}" metinde bulunamadı.`);
+    return;
+  }
+  snapshotUndo();
+  setEditorText(res.text);
+  run();
+  updateFindCount();
+  showToast(`🔍 ${res.replaced} eşleşme değiştirildi.`);
+}
+if(replaceOneBtn) replaceOneBtn.addEventListener('click',()=>execReplace(false));
+if(replaceAllBtn) replaceAllBtn.addEventListener('click',()=>execReplace(true));
+if(replaceInp){
+  replaceInp.addEventListener('keydown',e=>{
+    if(e.key==='Enter'){
+      e.preventDefault();
+      execReplace(true);
+    }
+  });
+}
+
 // === METİN TEMİZLEYİCİ BUTONU ===
 const cleanBtn=document.getElementById('cleanBtn');
 if(cleanBtn){
@@ -3072,7 +3375,7 @@ try{
   }
 }catch(e){}
 if(typeof module!=='undefined'&&module.exports){
-  module.exports={analyze,computeReadability,cleanText,computeWordDiff,convertCase,normalizeNumberSuffix,SPELL,DEDA,KI,WARNS,personAgrees};
+  module.exports={analyze,computeReadability,cleanText,findAndReplace,esc,computeWordDiff,convertCase,normalizeNumberSuffix,SPELL,DEDA,KI,WARNS,personAgrees};
 }
 })();
 </script>

@@ -731,6 +731,73 @@ it('convertCase Türkçe karakterleri (i/İ, ı/I) koruyarak harf düzeni dönü
   assert.strictEqual(engine.convertCase('türkiye cumhuriyeti ve istanbul boğazı', 'title'), 'Türkiye Cumhuriyeti ve İstanbul Boğazı');
 });
 
+it('Olumsuz/birleşik şart kipleri (olmasada -> olmasa da) ve eş görevli/sıralı virgüller tam düzeltilmelidir', () => {
+  let t = 'pek pide gibi olmasada hazır pizzalardan daha iyi. o satılan bilmem ne fresh şöyle gurme böyle artizan olanlardan daha iyi ama öyle çok iyi değil yoklukta üşengeçlikte gider';
+  for (let pass = 0; pass < 8; pass++) {
+    const issues = engine.analyze(t).filter(i => i.type !== 'warn' && i.suggestions.length > 0).sort((a, b) => b.start - a.start);
+    if (!issues.length) break;
+    for (const iss of issues) {
+      t = t.slice(0, iss.start) + iss.suggestions[0] + t.slice(iss.end);
+    }
+  }
+  assert.strictEqual(
+    t,
+    'Pek pide gibi olmasa da hazır pizzalardan daha iyi. O satılan bilmem ne fresh, şöyle gurme, böyle artizan olanlardan daha iyi ama öyle çok iyi değil, yoklukta, üşengeçlikte gider.'
+  );
+
+  const res2 = engine.analyze('Gelmesede, olursada, istemesekte ve biliyorda olsak masada bekledik.');
+  assert(res2.some(r => r.word === 'Gelmesede' && r.suggestions[0] === 'Gelmese de'), 'Gelmesede -> Gelmese de olmalı');
+  assert(res2.some(r => r.word === 'olursada' && r.suggestions[0] === 'olursa da'), 'olursada -> olursa da olmalı');
+  assert(res2.some(r => r.word === 'istemesekte' && r.suggestions[0] === 'istemesek de'), 'istemesekte -> istemesek de olmalı');
+  assert(res2.some(r => r.word === 'biliyorda' && r.suggestions[0] === 'biliyor da'), 'biliyorda -> biliyor da olmalı');
+  assert(!res2.some(r => r.word === 'masada'), 'masada doğru bulunma hâlidir, hata sayılmamalı');
+});
+
+console.log('\n--- 19. Güvenlik Kaçışı, Türkçe Kelime Sınırları, Büyük Harf Önerileri & Bul/Değiştir ---');
+it('esc() çift tırnak ve tek tırnak karakterlerini HTML güvenli biçimde kaçırmalıdır', () => {
+  const escaped = engine.esc('"orjinal" yerine \'orijinal\' & <script>');
+  assert.strictEqual(escaped, '&quot;orjinal&quot; yerine &#39;orijinal&#39; &amp; &lt;script&gt;');
+});
+
+it('odağı ve odağında kelimeleri ASCII \\b hatası nedeniyle yanlışlıkla "o da" uyarısı üretmemelidir', () => {
+  const res = engine.analyze('Tartışmaların odağında olan proje ilgi odağı haline geldi.');
+  const falseWarn = res.find(r => r.type === 'warn' && r.word.toLowerCase() === 'oda');
+  assert(!falseWarn, 'odağı/odağında kelimelerinde yanlış zamir+da uyarısı üretilmemelidir');
+});
+
+it('cleanText numaralı listeleri (1. Madde, 10. Madde) korumalı, sayı ile başlayan kırık satırları birleştirmelidir', () => {
+  const listText = 'Yapılacaklar:\n1. Birinci adım\n2. İkinci adım\n10. Onuncu adım';
+  assert.strictEqual(engine.cleanText(listText), listText);
+
+  const brokenNumLine = 'Toplantıya bugün toplam\n5 kişi katıldı.';
+  assert.strictEqual(engine.cleanText(brokenNumLine), 'Toplantıya bugün toplam 5 kişi katıldı.');
+});
+
+it('Tamamı büyük harfli yazım hatalarında (ORJİNAL, HERKEZ) öneriler de BÜYÜK HARF olmalıdır', () => {
+  const res = engine.analyze('BU BELGE TAMAMEN ORJİNAL VE HERKEZ BİLİYOR.');
+  const w1 = res.find(r => r.word === 'ORJİNAL');
+  const w2 = res.find(r => r.word === 'HERKEZ');
+  assert(w1 && w1.suggestions[0] === 'ORİJİNAL', 'ORJİNAL -> ORİJİNAL olmalıdır');
+  assert(w2 && w2.suggestions[0] === 'HERKES', 'HERKEZ -> HERKES olmalıdır');
+});
+
+it('Kesme işaretli kelimeler (Türkiye\'de, Ali\'nin, 2024\'te) tek kelime olarak sayılmalıdır', () => {
+  const stats = engine.computeReadability("Türkiye'de Ali'nin 2024'te yazdığı kitap çok sevildi.");
+  assert.strictEqual(stats.totalWords, 7, "Kesme işaretli kelimeler bölünmeden 7 kelime sayılmalıdır");
+});
+
+it('findAndReplace Türkçe büyük/küçük harf duyarlı (İ/i, I/ı) arama ve değiştirme yapmalıdır', () => {
+  const rAll = engine.findAndReplace('İstanbul çok güzel, istanbul tarihi bir şehir.', 'İSTANBUL', 'Ankara', true);
+  assert.strictEqual(rAll.count, 2);
+  assert.strictEqual(rAll.replaced, 2);
+  assert.strictEqual(rAll.text, 'Ankara çok güzel, Ankara tarihi bir şehir.');
+
+  const rOne = engine.findAndReplace('Iğdır ve ığdır doğuda yer alır.', 'ığdır', 'Kars', false);
+  assert.strictEqual(rOne.count, 2);
+  assert.strictEqual(rOne.replaced, 1);
+  assert.strictEqual(rOne.text, 'Kars ve ığdır doğuda yer alır.');
+});
+
 console.log(`\n================================`);
 console.log(`Sonuç: ${passed} Başarılı, ${failed} Hatalı`);
 console.log(`================================\n`);
