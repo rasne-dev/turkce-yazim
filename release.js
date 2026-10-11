@@ -32,4 +32,15 @@ console.log(`[Release] Sürüm güncelleniyor: ${pkg.version} -> ${nextVersion}`
 pkg.version = nextVersion;
 fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n', 'utf8');
 
+const swPath = 'sw.js';
+if (fs.existsSync(swPath)) {
+  const swContent = fs.readFileSync(swPath, 'utf8');
+  const updatedSw = swContent.replace(
+    /const CACHE_NAME\s*=\s*'turkce-yazim-v[^']+';/,
+    `const CACHE_NAME = 'turkce-yazim-v${nextVersion}';`
+  );
+  fs.writeFileSync(swPath, updatedSw, 'utf8');
+  console.log(`[Release] sw.js önbellek sürümü güncellendi: turkce-yazim-v${nextVersion}`);
+}
+
 console.log(`[Release] Başarıyla tamamlandı: v${nextVersion}`);

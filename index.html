@@ -249,6 +249,29 @@
   .diff-badge-cnt{font-size:.76rem;font-weight:700;padding:.2rem .55rem;border-radius:12px;background:var(--green-bg);color:var(--green)}
   .diff-empty-notice{color:var(--slate);font-size:.88rem;padding:1rem;text-align:center;background:var(--mist);border-radius:8px}
 
+  /* live status, active mark, repeated words & empty state */
+  .live-status{display:inline-flex;align-items:center;gap:.35rem;font-size:.7rem;font-weight:600;padding:.18rem .55rem;border-radius:12px;background:var(--mist);color:var(--slate);border:1px solid var(--border);transition:all .2s}
+  .live-status .ls-dot{width:6px;height:6px;border-radius:50%;background:var(--slate);transition:background .2s}
+  .live-status.typing{color:var(--ambe);border-color:rgba(217,119,6,.3);background:var(--amb-bg)}
+  .live-status.typing .ls-dot{background:var(--ambe);animation:pulseDot 1s infinite}
+  .live-status.done{color:var(--green);border-color:rgba(21,128,61,.3);background:var(--green-bg)}
+  .live-status.done .ls-dot{background:var(--green)}
+  @keyframes pulseDot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.8)}}
+  .active-mark{outline:2px solid var(--crimson)!important;outline-offset:2px;border-radius:4px;box-shadow:0 0 0 4px rgba(181,32,42,.18)}
+  .case-wrap{position:relative;display:inline-flex}
+  .rep-words-bar{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--r);padding:.55rem 1.1rem;margin-bottom:.6rem;font-size:.78rem;color:var(--slate);display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;box-shadow:var(--shadow)}
+  .rep-chip{background:var(--mist);border:1px solid var(--border);border-radius:12px;padding:.12rem .55rem;font-size:.74rem;font-weight:600;color:var(--ink);display:inline-flex;align-items:center;gap:.25rem}
+  .rep-chip b{color:var(--crimson)}
+  .empty-hints{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;background:var(--card-bg);border:1px dashed var(--border);border-radius:var(--r);padding:.9rem 1.25rem;margin-bottom:1rem;font-size:.8rem;color:var(--slate)}
+  .empty-hints-items{display:flex;align-items:center;gap:1.1rem;flex-wrap:wrap}
+  .empty-hint-pill{display:inline-flex;align-items:center;gap:.35rem}
+  @media(max-width:640px){
+    .tlb{gap:.45rem}
+    .tlb .btn{padding:.45rem .8rem;font-size:.8rem}
+    .cc{width:100%;margin-left:0;margin-top:.25rem;text-align:right}
+    .empty-hints{flex-direction:column;align-items:flex-start}
+  }
+
   /* personal dictionary */
   .dict-chip{background:var(--mist);border:1px solid var(--border);border-radius:6px;padding:.25rem .55rem;font-size:.82rem;font-weight:600;display:inline-flex;align-items:center;gap:.4rem;color:var(--ink)}
   .dict-del{background:none;border:none;color:var(--slate);cursor:pointer;font-size:.9rem;line-height:1;padding:0 3px;border-radius:3px}
@@ -282,7 +305,10 @@
 <div class="wrap">
   <div class="card">
     <div class="card-hd">
-      <span class="lbl">Denetlenecek metin</span>
+      <div style="display:flex;align-items:center;gap:.65rem">
+        <span class="lbl">Denetlenecek metin</span>
+        <span class="live-status" id="liveStatus" aria-live="polite"><span class="ls-dot"></span><span id="liveStatusTxt">Hazır</span></span>
+      </div>
       <div class="hd-actions">
         <input type="file" id="fileInp" accept=".txt,.md,.text" style="display:none">
         <button class="smp" id="fileBtn" title="Dosyadan metin yükleyin (.txt, .md)">📁 Dosya Aç</button>
@@ -295,16 +321,34 @@
       <button type="button" id="draftDismiss" aria-label="Bildirimi kapat">✕</button>
     </div>
     <div class="drop-zone" id="dropZone">
-      <textarea id="inp" spellcheck="false" placeholder="Metni buraya yazın veya yapıştırın… Dosya sürükleyip bırakabilirsiniz. (Ctrl+Enter: kontrol et)"></textarea>
+      <textarea id="inp" aria-label="Denetlenecek Türkçe metin alanı" spellcheck="false" placeholder="Metni buraya yazın veya yapıştırın… Dosya sürükleyip bırakabilirsiniz. (Ctrl+Enter: kontrol et)"></textarea>
     </div>
     <div class="tlb">
       <button class="btn btn-p" id="chkBtn">✓ Kontrol Et</button>
       <button class="btn btn-g" id="cleanBtn" title="Bozuk PDF/web satır sonlarını birleştirir ve fazla boşlukları temizler">🧹 Biçimlendir</button>
+      <div class="case-wrap">
+        <button class="btn btn-g" id="caseBtn" title="Türkçe uyumlu büyük/küçük harf dönüştürücü (İ/i, I/ı)" aria-haspopup="true" aria-expanded="false">Aa Harf Düzeni ▾</button>
+        <div class="dropdown-menu" id="caseMenu" style="display:none;left:0;right:auto;min-width:220px">
+          <button type="button" class="dropdown-item" data-case="sentence">🔤 Tümce düzeni (Cümle başı büyük)</button>
+          <button type="button" class="dropdown-item" data-case="lower">🔡 tümü küçük harf (i / ı uyumlu)</button>
+          <button type="button" class="dropdown-item" data-case="upper">🔠 TÜMÜ BÜYÜK HARF (İ / I uyumlu)</button>
+          <button type="button" class="dropdown-item" data-case="title">✨ Başlık Düzeni (Kelime Başı Büyük)</button>
+        </div>
+      </div>
       <button class="btn btn-g" id="clrBtn">✕ Temizle</button>
       <button class="btn btn-g" id="undoBtn" disabled title="Son işlemi geri al (Ctrl+Z)">↩ Geri Al</button>
+      <button class="btn btn-g" id="redoBtn" disabled title="Son işlemi ileri al (Ctrl+Y)">↪ İleri Al</button>
       <button class="btn btn-g" id="cpyBtnTop" title="Metni panoya kopyala">⎘ Kopyala</button>
       <button class="btn btn-g" id="downBtn" title="Metni farklı formatlarda dışa aktar (.txt, .md, .html)">💾 Dışa Aktar</button>
       <span class="cc" id="cc">0 karakter (boşluksuz: 0) · 0 kelime</span>
+    </div>
+  </div>
+
+  <div id="emptyHints" class="empty-hints">
+    <div class="empty-hints-items">
+      <span class="empty-hint-pill">💡 <b>İpucu:</b> PDF'ten kopyalanan kırık satırları <b>🧹 Biçimlendir</b> ile birleştirin.</span>
+      <span class="empty-hint-pill">🔤 Tamamı büyük yazılmış metinleri <b>Aa Harf Düzeni</b> ile düzeltin.</span>
+      <span class="empty-hint-pill">⚡ Tüm hataları <b>Ctrl+Shift+F</b> ile anında onarın.</span>
     </div>
   </div>
 
@@ -355,14 +399,22 @@
         <div class="read-val" id="stEstPages">~0 sayfa</div>
       </div>
       <div class="read-item">
-        <span class="read-lbl">Cümle Sayısı</span>
-        <div class="read-val" id="stSent">0</div>
+        <span class="read-lbl">Cümle / Ort. Uzunluk</span>
+        <div class="read-val"><span id="stSent">0</span> <span style="font-size:.78rem;color:var(--slate);font-weight:600">(<span id="stAvgSent">0 kelime</span>)</span></div>
       </div>
       <div class="read-item">
-        <span class="read-lbl">Ort. Cümle Uzunluğu</span>
-        <div class="read-val" id="stAvgSent">0 kelime</div>
+        <span class="read-lbl">
+          Kelime Çeşitliliği
+          <span class="info-tip" tabindex="0" role="button" aria-label="Kelime Çeşitliliği Nedir?">ⓘ
+            <span class="tip-content">
+              <b>Kelime Çeşitliliği:</b> Metindeki benzersiz (tekil) kelimelerin toplam kelime sayısına oranıdır. Oranın yüksek olması kelime dağarcığının zenginliğini gösterir.
+            </span>
+          </span>
+        </span>
+        <div class="read-val" id="stDiversity">%0</div>
       </div>
     </div>
+    <div id="repWordsBar" class="rep-words-bar" style="display:none"></div>
 
     <div class="sbar">
       <div class="st s-sp" data-type="spell" tabindex="0" role="button" title="Sadece yazım hatalarını göster"><div class="sd"></div><span id="cSp">0</span> yazım</div>
@@ -409,16 +461,17 @@
   <div class="pf" id="pf"></div>
 </div>
 
-<div id="kbdModal" class="modal-overlay" style="display:none">
+<div id="kbdModal" class="modal-overlay" style="display:none" role="dialog" aria-modal="true" aria-labelledby="kbdModalTitle">
   <div class="modal-content">
     <div class="modal-hd">
-      <div class="modal-title">Klavye Kısayolları</div>
-      <button class="modal-close" id="kbdClose">×</button>
+      <div class="modal-title" id="kbdModalTitle">Klavye Kısayolları</div>
+      <button class="modal-close" id="kbdClose" aria-label="Kapat">×</button>
     </div>
     <div class="shortcut-list">
       <div class="shortcut-row"><span>Metni Denetle</span><span class="kbd">Ctrl + Enter</span></div>
       <div class="shortcut-row"><span>Tümünü Düzelt</span><span class="kbd">Ctrl + Shift + F</span></div>
       <div class="shortcut-row"><span>Son İşlemi Geri Al</span><span class="kbd">Ctrl + Z</span></div>
+      <div class="shortcut-row"><span>Son İşlemi İleri Al</span><span class="kbd">Ctrl + Y</span></div>
       <div class="shortcut-row"><span>Metni Kopyala</span><span class="kbd">Ctrl + Alt + C</span></div>
       <div class="shortcut-row"><span>Önceki / Sonraki Hata</span><span class="kbd">← / →</span></div>
       <div class="shortcut-row"><span>Popup / Modalı Kapat</span><span class="kbd">Esc</span></div>
@@ -427,31 +480,38 @@
   </div>
 </div>
 
-<div id="dictModal" class="modal-overlay" style="display:none">
+<div id="dictModal" class="modal-overlay" style="display:none" role="dialog" aria-modal="true" aria-labelledby="dictModalTitle">
   <div class="modal-content">
     <div class="modal-hd">
-      <div class="modal-title">📖 Kişisel Sözlük <span id="dictCount" style="font-size:.82rem;color:var(--slate);font-weight:normal"></span></div>
+      <div class="modal-title" id="dictModalTitle">📖 Kişisel Sözlük <span id="dictCount" style="font-size:.82rem;color:var(--slate);font-weight:normal"></span></div>
       <button class="modal-close" id="dictClose" aria-label="Kapat">×</button>
     </div>
     <p style="font-size:.8rem;color:var(--slate);margin-bottom:.85rem;line-height:1.45">
-      Buraya eklediğiniz kişi adları, teknik terimler ve özel sözcükler yazım denetiminde hata olarak işaretlenmez.
+      Buraya eklediğiniz kişi adları, teknik terimler ve özel sözcükler yazım denetiminde hata olarak işaretlenmez. Virgülle ayırarak birden fazla kelime ekleyebilirsiniz.
     </p>
     <div style="display:flex;gap:.5rem;margin-bottom:1rem">
       <input type="text" id="dictInp" placeholder="Yeni kelime veya terim ekleyin..." style="flex:1;padding:.45rem .65rem;border:1.5px solid var(--border);border-radius:6px;font-family:var(--f);font-size:.85rem;background:var(--mist);color:var(--ink)">
       <button class="btn btn-p btn-xs" id="dictAddBtn">+ Ekle</button>
     </div>
     <div id="dictList" style="max-height:220px;overflow-y:auto;display:flex;flex-wrap:wrap;gap:.4rem;padding:.4rem 0"></div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:1rem;padding-top:.8rem;border-top:1px solid var(--border)">
-      <button class="smp" id="dictClearAll" style="color:var(--red);font-size:.76rem">Tümünü Temizle</button>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:1rem;padding-top:.8rem;border-top:1px solid var(--border);flex-wrap:wrap;gap:.5rem">
+      <div style="display:flex;align-items:center;gap:.65rem">
+        <button class="smp" id="dictExportBtn" style="font-size:.76rem" title="Sözlüğü .txt dosyası olarak indir">📤 Dışa Aktar</button>
+        <span style="color:var(--border)">|</span>
+        <input type="file" id="dictFileInp" accept=".txt,.json" style="display:none">
+        <button class="smp" id="dictImportBtn" style="font-size:.76rem" title="Dosyadan sözlük kelimeleri yükle">📥 İçe Aktar</button>
+        <span style="color:var(--border)">|</span>
+        <button class="smp" id="dictClearAll" style="color:var(--red);font-size:.76rem">Tümünü Temizle</button>
+      </div>
       <button class="btn btn-g btn-xs" id="dictDoneBtn">Kapat</button>
     </div>
   </div>
 </div>
 
-<div id="exportModal" class="modal-overlay" style="display:none">
+<div id="exportModal" class="modal-overlay" style="display:none" role="dialog" aria-modal="true" aria-labelledby="exportModalTitle">
   <div class="modal-content" style="max-width:520px">
     <div class="modal-hd">
-      <div class="modal-title">💾 Dışa Aktar &amp; Paylaş</div>
+      <div class="modal-title" id="exportModalTitle">💾 Dışa Aktar &amp; Paylaş</div>
       <button class="modal-close" id="exportClose" aria-label="Kapat">×</button>
     </div>
     <p style="font-size:.82rem;color:var(--slate);margin-bottom:1.1rem;line-height:1.45">
@@ -1018,6 +1078,46 @@ const WARNS=[
 
 function getLastVowel(w){const v=w.match(/[aeıioöuü]/gi);return v?v[v.length-1].toLowerCase():null}
 
+function tuAll(s){return s?s.replace(/i/g,'İ').replace(/ı/g,'I').toUpperCase():s}
+
+const TITLE_LOWER_WORDS=new Set(['ve','ile','ya','veya','da','de','ki','mi','mı','mu','mü','için','gibi','kadar']);
+function convertCase(text,mode){
+  if(!text) return '';
+  if(mode==='lower') return tl(text);
+  if(mode==='upper') return tuAll(text);
+  if(mode==='title'){
+    let isStart=true;
+    return text.replace(/([a-zA-ZığüşöçİĞÜŞÖÇ]+)|([^\wığüşöçİĞÜŞÖÇ]+)/gu,(m,word,sep)=>{
+      if(sep){
+        if(/[.!?\n]/.test(sep)) isStart=true;
+        return sep;
+      }
+      const lw=tl(word);
+      const res=(!isStart&&TITLE_LOWER_WORDS.has(lw))?lw:tu(lw);
+      isStart=false;
+      return res;
+    });
+  }
+  if(mode==='sentence'){
+    const low=tl(text);
+    let ss=true;
+    let out='';
+    for(let i=0;i<low.length;i++){
+      const c=low[i];
+      if(ss&&/[a-zığüşöç]/.test(c)){
+        out+=tu(c);
+        ss=false;
+      } else {
+        out+=c;
+        if(/[.!?\n]/.test(c)) ss=true;
+        else if(!/\s/.test(c)&&!/["'“‘«\(\[\{\-–—]/.test(c)) ss=false;
+      }
+    }
+    return out;
+  }
+  return text;
+}
+
 // ============================================================
 // METİN BİÇİMLENDİRİCİ & TEMİZLEYİCİ
 // ============================================================
@@ -1058,6 +1158,8 @@ function cleanText(text){
 // ============================================================
 // ATEŞMAN OKUNABİLİRLİK İNDEKSİ & İSTATİSTİK HESAPLAYICI
 // ============================================================
+const STOP_WORDS=new Set(['bir','bu','şu','o','ve','ile','için','de','da','ki','mi','mı','mu','mü','ama','fakat','lakin','ancak','çok','daha','en','gibi','kadar','olarak','olan','oldu','olur','var','yok','ben','sen','biz','siz','onlar','ne','her','hem','ya','veya','ise','diye','sonra','önce','üzere','गöre','göre','karşı','bile','sadece','zaten','artık','yine','gene','hiç']);
+
 function computeReadability(text){
   const clean=text.trim();
   if(!clean) return null;
@@ -1095,6 +1197,23 @@ function computeReadability(text){
   const estPages=Math.round((noSpaceChars/1800)*10)/10;
   const estPagesStr=estPages<0.1?(noSpaceChars>0?'< 0,1 sayfa':'0 sayfa'):('~'+estPages.toLocaleString('tr-TR')+' sayfa');
 
+  const freq=new Map();
+  const uniqueSet=new Set();
+  for(const w of words){
+    const lw=tl(w);
+    uniqueSet.add(lw);
+    if(lw.length>=3&&!STOP_WORDS.has(lw)&&!/^\d+$/.test(lw)){
+      freq.set(lw,(freq.get(lw)||0)+1);
+    }
+  }
+  const uniqueWords=uniqueSet.size;
+  const diversityRatio=Math.round((uniqueWords/totalWords)*100);
+  const topRepeated=Array.from(freq.entries())
+    .filter(([,cnt])=>cnt>=3)
+    .sort((a,b)=>b[1]-a[1])
+    .slice(0,5)
+    .map(([word,count])=>({word,count}));
+
   return{
     score,isShort,label,cls,
     readTimeStr,
@@ -1103,8 +1222,73 @@ function computeReadability(text){
     totalSyllables,
     noSpaceChars,
     estPagesStr,
-    avgSentenceLength:Math.round(avgSentenceLength*10)/10
+    avgSentenceLength:Math.round(avgSentenceLength*10)/10,
+    avgWordLengthSyllables:Math.round(avgWordLength*10)/10,
+    uniqueWords,
+    diversityRatio,
+    topRepeated
   };
+}
+
+// ============================================================
+// ÖN-DERLENMİŞ REGEX TABLOLARI & SAYI SES BİLGİSİ
+// ============================================================
+const COMPILED_SPELL=SPELL.map(([w,r])=>{
+  try{return{w,r,rx:new RegExp(wb(tl(w)),'g')};}catch(e){return null;}
+}).filter(Boolean);
+
+const COMPILED_GRAM=[...DEDA,...KI].map(([w,r])=>{
+  try{return{w,r,rx:new RegExp(wb(tl(w)),'g')};}catch(e){return null;}
+}).filter(Boolean);
+
+const COMPILED_WARNS=WARNS.map(wp=>({
+  ...wp,
+  compiledRx:new RegExp(wp.rx.source,'gi')
+}));
+
+function getNumberPhonology(numStr){
+  if(/^0+$/.test(numStr)) return{back:true,hard:false};
+  if(/000$/.test(numStr)) return{back:false,hard:false};
+  if(/00$/.test(numStr)) return{back:false,hard:false};
+  if(/0$/.test(numStr)){
+    const tens=numStr.slice(-2);
+    switch(tens){
+      case'10':return{back:true,hard:false};
+      case'20':return{back:false,hard:false};
+      case'30':return{back:true,hard:false};
+      case'40':return{back:true,hard:true};
+      case'50':return{back:false,hard:false};
+      case'60':return{back:true,hard:true};
+      case'70':return{back:false,hard:true};
+      case'80':return{back:false,hard:false};
+      case'90':return{back:true,hard:false};
+    }
+  }
+  const last=numStr.slice(-1);
+  switch(last){
+    case'1':return{back:false,hard:false};
+    case'2':return{back:false,hard:false};
+    case'3':return{back:false,hard:true};
+    case'4':return{back:false,hard:true};
+    case'5':return{back:false,hard:true};
+    case'6':return{back:true,hard:false};
+    case'7':return{back:false,hard:false};
+    case'8':return{back:false,hard:false};
+    case'9':return{back:true,hard:false};
+    default:return{back:false,hard:false};
+  }
+}
+
+function normalizeNumberSuffix(numStr,rawSuf){
+  const ph=getNumberPhonology(numStr);
+  const ls=tl(rawSuf);
+  if(ls==='da'||ls==='de'||ls==='ta'||ls==='te'){
+    return ph.hard?(ph.back?'ta':'te'):(ph.back?'da':'de');
+  }
+  if(ls==='dan'||ls==='den'||ls==='tan'||ls==='ten'){
+    return ph.hard?(ph.back?'tan':'ten'):(ph.back?'dan':'den');
+  }
+  return rawSuf;
 }
 
 // ============================================================
@@ -1130,14 +1314,13 @@ function analyze(text){
     }
   }
 
-  // 1. Yazım hataları
-  for(const[w,r] of SPELL){
-    try{
-      const rx=new RegExp(wb(tl(w)),'g');let m;
-      while((m=rx.exec(ltext))!==null)
-        push({type:'spell',word:text.slice(m.index,m.index+m[0].length),start:m.index,end:m.index+m[0].length,
-          suggestions:[r],msg:'"'+w+'" yerine "'+r+'" yazılmalıdır'});
-    }catch(e){}
+  // 1. Yazım hataları (Ön-derlenmiş)
+  for(const{w,r,rx} of COMPILED_SPELL){
+    rx.lastIndex=0;
+    let m;
+    while((m=rx.exec(ltext))!==null)
+      push({type:'spell',word:text.slice(m.index,m.index+m[0].length),start:m.index,end:m.index+m[0].length,
+        suggestions:[r],msg:'"'+w+'" yerine "'+r+'" yazılmalıdır'});
   }
 
   // 1b. Kelime içine sehven karışmış rakamlar (Alphanumeric Typo: örn. b8ugün -> bugün, g3l -> gel)
@@ -1162,14 +1345,13 @@ function analyze(text){
     }
   }
 
-  // 2. Dilbilgisi hataları (de/da ve ki)
-  for(const[w,r] of [...DEDA,...KI]){
-    try{
-      const rx=new RegExp(wb(tl(w)),'g');let m;
-      while((m=rx.exec(ltext))!==null)
-        push({type:'gram',word:text.slice(m.index,m.index+m[0].length),start:m.index,end:m.index+m[0].length,
-          suggestions:[r],msg:'TDK: "'+w+'" → "'+r+'"'});
-    }catch(e){}
+  // 2. Dilbilgisi hataları (de/da ve ki - Ön-derlenmiş)
+  for(const{w,r,rx} of COMPILED_GRAM){
+    rx.lastIndex=0;
+    let m;
+    while((m=rx.exec(ltext))!==null)
+      push({type:'gram',word:text.slice(m.index,m.index+m[0].length),start:m.index,end:m.index+m[0].length,
+        suggestions:[r],msg:'TDK: "'+w+'" → "'+r+'"'});
   }
 
   // 2b. Mİ soru eki ve fiil eki + "ki" bağlacı
@@ -1356,9 +1538,11 @@ function analyze(text){
     }
   }
 
-  // 4. Uyarı gerektiren durumlar (WARNS)
-  for(const wp of WARNS){
-    const rx=new RegExp(wp.rx.source,'gi');let m;
+  // 4. Uyarı gerektiren durumlar (WARNS - Ön-derlenmiş)
+  for(const wp of COMPILED_WARNS){
+    const rx=wp.compiledRx;
+    rx.lastIndex=0;
+    let m;
     while((m=rx.exec(text))!==null){
       if(!ok(m.index,m.index+m[0].length)) continue;
       if(wp.preCheck&&!wp.preCheck(text,m)) continue;
@@ -1446,7 +1630,11 @@ function analyze(text){
     const nextChar=text[m.index+1];
     if(/\d/.test(prevChar)&&/\d/.test(nextChar)) continue;
     const prevWord=text.slice(0,m.index).match(/[\wığüşöçİĞÜŞÖÇ]+$/);
-    if(prevWord&&ABBRS.has(tl(prevWord[0]))) continue;
+    const nextWord=text.slice(m.index+1).match(/^[\wığüşöçİĞÜŞÖÇ]+/);
+    if(prevWord&&nextWord){
+      const nw=tl(nextWord[0]);
+      if(/^(com|org|net|edu|gov|tr|io|dev|html|js|css|txt|md|pdf|png|jpg|svg)$/.test(nw)) continue;
+    }
     push({type:'punct',word:'.',start:m.index,end:m.index+1,
       suggestions:['. '],msg:'Noktadan sonra boşluk bırakılmalıdır'});
   }
@@ -1466,14 +1654,34 @@ function analyze(text){
     push({type:'punct',word:m[0],start:m.index,end:m.index+m[0].length,
       suggestions:[' '],msg:'Gereksiz fazla boşluk'});
 
-  let openParenCount=0,firstOpenParen=-1;
-  for(let i=0;i<text.length;i++){
-    if(text[i]==='('){openParenCount++;if(firstOpenParen===-1)firstOpenParen=i;}
-    else if(text[i]===')'){openParenCount=Math.max(0,openParenCount-1);if(openParenCount===0)firstOpenParen=-1;}
-  }
-  if(openParenCount>0&&firstOpenParen!==-1&&ok(firstOpenParen,firstOpenParen+1)){
-    push({type:'punct',word:'(',start:firstOpenParen,end:firstOpenParen+1,suggestions:[],
-      msg:'Kapatılmamış açılış parantezi "(" tespit edildi'});
+  // Yığın (stack) tabanlı parantez ve köşeli parantez eşleştirme denetimi
+  {
+    const parenStack=[];
+    const closeToOpen={')':'(',']':'['};
+    for(let i=0;i<text.length;i++){
+      const ch=text[i];
+      if(ch==='('||ch==='['){
+        parenStack.push({ch,index:i});
+      } else if(ch===')'||ch===']'){
+        const expectedOpen=closeToOpen[ch];
+        let matchedIdx=-1;
+        for(let j=parenStack.length-1;j>=0;j--){
+          if(parenStack[j].ch===expectedOpen){matchedIdx=j;break;}
+        }
+        if(matchedIdx!==-1){
+          parenStack.splice(matchedIdx,1);
+        } else if(ok(i,i+1)){
+          push({type:'punct',word:ch,start:i,end:i+1,suggestions:[''],
+            msg:`Açılmamış kapanış parantezi "${ch}" tespit edildi`});
+        }
+      }
+    }
+    for(const item of parenStack){
+      if(ok(item.index,item.index+1)){
+        push({type:'punct',word:item.ch,start:item.index,end:item.index+1,suggestions:[],
+          msg:`Kapatılmamış açılış parantezi "${item.ch}" tespit edildi`});
+      }
+    }
   }
 
   // İkilemeler arasına noktalama işareti konmaz (virgül veya kısa çizgi) (TDK İmla)
@@ -1485,13 +1693,17 @@ function analyze(text){
       suggestions:[ipm[1]+' '+ipm[1]],msg:`TDK: İkilemeler arasına ${isHyphen?'kısa çizgi':'virgül'} konmaz ("${ipm[1]} ${ipm[1]}")`});
   }
 
-  // Sayı sonrası ünsüz sertleşmesi (3'de -> 3'te, 1985'de -> 1985'te)
-  const sertSayiRx=/\b(\d*(?:[345]|40|60|70))'(de|da)\b/gi;
+  // Sayı sonrası ünsüz sertleşmesi ve ünlü uyumu (3'de -> 3'te, 1985'de -> 1985'te, 60'de -> 60'ta, 40'dan -> 40'tan)
+  const sertSayiRx=/\b(\d+)['\u2019](de|da|te|ta|den|dan|ten|tan)\b/gi;
   let ssm;
   while((ssm=sertSayiRx.exec(text))!==null){
-    const dogruEk=(ssm[2].toLowerCase()==='da'||ssm[1].endsWith('40'))?'ta':'te';
-    push({type:'gram',word:ssm[0],start:ssm.index,end:ssm.index+ssm[0].length,
-      suggestions:[ssm[1]+"'"+dogruEk],msg:'TDK İmla: Ünsüz sertleşmesi kuralı gereği "'+dogruEk+'" olmalıdır'});
+    const numStr=ssm[1];
+    const curEk=tl(ssm[2]);
+    const dogruEk=normalizeNumberSuffix(numStr,curEk);
+    if(dogruEk!==curEk){
+      push({type:'gram',word:ssm[0],start:ssm.index,end:ssm.index+ssm[0].length,
+        suggestions:[numStr+"'"+dogruEk],msg:'TDK İmla: Sayı okunuşu ve ünsüz benzeşmesi kuralı gereği "'+dogruEk+'" olmalıdır'});
+    }
   }
 
   // Belirli tarih bildiren ay adları büyük harfle başlar (29 ekim -> 29 Ekim)
@@ -1524,6 +1736,7 @@ function analyze(text){
         if(lb>=0&&text[lb]==='.'){
           const pw=text.slice(0,lb).match(/[\wığüşöçİĞÜŞÖÇ]+$/);
           if(pw&&ABBRS.has(tl(pw[0]))) isStart=false;
+          if(pw&&/^\d{1,3}$/.test(pw[0])) isStart=false;
           if(/\d/.test(text[lb-1])&&/\d/.test(c)) isStart=false;
         }
         if(lb>=0&&text[lb]===':') isStart=false;
@@ -1536,6 +1749,7 @@ function analyze(text){
       if(c==='.'){
         const pw=text.slice(0,i).match(/[\wığüşöçİĞÜŞÖÇ]+$/);
         if(pw&&ABBRS.has(tl(pw[0]))) isEnd=false;
+        if(pw&&/^\d{1,3}$/.test(pw[0])) isEnd=false;
         if(/\d/.test(text[i-1])&&/\d/.test(text[i+1])) isEnd=false;
       }
       if(isEnd) ss=true;
@@ -1549,9 +1763,11 @@ function analyze(text){
     const prev=m.index>0?text[m.index-1]:null;
     if(prev==="'"||prev==='\u2019') continue;
     if(!ok(m.index,m.index+m[0].length)) continue;
+    const isNum=/^\d+$/.test(m[1]);
+    const finalSuf=isNum?normalizeNumberSuffix(m[1],m[2]):m[2];
     push({type:'suggest',word:m[0],start:m.index,end:m.index+m[0].length,
-      suggestions:[m[1]+"'"+m[2]],
-      msg:(/^\d+$/.test(m[1])?'Sayı':'Kısaltma')+' ekinden önce kesme işareti gereklidir'});
+      suggestions:[m[1]+"'"+finalSuf],
+      msg:(isNum?'Sayı':'Kısaltma')+' ekinden önce kesme işareti gereklidir'});
   }
 
   // Özel isimlere gelen çekim ekleri kesme işaretiyle ayrılır (TDK İmla)
@@ -1736,27 +1952,54 @@ function renderDiffContent(){
   `;
 }
 
-const undoStack=[];
-function snapshotUndo(){
+const undoStack=[],redoStack=[];
+function updateUndoRedoBtns(){
+  const u=document.getElementById('undoBtn');
+  const r=document.getElementById('redoBtn');
+  if(u) u.disabled=undoStack.length===0;
+  if(r) r.disabled=redoStack.length===0;
+}
+function snapshotUndo(clearRedo=true){
   if(!initialInputText) initialInputText=curText;
   undoStack.push({text:curText,ignored:new Set(ignored)});
   if(undoStack.length>50) undoStack.shift();
-  const b=document.getElementById('undoBtn');if(b)b.disabled=false;
+  if(clearRedo) redoStack.length=0;
+  updateUndoRedoBtns();
 }
 function undo(){
   const st=undoStack.pop();
   if(!st) return;
+  redoStack.push({text:curText,ignored:new Set(ignored)});
   ignored.clear();
   for(const v of st.ignored) ignored.add(v);
   setEditorText(st.text);
   closePop();run();
   if(!undoStack.length){
-    const b=document.getElementById('undoBtn');if(b)b.disabled=true;
     initialInputText=curText;
   }
+  updateUndoRedoBtns();
   const banner=document.getElementById('diffBanner');
   if(banner) banner.style.display='none';
   showToast('↩ Son işlem geri alındı.');
+}
+function redo(){
+  const st=redoStack.pop();
+  if(!st) return;
+  undoStack.push({text:curText,ignored:new Set(ignored)});
+  ignored.clear();
+  for(const v of st.ignored) ignored.add(v);
+  setEditorText(st.text);
+  closePop();run();
+  updateUndoRedoBtns();
+  showToast('↪ İşlem ileri alındı.');
+}
+
+function setLiveStatus(state,text){
+  const el=document.getElementById('liveStatus');
+  const txt=document.getElementById('liveStatusTxt');
+  if(!el||!txt) return;
+  el.className='live-status'+(state?' '+state:'');
+  txt.textContent=text;
 }
 
 function renderOut(text,issues){
@@ -1871,6 +2114,9 @@ window.TY={
   render(idx){
     const iss=displayedIssues[idx];if(!iss)return false;
     curPopIdx=idx;
+    document.querySelectorAll('.active-mark').forEach(el=>el.classList.remove('active-mark'));
+    const activeEl=document.getElementById('mark-'+idx);
+    if(activeEl) activeEl.classList.add('active-mark');
     const p=document.getElementById('pb');p.textContent=LBL[iss.type];p.className='pb '+iss.type;
     document.getElementById('pw').textContent=iss.word.trim()||'(boşluk)';
     document.getElementById('pm').textContent=iss.msg;
@@ -1931,6 +2177,8 @@ window.TY={
     const ni=curPopIdx+dir;
     if(ni<0||ni>=displayedIssues.length) return;
     TY.render(ni);
+    const markEl=document.getElementById('mark-'+ni);
+    if(markEl) markEl.scrollIntoView({behavior:'smooth',block:'center'});
   },
   fix(idx,sug){
     const iss=displayedIssues[idx];if(!iss)return;
@@ -1962,6 +2210,7 @@ let curPopIdx=-1;
 let lastFocused=null;
 function closePop(){
   document.getElementById('pop').style.display='none';
+  document.querySelectorAll('.active-mark').forEach(el=>el.classList.remove('active-mark'));
   if(lastFocused&&lastFocused.focus){lastFocused.focus();}
   lastFocused=null;
 }
@@ -1972,6 +2221,10 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){
     if(document.getElementById('pop').style.display!=='none') closePop();
     if(document.getElementById('kbdModal').style.display!=='none') document.getElementById('kbdModal').style.display='none';
+    if(document.getElementById('dictModal').style.display!=='none') document.getElementById('dictModal').style.display='none';
+    if(document.getElementById('exportModal').style.display!=='none') document.getElementById('exportModal').style.display='none';
+    if(typeof toggleFxMenu==='function') toggleFxMenu(false);
+    if(typeof toggleCaseMenu==='function') toggleCaseMenu(false);
   }
   if(document.getElementById('pop').style.display!=='none'){
     if(e.key==='ArrowRight'){e.preventDefault();TY.nav(1);}
@@ -1989,6 +2242,10 @@ document.addEventListener('keydown',e=>{
     e.preventDefault();
     undo();
   }
+  if((e.ctrlKey||e.metaKey)&&((!e.shiftKey&&(e.key==='y'||e.key==='Y'))||(e.shiftKey&&(e.key==='z'||e.key==='Z')))&&document.activeElement!==inp){
+    e.preventDefault();
+    redo();
+  }
   if((e.ctrlKey||e.metaKey)&&e.altKey&&(e.key==='c'||e.key==='C')){
     e.preventDefault();
     document.getElementById('cpyBtn').click();
@@ -1997,11 +2254,15 @@ document.addEventListener('keydown',e=>{
 
 function run(){
   curText=document.getElementById('inp').value;
+  const emptyHints=document.getElementById('emptyHints');
+  if(emptyHints) emptyHints.style.display=curText.trim()?'none':'flex';
   if(!curText.trim()){
     ['statsBar','res'].forEach(id=>document.getElementById(id).style.display='none');
+    setLiveStatus('','Hazır');
     curIssues=[];displayedIssues=[];closePop();return;
   }
   curIssues=analyze(curText).filter(i=>!ignored.has(i.type+'|'+tl(i.word))&&!isDictIgnored(i.word));
+  setLiveStatus('done','✓ Denetlendi');
 
   document.getElementById('cSp').textContent=curIssues.filter(i=>i.type==='spell').length;
   document.getElementById('cGr').textContent=curIssues.filter(i=>i.type==='gram').length;
@@ -2031,6 +2292,18 @@ function run(){
     document.getElementById('stEstPages').textContent=rStats.estPagesStr;
     document.getElementById('stSent').textContent=rStats.totalSentences;
     document.getElementById('stAvgSent').textContent=rStats.avgSentenceLength+' kelime';
+    const divEl=document.getElementById('stDiversity');
+    if(divEl) divEl.textContent='%'+rStats.diversityRatio+' ('+rStats.uniqueWords+' tekil)';
+    const repBar=document.getElementById('repWordsBar');
+    if(repBar){
+      if(rStats.topRepeated&&rStats.topRepeated.length>0){
+        repBar.style.display='flex';
+        repBar.innerHTML='<span>🔁 <b>Sık Tekrarlanan Kelimeler:</b></span>'+
+          rStats.topRepeated.map(({word,count})=>`<span class="rep-chip">${esc(word)} <b>${count}×</b></span>`).join('');
+      } else {
+        repBar.style.display='none';
+      }
+    }
   }
 
   document.getElementById('statsBar').style.display='block';
@@ -2194,6 +2467,9 @@ document.getElementById('clrBtn').addEventListener('click',()=>{
     const d=document.getElementById(id);
     if(d) d.style.display='none';
   });
+  const emptyHints=document.getElementById('emptyHints');
+  if(emptyHints) emptyHints.style.display='flex';
+  setLiveStatus('','Hazır');
   document.getElementById('cc').textContent=countLabel('');
   document.getElementById('draftNotice').style.display='none';
   curText='';initialInputText='';curIssues=[];displayedIssues=[];ignored.clear();closePop();
@@ -2268,9 +2544,55 @@ if(fxMenu){
     }
   });
 }
+
+const caseBtn=document.getElementById('caseBtn');
+const caseMenu=document.getElementById('caseMenu');
+function toggleCaseMenu(open){
+  if(!caseMenu) return;
+  const show=typeof open==='boolean'?open:caseMenu.style.display==='none';
+  caseMenu.style.display=show?'block':'none';
+  if(caseBtn) caseBtn.setAttribute('aria-expanded',show?'true':'false');
+}
+if(caseBtn){
+  caseBtn.addEventListener('click',e=>{
+    e.stopPropagation();
+    toggleCaseMenu();
+  });
+}
+if(caseMenu){
+  caseMenu.addEventListener('click',e=>{
+    const item=e.target.closest('.dropdown-item');
+    if(!item) return;
+    const mode=item.getAttribute('data-case');
+    toggleCaseMenu(false);
+    const el=document.getElementById('inp');
+    const val=el.value;
+    if(!val.trim()){
+      showToast('Dönüştürülecek metin bulunamadı.');
+      return;
+    }
+    snapshotUndo();
+    const selStart=el.selectionStart,selEnd=el.selectionEnd;
+    let nextVal=val;
+    if(typeof selStart==='number'&&typeof selEnd==='number'&&selStart!==selEnd){
+      const part=val.slice(selStart,selEnd);
+      nextVal=val.slice(0,selStart)+convertCase(part,mode)+val.slice(selEnd);
+    } else {
+      nextVal=convertCase(val,mode);
+    }
+    setEditorText(nextVal);
+    run();
+    const labels={sentence:'Tümce düzenine',lower:'küçük harfe',upper:'BÜYÜK HARFE',title:'Başlık Düzenine'};
+    showToast(`🔤 Metin ${labels[mode]||'yeni düzene'} dönüştürüldü.`);
+  });
+}
+
 document.addEventListener('click',e=>{
   if(fxMenu&&fxMenu.style.display!=='none'&&!e.target.closest('.btn-group')){
     toggleFxMenu(false);
+  }
+  if(caseMenu&&caseMenu.style.display!=='none'&&!e.target.closest('#caseBtn')&&!e.target.closest('#caseMenu')){
+    toggleCaseMenu(false);
   }
 });
 
@@ -2299,6 +2621,10 @@ inp.addEventListener('input',()=>{
   if(undoStack.length===0){
     initialInputText=inp.value;
   }
+  const emptyHints=document.getElementById('emptyHints');
+  if(emptyHints) emptyHints.style.display=inp.value.trim()?'none':'flex';
+  if(inp.value.trim()) setLiveStatus('typing','Denetleniyor...');
+  else setLiveStatus('','Hazır');
   clearTimeout(autoTimer);
   autoTimer=setTimeout(run,700);
 });
@@ -2450,7 +2776,7 @@ document.getElementById('expReport').addEventListener('click',()=>{
   rep+=`[METİN METRİKLERİ]\n`;
   rep+=`- Karakter Sayısı: ${val.length.toLocaleString('tr-TR')} (Boşluksuz: ${val.replace(/\s/g,'').length.toLocaleString('tr-TR')})\n`;
   if(rStats){
-    rep+=`- Kelime Sayısı: ${rStats.totalWords.toLocaleString('tr-TR')}\n`;
+    rep+=`- Kelime Sayısı: ${rStats.totalWords.toLocaleString('tr-TR')} (Kelime Çeşitliliği: %${rStats.diversityRatio}, ${rStats.uniqueWords} tekil kelime)\n`;
     rep+=`- Cümle Sayısı: ${rStats.totalSentences} (Ortalama cümle uzunluğu: ${rStats.avgSentenceLength} kelime)\n`;
     rep+=`- Heceler: ${rStats.totalSyllables} (Ortalama kelime uzunluğu: ${rStats.avgWordLengthSyllables} hece)\n`;
     rep+=`- Ateşman Okunabilirlik Skoru: ${rStats.score} / 100 (${rStats.label})\n`;
@@ -2500,6 +2826,8 @@ document.getElementById('smpBtn').addEventListener('click',()=>{
 });
 
 document.getElementById('undoBtn').addEventListener('click',undo);
+const redoBtn=document.getElementById('redoBtn');
+if(redoBtn) redoBtn.addEventListener('click',redo);
 
 const themeBtn=document.getElementById('themeBtn');
 function applyTheme(isDark){
@@ -2628,6 +2956,55 @@ if(dictClearAll) dictClearAll.addEventListener('click',()=>{
   }
 });
 
+const dictExportBtn=document.getElementById('dictExportBtn');
+const dictImportBtn=document.getElementById('dictImportBtn');
+const dictFileInp=document.getElementById('dictFileInp');
+if(dictExportBtn){
+  dictExportBtn.addEventListener('click',()=>{
+    if(!customDict.size){
+      showToast('Dışa aktarılacak kayıtlı kelime yok.');
+      return;
+    }
+    const json=JSON.stringify(Array.from(customDict).sort(),null,2);
+    downloadFile(json,'turkce-yazim-sozluk.json','application/json;charset=utf-8');
+    showToast('📤 Kişisel sözlük indirildi.');
+  });
+}
+if(dictImportBtn&&dictFileInp){
+  dictImportBtn.addEventListener('click',()=>dictFileInp.click());
+  dictFileInp.addEventListener('change',e=>{
+    const f=e.target.files[0];
+    dictFileInp.value='';
+    if(!f) return;
+    const reader=new FileReader();
+    reader.onload=evt=>{
+      try{
+        const raw=String(evt.target.result||'').trim();
+        let words=[];
+        if(raw.startsWith('[')){
+          const parsed=JSON.parse(raw);
+          if(Array.isArray(parsed)) words=parsed.map(String);
+        } else {
+          words=raw.split(/[,;\n\r\t]+/);
+        }
+        const cleaned=words.map(p=>tl(p.trim().replace(/^['"\(\[\{]+|['"\)\]\}.,;:!?]+$/g,''))).filter(p=>p.length>0);
+        if(!cleaned.length){
+          showToast('İçe aktarılacak geçerli kelime bulunamadı.');
+          return;
+        }
+        cleaned.forEach(w=>customDict.add(w));
+        saveCustomDict(Array.from(customDict));
+        renderDictList();
+        run();
+        showToast(`📥 ${cleaned.length} kelime kişisel sözlüğe aktarıldı.`);
+      }catch(err){
+        showToast('❌ Sözlük dosyası okunamadı.');
+      }
+    };
+    reader.readAsText(f,'UTF-8');
+  });
+}
+
 // === METİN TEMİZLEYİCİ BUTONU ===
 const cleanBtn=document.getElementById('cleanBtn');
 if(cleanBtn){
@@ -2695,7 +3072,7 @@ try{
   }
 }catch(e){}
 if(typeof module!=='undefined'&&module.exports){
-  module.exports={analyze,computeReadability,cleanText,computeWordDiff,SPELL,DEDA,KI,WARNS,personAgrees};
+  module.exports={analyze,computeReadability,cleanText,computeWordDiff,convertCase,normalizeNumberSuffix,SPELL,DEDA,KI,WARNS,personAgrees};
 }
 })();
 </script>

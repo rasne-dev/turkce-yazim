@@ -684,6 +684,53 @@ it('computeWordDiff eklenen ve çıkarılan kelimeleri doğru ayırmalıdır', (
   assert(inss.some(i => i.includes('dikkatle')), 'eklenen kelime ins olarak işaretlenmelidir');
 });
 
+console.log('\n--- 18. Sayı Ekleri Ses Uyumu, Parantez Yığını, Harf Dönüştürücü & Rapor Metrikleri ---');
+it('computeReadability avgWordLengthSyllables, diversityRatio ve topRepeated döndürmelidir', () => {
+  const text = 'Kitap okumak insanın ufkunu açar. Kitap okumak kelime hazinesini geliştirir ve kitap her zaman en iyi dosttur.';
+  const r = engine.computeReadability(text);
+  assert(r && typeof r.avgWordLengthSyllables === 'number', 'avgWordLengthSyllables sayı olmalıdır');
+  assert(typeof r.diversityRatio === 'number' && r.diversityRatio > 0 && r.diversityRatio <= 100, 'diversityRatio geçerli olmalıdır');
+  assert(Array.isArray(r.topRepeated) && r.topRepeated.some(x => x.word === 'kitap' && x.count === 3), 'topRepeated içinde kitap 3 kez geçmelidir');
+});
+
+it('Sayı eklerinde tek adımda kesme işareti, ünlü uyumu ve ünsüz benzeşmesi (2024de -> 2024\'te, 1923\'den -> 1923\'ten, 60\'de -> 60\'ta) uygulanmalıdır', () => {
+  const res = engine.analyze("2024de başlayan proje, 1923'den beri ve saat 60'de veya 40'dan sonra devam etti.");
+  const w1 = res.find(r => r.word === '2024de');
+  const w2 = res.find(r => r.word === "1923'den");
+  const w3 = res.find(r => r.word === "60'de");
+  const w4 = res.find(r => r.word === "40'dan");
+  assert(w1 && w1.suggestions[0] === "2024'te", "2024de -> 2024'te olmalıdır");
+  assert(w2 && w2.suggestions[0] === "1923'ten", "1923'den -> 1923'ten olmalıdır");
+  assert(w3 && w3.suggestions[0] === "60'ta", "60'de -> 60'ta olmalıdır");
+  assert(w4 && w4.suggestions[0] === "40'tan", "40'dan -> 40'tan olmalıdır");
+});
+
+it('Açılmamış kapanış parantezi ) ve köşeli parantezler [ ] tespit edilmelidir', () => {
+  const res1 = engine.analyze('Bu cümlede fazladan kapanış parantezi var).');
+  assert(res1.some(r => r.word === ')' && r.type === 'punct'), 'Açılmamış ) tespit edilmelidir');
+  const res2 = engine.analyze('Bu cümlede [kapatılmamış köşeli parantez var.');
+  assert(res2.some(r => r.word === '[' && r.type === 'punct'), 'Kapatılmamış [ tespit edilmelidir');
+});
+
+it('Sıra sayılarında (2. sınıfa) yanlış büyük harf uyarısı verilmemeli ve Dr.Ahmet bitişik kısaltması yakalanmalıdır', () => {
+  const res1 = engine.analyze('Kardeşim bu yıl 2. sınıfa başladı.');
+  const falseCap = res1.find(r => r.word === 'sınıfa');
+  assert(!falseCap, '2. sınıfa ifadesinde sınıfa büyük harf hatası sayılmamalıdır');
+
+  const sample = 'Bugün Dr.Ahmet ile google.com adresine baktık.';
+  const res2 = engine.analyze(sample);
+  const dotIssues = res2.filter(r => r.word === '.' && r.suggestions[0] === '. ');
+  assert.strictEqual(dotIssues.length, 1, 'Sadece Dr.Ahmet içindeki nokta yakalanmalı, google.com yakalanmamalıdır');
+  assert.strictEqual(dotIssues[0].start, sample.indexOf('Dr.Ahmet') + 2);
+});
+
+it('convertCase Türkçe karakterleri (i/İ, ı/I) koruyarak harf düzeni dönüştürmelidir', () => {
+  assert.strictEqual(engine.convertCase('İSTANBUL VE IĞDIR', 'lower'), 'istanbul ve ığdır');
+  assert.strictEqual(engine.convertCase('istanbul ve ığdır', 'upper'), 'İSTANBUL VE IĞDIR');
+  assert.strictEqual(engine.convertCase('bu bir deneme. ikinci cümle! üçüncü mü?', 'sentence'), 'Bu bir deneme. İkinci cümle! Üçüncü mü?');
+  assert.strictEqual(engine.convertCase('türkiye cumhuriyeti ve istanbul boğazı', 'title'), 'Türkiye Cumhuriyeti ve İstanbul Boğazı');
+});
+
 console.log(`\n================================`);
 console.log(`Sonuç: ${passed} Başarılı, ${failed} Hatalı`);
 console.log(`================================\n`);
