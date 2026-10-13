@@ -798,6 +798,83 @@ it('findAndReplace Türkçe büyük/küçük harf duyarlı (İ/i, I/ı) arama ve
   assert.strictEqual(rOne.text, 'Kars ve ığdır doğuda yer alır.');
 });
 
+console.log('\n--- 20. Geçmiş Zaman Fiil Bağlaçları, Emoji/İfade Koruma & Edebî Diyalog Çizgileri ---');
+it('Geçmiş zaman fiilleri sonrası bağlaç de/da (gittide, geldide, yaptıda, gittikte) ayrılmalıdır', () => {
+  const r1 = engine.analyze('Oraya gittide haber vermedi.');
+  const it1 = r1.find(r => r.word.toLowerCase() === 'gittide');
+  assert(it1, 'gittide tespit edilmedi');
+  assert.strictEqual(it1.suggestions[0], 'gitti de');
+
+  const r2 = engine.analyze('Bize geldide oturmadı.');
+  const it2 = r2.find(r => r.word.toLowerCase() === 'geldide');
+  assert(it2, 'geldide tespit edilmedi');
+  assert.strictEqual(it2.suggestions[0], 'geldi de');
+
+  const r3 = engine.analyze('Bunu yaptıda ne oldu?');
+  const it3 = r3.find(r => r.word.toLowerCase() === 'yaptıda');
+  assert(it3, 'yaptıda tespit edilmedi');
+  assert.strictEqual(it3.suggestions[0], 'yaptı da');
+
+  const r4 = engine.analyze('Oraya gittikte ne kazandık?');
+  const it4 = r4.find(r => r.word.toLowerCase() === 'gittikte');
+  assert(it4, 'gittikte tespit edilmedi');
+  assert.strictEqual(it4.suggestions[0], 'gittik de');
+});
+
+it('Olumsuz ve birleşik geçmiş zaman fiilleri (gelmedide, yapmadıda, yapacaktıda, gelirdide) ayrılmalıdır', () => {
+  const r1 = engine.analyze('Dün toplantıya gelmedide sonradan aradı.');
+  const it1 = r1.find(r => r.word.toLowerCase() === 'gelmedide');
+  assert(it1, 'gelmedide tespit edilmedi');
+  assert.strictEqual(it1.suggestions[0], 'gelmedi de');
+
+  const r2 = engine.analyze('Ödevini yapmadıda oyun oynadı.');
+  const it2 = r2.find(r => r.word.toLowerCase() === 'yapmadıda');
+  assert(it2, 'yapmadıda tespit edilmedi');
+  assert.strictEqual(it2.suggestions[0], 'yapmadı da');
+
+  const r3 = engine.analyze('Buraya gelecektide işi çıktı.');
+  const it3 = r3.find(r => r.word.toLowerCase() === 'gelecektide');
+  assert(it3, 'gelecektide tespit edilmedi');
+  assert.strictEqual(it3.suggestions[0], 'gelecekti de');
+
+  const r4 = engine.analyze('Eskiden her gün arardıda şimdi unuttu.');
+  const it4 = r4.find(r => r.word.toLowerCase() === 'arardıda');
+  assert(it4, 'arardıda tespit edilmedi');
+  assert.strictEqual(it4.suggestions[0], 'arardı da');
+});
+
+it('Doğru bulunma hâli isimleri (komedide, kedide, kutuda, çatıda) yanlış fiil bağlacı uyarısı vermemelidir', () => {
+  const res = engine.analyze('Bu komedide çok komik sahneler var. Kedide pire yok, kutuda eşyalar duruyor.');
+  const falseErr = res.find(r => ['komedide','kedide','kutuda'].includes(r.word.toLowerCase()));
+  assert(!falseErr, 'İsim bulunma hâli ekleri fiil bağlacı ile karıştırılmamalıdır');
+});
+
+it('Metin içindeki emoji ve ifadeler (:), :-(, ;)) noktalama hatası veya kapanmamış parantez üretmemelidir', () => {
+  const res = engine.analyze('Harika bir gün :) Teşekkürler! Biraz yoruldum :( Görüşmek üzere ;)');
+  const punctErr = res.find(r => r.type === 'punct' && (r.word.includes(':') || r.word === ')' || r.word === '('));
+  assert(!punctErr, 'İfadeler/smileyler parantez ve boşluk hatası üretmemelidir');
+});
+
+it('cleanText uzun ve kısa diyalog çizgilerini (—, –) liste/konuşma gibi korumalıdır', () => {
+  const dialog = '— Merhaba, nasılsın?\n— Teşekkürler, iyiyim.';
+  assert.strictEqual(engine.cleanText(dialog), dialog, 'Diyalog satırları birbirine yapıştırılmamalıdır');
+});
+
+it('Uzun deyimler ve tamlamalar (su ana kadar) alt kelimeler tarafından gölgelenmemelidir', () => {
+  const res = engine.analyze('su ana kadar hic boyle bir sey gormedim.');
+  const suAnaKadar = res.find(r => r.word.toLowerCase() === 'su ana kadar');
+  assert(suAnaKadar, '"su ana kadar" deyimi öncelikli olarak tek parça "şu ana kadar" olarak tespit edilmelidir');
+  assert.strictEqual(suAnaKadar.suggestions[0], 'şu ana kadar');
+});
+
+it('Sözlük TXT ve BOM içeren metin dosyası formatı satır satır doğru ayrıştırılmalıdır', () => {
+  const sampleTxt = '\uFEFFkubernetes\r\nnextjs\nreact\r\n"typescript"';
+  let raw = sampleTxt.trim();
+  if (raw.charCodeAt(0) === 0xFEFF) raw = raw.slice(1);
+  const words = raw.split(/[\r\n;,]+/).map(p => p.trim().replace(/^['"\(\[\{]+|['"\)\]\}.,;:!?]+$/g, '')).filter(p => p.length > 0);
+  assert.deepStrictEqual(words, ['kubernetes', 'nextjs', 'react', 'typescript']);
+});
+
 console.log(`\n================================`);
 console.log(`Sonuç: ${passed} Başarılı, ${failed} Hatalı`);
 console.log(`================================\n`);
