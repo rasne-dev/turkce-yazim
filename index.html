@@ -85,6 +85,7 @@
   .s-gr{color:var(--purp)}.s-gr .sd{background:var(--purp)}
   .s-wn{color:var(--warn)}.s-wn .sd{background:var(--warn)}
   .s-pu{color:var(--ambe)}.s-pu .sd{background:var(--ambe)}
+  .s-su{color:var(--blue)}.s-su .sd{background:var(--blue)}
   .st-badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:10px;font-size:.72rem;font-weight:700;line-height:1;background:rgba(0,0,0,.06);color:currentColor;margin-left:.15rem;transition:background .15s,transform .15s}
   body.dark .st-badge{background:rgba(255,255,255,.1)}
   .st.s-sp .st-badge{background:var(--red-bg);color:var(--red)}
@@ -421,6 +422,17 @@
         <div class="read-val" id="readTime">~0 dk</div>
       </div>
       <div class="read-item">
+        <span class="read-lbl">
+          Konuşma Süresi
+          <span class="info-tip" tabindex="0" role="button" aria-label="Konuşma Süresi Nedir?">ⓘ
+            <span class="tip-content">
+              <b>Tahmini Konuşma / Sunum Süresi:</b> Standart seslendirme ve hitabet hızı olan dakikada ortalama 130 kelime baz alınarak hesaplanır.
+            </span>
+          </span>
+        </span>
+        <div class="read-val" id="speechTime">~0 dk</div>
+      </div>
+      <div class="read-item">
         <span class="read-lbl">Boşluksuz Karakter</span>
         <div class="read-val" id="stNoSpace">0</div>
       </div>
@@ -440,6 +452,10 @@
         <div class="read-val"><span id="stSent">0</span> <span style="font-size:.78rem;color:var(--slate);font-weight:600">(<span id="stAvgSent">0 kelime</span>)</span></div>
       </div>
       <div class="read-item">
+        <span class="read-lbl">Paragraf</span>
+        <div class="read-val" id="stParas">1</div>
+      </div>
+      <div class="read-item">
         <span class="read-lbl">
           Kelime Çeşitliliği
           <span class="info-tip" tabindex="0" role="button" aria-label="Kelime Çeşitliliği Nedir?">ⓘ
@@ -454,12 +470,12 @@
     <div id="repWordsBar" class="rep-words-bar" style="display:none"></div>
 
     <div class="sbar">
-      <div class="st s-sp" data-type="spell" tabindex="0" role="button" title="Sadece yazım hatalarını göster"><div class="sd"></div><span>Yazım</span><span class="st-badge" id="cSp">0</span></div>
-      <div class="st s-gr" data-type="gram" tabindex="0" role="button" title="Sadece dilbilgisi hatalarını göster"><div class="sd"></div><span>Dilbilgisi</span><span class="st-badge" id="cGr">0</span></div>
-      <div class="st s-wn" data-type="warn" tabindex="0" role="button" title="Sadece kontrol edilmesi gerekenleri göster"><div class="sd"></div><span>Kontrol Et</span><span class="st-badge" id="cWn">0</span></div>
-      <div class="st s-pu" data-type="punct" tabindex="0" role="button" title="Sadece noktalama hatalarını göster"><div class="sd"></div><span>Noktalama</span><span class="st-badge" id="cPu">0</span></div>
-      <div class="st s-su" data-type="suggest" tabindex="0" role="button" title="Sadece önerileri göster"><div class="sd"></div><span>Öneri</span><span class="st-badge" id="cSu">0</span></div>
-      <div class="st active" data-type="" style="color:var(--ink)" tabindex="0" role="button" title="Tümünü göster"><div class="sd" style="background:var(--ink)"></div><span>Tümü</span><span class="st-badge" id="cTo">0</span></div>
+      <div class="st s-sp" data-type="spell" tabindex="0" role="button" aria-pressed="false" title="Sadece yazım hatalarını göster"><div class="sd"></div><span>Yazım</span><span class="st-badge" id="cSp">0</span></div>
+      <div class="st s-gr" data-type="gram" tabindex="0" role="button" aria-pressed="false" title="Sadece dilbilgisi hatalarını göster"><div class="sd"></div><span>Dilbilgisi</span><span class="st-badge" id="cGr">0</span></div>
+      <div class="st s-wn" data-type="warn" tabindex="0" role="button" aria-pressed="false" title="Sadece kontrol edilmesi gerekenleri göster"><div class="sd"></div><span>Kontrol Et</span><span class="st-badge" id="cWn">0</span></div>
+      <div class="st s-pu" data-type="punct" tabindex="0" role="button" aria-pressed="false" title="Sadece noktalama hatalarını göster"><div class="sd"></div><span>Noktalama</span><span class="st-badge" id="cPu">0</span></div>
+      <div class="st s-su" data-type="suggest" tabindex="0" role="button" aria-pressed="false" title="Sadece önerileri göster"><div class="sd"></div><span>Öneri</span><span class="st-badge" id="cSu">0</span></div>
+      <div class="st active" data-type="" style="color:var(--ink)" tabindex="0" role="button" aria-pressed="true" title="Tümünü göster"><div class="sd" style="background:var(--ink)"></div><span>Tümü</span><span class="st-badge" id="cTo">0</span></div>
       <div class="sbar-r">
         <div class="btn-group">
           <button class="btn btn-p btn-xs" id="fxAll" title="Tüm otomatik düzeltilebilir sorunları uygular">⚡ Tümünü Düzelt</button>
@@ -1119,6 +1135,15 @@ function getLastVowel(w){const v=w.match(/[aeıioöuü]/gi);return v?v[v.length-
 
 function tuAll(s){return s?s.replace(/i/g,'İ').replace(/ı/g,'I').toUpperCase():s}
 
+const PROPER_BASES=new Map([
+  ['türkiye','Türkiye'],['istanbul','İstanbul'],['ankara','Ankara'],['izmir','İzmir'],
+  ['bursa','Bursa'],['antalya','Antalya'],['adana','Adana'],['konya','Konya'],
+  ['gaziantep','Gaziantep'],['trabzon','Trabzon'],['samsun','Samsun'],['eskişehir','Eskişehir'],
+  ['diyarbakır','Diyarbakır'],['kayseri','Kayseri'],['almanya','Almanya'],['fransa','Fransa'],
+  ['ingiltere','İngiltere'],['italya','İtalya'],['amerika','Amerika'],['avrupa','Avrupa'],
+  ['asya','Asya'],['rusya','Rusya'],['azerbaycan','Azerbaycan'],['kıbrıs','Kıbrıs'],
+  ['atatürk','Atatürk'],['türk','Türk']
+]);
 const TITLE_LOWER_WORDS=new Set(['ve','ile','ya','veya','da','de','ki','mi','mı','mu','mü','için','gibi','kadar']);
 function convertCase(text,mode){
   if(!text) return '';
@@ -1126,7 +1151,7 @@ function convertCase(text,mode){
   if(mode==='upper') return tuAll(text);
   if(mode==='title'){
     let isStart=true;
-    return text.replace(/([a-zA-ZığüşöçİĞÜŞÖÇ]+)|([^\wığüşöçİĞÜŞÖÇ]+)/gu,(m,word,sep)=>{
+    return text.replace(/([a-zA-ZığüşöçİĞÜŞÖÇ0-9]+(?:['\u2019][a-zA-ZığüşöçİĞÜŞÖÇ0-9]+)*)|([^\wığüşöçİĞÜŞÖÇ'\u2019]+)/gu,(m,word,sep)=>{
       if(sep){
         if(/[.!?\n]/.test(sep)) isStart=true;
         return sep;
@@ -1148,10 +1173,24 @@ function convertCase(text,mode){
         ss=false;
       } else {
         out+=c;
-        if(/[.!?\n]/.test(c)) ss=true;
-        else if(!/\s/.test(c)&&!/["'“‘«\(\[\{\-–—]/.test(c)) ss=false;
+        if(/[.!?\n]/.test(c)){
+          let isEnd=true;
+          if(c==='.'){
+            const pw=low.slice(0,i).match(/[\wığüşöç]+$/);
+            if(pw&&ABBRS.has(pw[0])) isEnd=false;
+            if(pw&&/^\d{1,3}$/.test(pw[0])) isEnd=false;
+            if(/\d/.test(low[i-1])&&/\d/.test(low[i+1])) isEnd=false;
+          }
+          if(isEnd) ss=true;
+        } else if(!/\s/.test(c)&&!/["'“‘«\(\[\{\-–—]/.test(c)) ss=false;
       }
     }
+    out=out.replace(new RegExp(WB+'([a-zığüşöç]+)(?:([\'\\u2019])([a-zığüşöç]+))?'+WE,'gi'),(m,base,apo,suf)=>{
+      const lb=tl(base);
+      if(PROPER_BASES.has(lb)) return PROPER_BASES.get(lb)+(apo||'')+(suf||'');
+      if(lb==='türkçe') return 'Türkçe'+(apo||'')+(suf||'');
+      return m;
+    });
     return out;
   }
   return text;
@@ -1259,6 +1298,13 @@ function computeReadability(text){
   const mins=Math.ceil(totalWords/200);
   const readTimeStr=totalWords<50?'< 1 dk':(mins+' dk');
 
+  const speechMins=Math.floor(totalWords/130);
+  const speechSecs=Math.round(((totalWords%130)/130)*60);
+  const speechTimeStr=totalWords<15?'< 10 sn':(speechMins>0?`${speechMins} dk ${speechSecs} sn`:`${speechSecs} sn`);
+
+  const paragraphs=clean.split(/\n{2,}|\n\s*[-*•—–]\s+|\n(?=\d+\.\s+)/).filter(p=>p.trim().length>0);
+  const totalParagraphs=Math.max(1,paragraphs.length);
+
   const noSpaceChars=clean.replace(/\s/g,'').length;
   const estPages=Math.round((noSpaceChars/1800)*10)/10;
   const estPagesStr=estPages<0.1?(noSpaceChars>0?'< 0,1 sayfa':'0 sayfa'):('~'+estPages.toLocaleString('tr-TR')+' sayfa');
@@ -1283,8 +1329,10 @@ function computeReadability(text){
   return{
     score,isShort,label,cls,
     readTimeStr,
+    speechTimeStr,
     totalWords,
     totalSentences,
+    totalParagraphs,
     totalSyllables,
     noSpaceChars,
     estPagesStr,
@@ -1314,6 +1362,7 @@ const COMPILED_WARNS=WARNS.map(wp=>({
 
 function getNumberPhonology(numStr){
   if(/^0+$/.test(numStr)) return{back:true,hard:false};
+  if(/0{6,}$/.test(numStr)) return{back:true,hard:false};
   if(/000$/.test(numStr)) return{back:false,hard:false};
   if(/00$/.test(numStr)) return{back:false,hard:false};
   if(/0$/.test(numStr)){
@@ -1424,19 +1473,44 @@ function analyze(text){
 
   // 2b. Mİ soru eki ve fiil eki + "ki" bağlacı
   {
-    const MI_EXC=new Set(['cami','gemi','resmi','azami','umumi','ilmi','harimi','mermi','hami','sami','nami','rumi','pazı','sızı','yazı','dizi','bazı','yani','peki','belki','sanki','bari','hani','üniversite','siyasi','askeri','milli','beni','seni','onu','bizi','sizi','onları']);
-    const miRx=new RegExp('([\\wığüşöçİĞÜŞÖÇ]+)(mı|mi|mu|mü)(sın|sin|sun|sün|m|ız|iz|uz|üz|nız|niz|nuz|nüz|lar|ler)?'+WE,'gi');
+    const LOC_MI_EXC=new Set(['adamı','odamı','madamı','idamı','bademi','kıdemi','erdemi','gündemi','yöntemi','sistemi','matemi','totemi']);
+    const MI_EXC=new Set(['cami','gemi','resmi','azami','umumi','ilmi','harimi','mermi','hami','sami','nami','rumi','samimi','acemi','daimi']);
+    const miVerbRx=new RegExp(WB+'([a-zA-ZığüşöçİĞÜŞÖÇ]+(?:ıyor|iyor|uyor|üyor|ıyolar|iyolar|uyolar|üyolar|ıyorlar|iyorlar|uyorlar|üyorlar|acak|ecek|ıcak|icek|acaklar|ecekler|mış|miş|muş|müş|mışlar|mişler|muşlar|müşler|malı|meli|alım|elim|maz|mez|abilir|ebilir|saydı|seydi|sak|sek|madı|medi|madık|medik|madınız|mediniz|madılar|mediler|dık|dik|duk|dük|tık|tik|tuk|tük|dınız|diniz|dunuz|dünüz|tınız|tiniz|tunuz|tünüz|dılar|diler|dular|düler|tılar|tiler|tular|tüler)|(?:gel|git|al|ver|ol|öl|gör|kal|çık|bit|yet|yap|et|bak|at|sat|kat|yat|tut|unut|uyu|oku|anla|başla|ara|bul|duy|koy|say|seç|geç|iç|aç|kaç|uç|düş|piş|koş|kork|bık|çek|dik|dök|böl|gül|sil|bil|bin|in|sön|dön|kır|vur|kur|dur|sor|var|kız|yaz|boz|çöz|üz|gez|sez|sev|iste|bekle|dinle|izle|söyle|kazan|öğren|düşün|konuş|çalış)(?:dı|di|du|dü|tı|ti|tu|tü))(mı|mi|mu|mü)(sın|sin|sun|sün|m|ız|iz|uz|üz|nız|niz|nuz|nüz|lar|ler)?'+WE,'gi');
     let mm;
-    while((mm=miRx.exec(text))!==null){
+    while((mm=miVerbRx.exec(text))!==null){
       const base=mm[1],part=mm[2],suf=mm[3]||'';
-      const full=tl(base+part);
-      if(MI_EXC.has(full)||MI_EXC.has(tl(base))||base.length<=1) continue;
       const lv=getLastVowel(base);
       if(!lv) continue;
       const correct=('aıou'.includes(lv)&&(part==='mı'||part==='mu'))||('eiöü'.includes(lv)&&(part==='mi'||part==='mü'));
       if(!correct) continue;
       push({type:'gram',word:mm[0],start:mm.index,end:mm.index+mm[0].length,
         suggestions:[base+' '+part+suf],msg:'Soru eki "'+part+'" fiilden ayrı yazılır'});
+    }
+
+    const miCopulaRx=new RegExp(WB+'([a-zA-ZığüşöçİĞÜŞÖÇ]{2,})(mıyım|miyim|muyum|müyüm|mısın|misin|musun|müsün|mıyız|miyiz|muyuz|müyüz|mısınız|misiniz|musunuz|müsünüz|mıydı|miydi|muydu|müydü|mıydık|miydik|muyduk|müydük|mıymış|miymiş|muymuş|müymüş|mıdır|midir|mudur|müdür)'+WE,'gi');
+    while((mm=miCopulaRx.exec(text))!==null){
+      const base=mm[1],part=mm[2];
+      if(MI_EXC.has(tl(base))) continue;
+      const lv=getLastVowel(base);
+      if(!lv) continue;
+      const p2=tl(part).slice(0,2);
+      const correct=('aıou'.includes(lv)&&(p2==='mı'||p2==='mu'))||('eiöü'.includes(lv)&&(p2==='mi'||p2==='mü'));
+      if(!correct) continue;
+      push({type:'gram',word:mm[0],start:mm.index,end:mm.index+mm[0].length,
+        suggestions:[base+' '+part],msg:'Soru eki "'+part+'" kelimeden ayrı yazılır'});
+    }
+
+    const miPredRx=new RegExp(WB+'([a-zA-ZığüşöçİĞÜŞÖÇ]{2,}(?:da|de|ta|te)|var|yok|olur|gelir|gider|yapar|eder|alır|verir|bilir|görür|kalır|çıkar|biter|yeter|sever|ister|tutar|bakar|yazar|okur|uyur|geçer|düşer|koşar|güzel|iyi|kötü|doğru|yanlış|kolay|zor|hazır|mümkün|lazım|gerekli|önemli|uygun|yeterli|kesin|ciddi|gerçek|açık|kapalı|büyük|küçük|uzak|yakın|pahalı|ucuz|erken|geç|yasak|serbest|normal|belli|memnun|mutlu|üzgün|yorgun|haklı|farklı|aynı|öyle|böyle|şöyle|bu|şu|o|ben|sen|biz|siz|onlar|hepsi|tamam|devam|gerçekten|cidden|hiç|çok|az)(mı|mi|mu|mü)'+WE,'gi');
+    while((mm=miPredRx.exec(text))!==null){
+      const base=mm[1],part=mm[2];
+      const full=tl(mm[0]);
+      if(LOC_MI_EXC.has(full)||MI_EXC.has(full)||MI_EXC.has(tl(base))) continue;
+      const lv=getLastVowel(base);
+      if(!lv) continue;
+      const correct=('aıou'.includes(lv)&&(part==='mı'||part==='mu'))||('eiöü'.includes(lv)&&(part==='mi'||part==='mü'));
+      if(!correct) continue;
+      push({type:'gram',word:mm[0],start:mm.index,end:mm.index+mm[0].length,
+        suggestions:[base+' '+part],msg:'Soru eki "'+part+'" kelimeden ayrı yazılır'});
     }
 
     const miKesmeRx=new RegExp(WB+'([a-zA-ZığüşöçİĞÜŞÖÇ]{2,})[\'\u2019](mı|mi|mu|mü)(sın|sin|sun|sün|m|ız|iz|uz|üz|nız|niz|nuz|nüz|lar|ler)?'+WE,'gi');
@@ -1834,7 +1908,7 @@ function analyze(text){
     }
     for(const item of parenStack){
       if(ok(item.index,item.index+1)){
-        push({type:'punct',word:item.ch,start:item.index,end:item.index+1,suggestions:[],
+        push({type:'punct',word:item.ch,start:item.index,end:item.index+1,suggestions:[''],
           msg:`Kapatılmamış açılış parantezi "${item.ch}" tespit edildi`});
       }
     }
@@ -1914,6 +1988,43 @@ function analyze(text){
         detail:`Aynı görevde ardışık kullanılan "${clm[1]}" ve "${clm[2]}" kelimeleri virgülle ayrılmalıdır.`
       });
     }
+
+    // 4) TDK Noktalama: Bağlaçlardan, şart ekinden (-sa/-se) ve tek zarf-fiilden sonra virgül konmaz
+    const baglacVirgulRx=new RegExp(WB+'(ve|veya|yahut|ya\\s+da|çünkü|fakat|lakin|oysaki|halbuki|meğerki|zira)\\s*,\\s*'+WE,'gi');
+    let bvm;
+    while((bvm=baglacVirgulRx.exec(text))!==null){
+      const conj=bvm[1];
+      push({
+        type:'punct',
+        word:bvm[0],
+        start:bvm.index,
+        end:bvm.index+bvm[0].length,
+        suggestions:[conj+' '],
+        msg:`TDK: "${conj}" bağlacından sonra virgül konmaz`,
+        detail:'Metin içinde bağlaçlardan önce ve sonra virgül konulmaz.'
+      });
+    }
+
+    const sartZarfVirgulRx=new RegExp(WB+'([a-zA-ZığüşöçİĞÜŞÖÇ]{3,}(?:sa|se|ıp|ip|up|üp|arak|erek|madan|meden|dıkça|dikçe|dukça|dükçe|tıkça|tikçe|tukça|tükçe))\\s*,\\s*([a-zA-ZığüşöçİĞÜŞÖÇ]{2,})'+WE,'gi');
+    let szm;
+    while((szm=sartZarfVirgulRx.exec(text))!==null){
+      const w1=szm[1],w2=szm[2];
+      const lw1=tl(w1);
+      const isSart=/(?:sa|se)$/.test(lw1)&&!/(?:masa|kasa|arsa|bursa|manisa|tasa|yasa|arsa)$/.test(lw1);
+      const isZarf=/(?:ıp|ip|up|üp|arak|erek|madan|meden|dıkça|dikçe|dukça|dükçe|tıkça|tikçe|tukça|tükçe)$/.test(lw1)&&!/(?:maden|çorap|kasap|kitap|sebep|talep|takip|kulüp|tarip)$/.test(lw1);
+      if(isSart||isZarf){
+        const ekTipi=isSart?'şart ekinden (-sa/-se)':'zarf-fiil ekinden';
+        push({
+          type:'punct',
+          word:szm[0],
+          start:szm.index,
+          end:szm.index+szm[0].length,
+          suggestions:[`${w1} ${w2}`],
+          msg:`TDK: Metinde ardışık sıralanmayan ${ekTipi} sonra virgül konmaz`,
+          detail:`"${w1}" sonrasındaki gereksiz virgül kaldırılmalıdır.`
+        });
+      }
+    }
   }
 
   // Sayı sonrası ünsüz sertleşmesi ve ünlü uyumu (3'de -> 3'te, 1985'de -> 1985'te, 60'de -> 60'ta, 40'dan -> 40'tan)
@@ -1937,6 +2048,46 @@ function analyze(text){
     if(buyukAy!==tam[2]){
       push({type:'suggest',word:tam[0],start:tam.index,end:tam.index+tam[0].length,
         suggestions:[tam[1]+' '+buyukAy],msg:'TDK İmla: Belirli bir tarih bildiren ay adları büyük harfle başlar'});
+    }
+  }
+
+  // Özel isimlere gelen çekim ekleri kesme işaretiyle ayrılır (TDK İmla)
+  const properRx=new RegExp(WB+'([a-zA-ZığüşöçİĞÜŞÖÇ]{3,})(nın|nin|nun|nün|nda|nde|ndan|nden|ya|ye|yı|yi|yu|yü|yla|yle|da|de|ta|te|dan|den|tan|ten|ın|in|un|ün)'+WE,'gi');
+  let pm;
+  while((pm=properRx.exec(text))!==null){
+    const full=pm[0];
+    const base=pm[1];
+    const suf=tl(pm[2]);
+    const lbase=tl(base);
+    if(PROPER_BASES.has(lbase)&&ok(pm.index,pm.index+full.length)){
+      const properName=PROPER_BASES.get(lbase);
+      push({
+        type:'suggest',
+        word:full,
+        start:pm.index,
+        end:pm.index+full.length,
+        suggestions:[properName+"'"+suf],
+        msg:`TDK İmla: Özel ada ("${properName}") gelen ek kesme işaretiyle ayrılmalıdır`
+      });
+    }
+  }
+
+  // Yapım eki almış özel adlara gelen çekim ekleri kesme işaretiyle ayrılmaz (Türkçede, Türkçenin, Türklüğün vb.)
+  const yapimKesmeRx=new RegExp(WB+'(Türkçe|Türklük|Türklüğ|Avrupalı|Amerikalı|İstanbullu|Ankaralı|İzmirli)[\'\\u2019](nın|nin|nun|nün|nda|nde|ndan|nden|ya|ye|yı|yi|yu|yü|yla|yle|da|de|ta|te|dan|den|tan|ten|ın|in|un|ün|mız|miz|muz|müz|mızda|mizde|mızdan|mizden|mıza|mize|mızı|mizi)'+WE,'gi');
+  let ykm;
+  while((ykm=yapimKesmeRx.exec(text))!==null){
+    const full=ykm[0];
+    const base=tu(tl(ykm[1]));
+    const suf=tl(ykm[2]);
+    if(ok(ykm.index,ykm.index+full.length)){
+      push({
+        type:'punct',
+        word:full,
+        start:ykm.index,
+        end:ykm.index+full.length,
+        suggestions:[base+suf],
+        msg:`TDK İmla: Yapım eki almış özel adlara ("${base}") gelen ekler kesme işaretiyle ayrılmaz`
+      });
     }
   }
 
@@ -1977,7 +2128,7 @@ function analyze(text){
     }
   }
 
-  const r7=new RegExp('([A-ZİĞÜŞÖÇ]{2,}|\\d+)(nın|nin|nun|nün|nda|nde|ndan|nden|ya|ye|yı|yi|yu|yü|yla|yle|da|de|ta|te|dan|den|tan|ten|ın|in|un|ün|n|m)'+WE,'g');
+  const r7=new RegExp('([A-ZİĞÜŞÖÇ]{2,}|\\d+)(nın|nin|nun|nün|nda|nde|ndan|nden|ya|ye|yı|yi|yu|yü|yla|yle|da|de|ta|te|dan|den|tan|ten|ın|in|un|ün)'+WE,'g');
   while((m=r7.exec(text))!==null){
     const prev=m.index>0?text[m.index-1]:null;
     if(prev==="'"||prev==='\u2019') continue;
@@ -1989,32 +2140,42 @@ function analyze(text){
       msg:(isNum?'Sayı':'Kısaltma')+' ekinden önce kesme işareti gereklidir'});
   }
 
-  // Özel isimlere gelen çekim ekleri kesme işaretiyle ayrılır (TDK İmla)
-  const PROPER_BASES=new Map([
-    ['türkiye','Türkiye'],['istanbul','İstanbul'],['ankara','Ankara'],['izmir','İzmir'],
-    ['bursa','Bursa'],['antalya','Antalya'],['adana','Adana'],['konya','Konya'],
-    ['gaziantep','Gaziantep'],['trabzon','Trabzon'],['samsun','Samsun'],['eskişehir','Eskişehir'],
-    ['diyarbakır','Diyarbakır'],['kayseri','Kayseri'],['almanya','Almanya'],['fransa','Fransa'],
-    ['ingiltere','İngiltere'],['italya','İtalya'],['amerika','Amerika'],['avrupa','Avrupa'],
-    ['asya','Asya'],['rusya','Rusya'],['azerbaycan','Azerbaycan'],['kıbrıs','Kıbrıs'],
-    ['atatürk','Atatürk'],['türk','Türk'],['türkçe','Türkçe']
+  // Büyük harfli kısaltmalara gelen eklerin son harfin okunuşuna göre denetimi (TDK: TDK'den, TÜBİTAK'ta, THY'de vb.)
+  const ABBR_SUFFIX_MAP=new Map([
+    ['TDK', {da:'de',de:'de',ta:'te',te:'te',dan:'den',den:'den',tan:'ten',ten:'ten',nın:'nin',nin:'nin',ya:'ye',ye:'ye',yı:'yi',yi:'yi'}],
+    ['THY', {da:'de',de:'de',ta:'te',te:'te',dan:'den',den:'den',tan:'ten',ten:'ten',nın:'nin',nin:'nin',ya:'ye',ye:'ye',yı:'yi',yi:'yi'}],
+    ['TRT', {da:'de',de:'de',ta:'te',te:'te',dan:'den',den:'den',tan:'ten',ten:'ten',nın:'nin',nin:'nin',ya:'ye',ye:'ye',yı:'yi',yi:'yi'}],
+    ['TBMM', {da:'de',de:'de',ta:'te',te:'te',dan:'den',den:'den',tan:'ten',ten:'ten',nın:'nin',nin:'nin',ya:'ye',ye:'ye',yı:'yi',yi:'yi'}],
+    ['TÜBİTAK', {da:'ta',de:'ta',te:'ta',ta:'ta',dan:'tan',den:'tan',tan:'tan',ten:'tan',nın:'ın',nin:'ın'}],
+    ['ABD', {da:'de',de:'de',ta:'de',te:'de',dan:'den',den:'den',tan:'den',ten:'den',nın:'nin',nin:'nin',ya:'ye',ye:'ye'}],
+    ['AB', {da:'de',de:'de',ta:'de',te:'de',dan:'den',den:'den',tan:'den',ten:'den',nın:'nin',nin:'nin',ya:'ye',ye:'ye'}],
+    ['BM', {da:'de',de:'de',ta:'de',te:'de',dan:'den',den:'den',tan:'den',ten:'den',nın:'nin',nin:'nin',ya:'ye',ye:'ye'}],
+    ['NATO', {de:'da',te:'da',den:'dan',ten:'dan',nin:'nun',ye:'ya'}],
+    ['SGK', {da:'de',de:'de',ta:'te',te:'te',dan:'den',den:'den',tan:'ten',ten:'ten',nın:'nin',nin:'nin',ya:'ye',ye:'ye'}],
+    ['ÖSYM', {da:'de',de:'de',ta:'de',te:'de',dan:'den',den:'den',tan:'den',ten:'den',nın:'nin',nin:'nin',ya:'ye',ye:'ye'}],
+    ['KPSS', {da:'de',de:'de',ta:'te',te:'te',dan:'den',den:'den',tan:'ten',ten:'ten',nın:'nin',nin:'nin',ya:'ye',ye:'ye'}],
+    ['YKS', {da:'de',de:'de',ta:'te',te:'te',dan:'den',den:'den',tan:'ten',ten:'ten',nın:'nin',nin:'nin',ya:'ye',ye:'ye'}],
+    ['KDV', {da:'de',de:'de',ta:'de',te:'de',dan:'den',den:'den',tan:'den',ten:'den',nın:'nin',nin:'nin',ya:'ye',ye:'ye'}],
+    ['ÖTV', {da:'de',de:'de',ta:'de',te:'de',dan:'den',den:'den',tan:'den',ten:'den',nın:'nin',nin:'nin',ya:'ye',ye:'ye'}],
+    ['TCMB', {da:'de',de:'de',ta:'de',te:'de',dan:'den',den:'den',tan:'den',ten:'den',nın:'nin',nin:'nin',ya:'ye',ye:'ye'}],
+    ['RTÜK', {da:'te',de:'te',ta:'te',te:'te',dan:'ten',den:'ten',tan:'ten',ten:'ten',nın:'ün',nin:'ün'}]
   ]);
-  const properRx=new RegExp(WB+'([A-ZİĞÜŞÖÇ][a-zığüşöç]+)(nın|nin|nun|nün|nda|nde|ndan|nden|ya|ye|yı|yi|yu|yü|yla|yle|da|de|ta|te|dan|den|tan|ten|ın|in|un|ün)'+WE,'g');
-  let pm;
-  while((pm=properRx.exec(text))!==null){
-    const full=pm[0];
-    const base=pm[1];
-    const suf=pm[2];
-    const lbase=tl(base);
-    if(PROPER_BASES.has(lbase)&&ok(pm.index,pm.index+full.length)){
-      const properName=PROPER_BASES.get(lbase);
+  const abbrSufRx=new RegExp(WB+'([A-ZİĞÜŞÖÇ]{2,})[\'\\u2019]([a-zığüşöç]+)'+WE,'g');
+  let asm;
+  while((asm=abbrSufRx.exec(text))!==null){
+    const abbr=asm[1];
+    const suf=tl(asm[2]);
+    const table=ABBR_SUFFIX_MAP.get(abbr);
+    if(table&&table[suf]&&table[suf]!==suf&&ok(asm.index,asm.index+asm[0].length)){
+      const expectedSuf=table[suf];
       push({
-        type:'suggest',
-        word:full,
-        start:pm.index,
-        end:pm.index+full.length,
-        suggestions:[properName+"'"+suf],
-        msg:`TDK İmla: Özel ada ("${properName}") gelen ek kesme işaretiyle ayrılmalıdır`
+        type:'gram',
+        word:asm[0],
+        start:asm.index,
+        end:asm.index+asm[0].length,
+        suggestions:[`${abbr}'${expectedSuf}`],
+        msg:`TDK İmla: "${abbr}" kısaltmasının okunuşuna göre ek "'${expectedSuf}" olmalıdır`,
+        detail:`TDK kuralına göre büyük harfle yapılan kısaltmalara getirilen eklerde kısaltmanın son harfinin okunuşu esas alınır.`
       });
     }
   }
@@ -2231,25 +2392,29 @@ function renderPlainSeg(seg){
   const findActive=fbEl&&fbEl.style.display!=='none'&&fiEl&&fiEl.value.trim().length>0;
   const findVal=findActive?fiEl.value.trim():null;
 
-  if(!activeRepWord&&!findVal) return esc(seg).replace(/\n/g,'<br>');
-
-  if(findVal){
-    const escapedF=findVal.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
-    const rx=new RegExp('('+escapedF+')','gi');
-    const parts=seg.split(rx);
+  function renderRepSeg(sub){
+    if(!sub) return '';
+    if(!activeRepWord) return esc(sub).replace(/\n/g,'<br>');
+    const parts=sub.split(/([\wığüşöçİĞÜŞÖÇ]+(?:['\u2019][\wığüşöçİĞÜŞÖÇ]+)*)/g);
     return parts.map(p=>{
-      if(!p) return '';
-      if(tl(p)===tl(findVal)) return `<mark class="h-find" title="Arama eşleşmesi">${esc(p)}</mark>`;
-      if(activeRepWord&&tl(p)===activeRepWord) return `<mark class="h-rep" title="Sık tekrarlanan kelime">${esc(p)}</mark>`;
+      if(p&&tl(p)===activeRepWord) return `<mark class="h-rep" title="Sık tekrarlanan kelime">${esc(p)}</mark>`;
       return esc(p).replace(/\n/g,'<br>');
     }).join('');
   }
 
-  const parts=seg.split(/([\wığüşöçİĞÜŞÖÇ]+(?:['\u2019][\wığüşöçİĞÜŞÖÇ]+)*)/g);
-  return parts.map(p=>{
-    if(p&&tl(p)===activeRepWord) return `<mark class="h-rep" title="Sık tekrarlanan kelime">${esc(p)}</mark>`;
-    return esc(p).replace(/\n/g,'<br>');
-  }).join('');
+  if(!findVal) return renderRepSeg(seg);
+
+  const lseg=tl(seg);
+  const lf=tl(findVal);
+  if(!lf) return renderRepSeg(seg);
+  let out='',pos=0,idx;
+  while((idx=lseg.indexOf(lf,pos))!==-1){
+    out+=renderRepSeg(seg.slice(pos,idx));
+    out+=`<mark class="h-find" title="Arama eşleşmesi">${esc(seg.slice(idx,idx+lf.length))}</mark>`;
+    pos=idx+lf.length;
+  }
+  out+=renderRepSeg(seg.slice(pos));
+  return out;
 }
 
 function renderOut(text,issues){
@@ -2270,11 +2435,13 @@ function renderSide(issues){
   }
   return issues.map((iss,i)=>{
     const w=iss.word.trim()||'(boşluk)';
-    const s=iss.suggestions[0]?`<div class="is">→ ${esc(iss.suggestions[0])}</div>`:'';
+    const firstSug=iss.suggestions&&iss.suggestions.length>0?iss.suggestions[0]:undefined;
+    const s=firstSug!==undefined?`<div class="is">→ ${firstSug===''?'(Kaldır)':esc(firstSug)}</div>`:'';
     const d=iss.detail?`<div class="id" style="font-size:.72rem;color:var(--slate);margin-top:.25rem;line-height:1.3">💡 ${esc(iss.detail)}</div>`:'';
     const tipText=(iss.msg||'')+(iss.detail?' — '+iss.detail:'');
-    const canQuickFix=iss.type!=='warn'&&iss.suggestions&&iss.suggestions.length>0;
-    const qFixBtn=canQuickFix?`<button type="button" class="ii-qbtn fix" title="Tek tıkla düzelt: ${esc(iss.suggestions[0])}" aria-label="Tek tıkla düzelt" onclick="TY.qfix(event,${i})">✓</button>`:'';
+    const canQuickFix=iss.type!=='warn'&&firstSug!==undefined;
+    const qFixTitle=firstSug===''?'Tek tıkla kaldır':`Tek tıkla düzelt: ${esc(firstSug||'')}`;
+    const qFixBtn=canQuickFix?`<button type="button" class="ii-qbtn fix" title="${qFixTitle}" aria-label="Tek tıkla düzelt" onclick="TY.qfix(event,${i})">✓</button>`:'';
     const qIgnBtn=`<button type="button" class="ii-qbtn ign" title="Yoksay" aria-label="Yoksay" onclick="TY.qign(event,${i})">✕</button>`;
     return`<div class="ii ${iss.type}" tabindex="0" role="button" title="${esc(tipText)}" aria-label="${esc(LBL[iss.type])}: ${esc(w)} — ${esc(iss.msg)}" onclick="TY.pop(null,${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();TY.pop(null,${i})}">
       <div class="ii-top"><div class="iw">${esc(w)}</div><div class="ii-acts">${qFixBtn}${qIgnBtn}</div></div><div class="im">${esc(iss.msg)}</div>${d}${s}</div>`;
@@ -2326,6 +2493,24 @@ function renderRes(issues,isFiltered){
 }
 
 window.TY={
+  positionPopNearMark(markEl){
+    const pop=document.getElementById('pop');
+    if(!pop) return;
+    if(window.innerWidth<=600){
+      pop.style.left='50%';pop.style.top='auto';pop.style.bottom='1rem';pop.style.transform='translateX(-50%)';
+      return;
+    }
+    if(markEl&&markEl.getBoundingClientRect){
+      const r=markEl.getBoundingClientRect();
+      let x=r.left,y=r.bottom+8;
+      if(x+286>window.innerWidth) x=r.right-286;
+      if(y+380>window.innerHeight) y=Math.max(4,r.top-380);
+      pop.style.transform='';
+      pop.style.left=Math.max(4,x)+'px';pop.style.top=Math.max(4,y)+'px';
+    } else {
+      pop.style.left='50%';pop.style.top='40%';pop.style.transform='translate(-50%,-50%)';
+    }
+  },
   pop(ev,idx){
     if(ev) ev.stopPropagation();
     if(viewMode==='diff'){
@@ -2354,12 +2539,10 @@ window.TY={
         if(y+380>window.innerHeight) y=ev.clientY-390;
         pop.style.left=Math.max(4,x)+'px';pop.style.top=Math.max(4,y)+'px';
       } else if(ev&&ev.target&&ev.target.getBoundingClientRect){
-        const r=ev.target.getBoundingClientRect();
-        let x=r.left,y=r.bottom+8;
-        if(x+286>window.innerWidth) x=r.right-286;
-        if(y+380>window.innerHeight) y=Math.max(4,r.top-380);
-        pop.style.left=Math.max(4,x)+'px';pop.style.top=Math.max(4,y)+'px';
-      } else {pop.style.left='50%';pop.style.top='40%';pop.style.transform='translate(-50%,-50%)';}
+        TY.positionPopNearMark(ev.target);
+      } else {
+        TY.positionPopNearMark(markEl);
+      }
     }
     lastFocused=(ev&&ev.target)||document.activeElement;
     document.getElementById('pc').focus();
@@ -2391,7 +2574,7 @@ window.TY={
         <div style="font-size:.76rem;line-height:1.4;color:var(--ink)">${esc(iss.detail)}</div>
       </div>`:'';
       body.innerHTML=ruleBox+'<div class="sl">Öneriler</div>'+
-        iss.suggestions.map(s=>`<button class="sb" data-fix="${esc(s)}">${esc(s)}</button>`).join('');
+        iss.suggestions.map(s=>`<button class="sb" data-fix="${esc(s)}">${s===''?'🗑️ Fazla işareti kaldır':esc(s)}</button>`).join('');
     } else { body.innerHTML='<div style="font-size:.76rem;color:var(--slate);font-style:italic">Öneri bulunamadı</div>'; }
 
     body.onclick=e=>{
@@ -2431,7 +2614,10 @@ window.TY={
     if(ni<0||ni>=displayedIssues.length) return;
     TY.render(ni);
     const markEl=document.getElementById('mark-'+ni);
-    if(markEl) markEl.scrollIntoView({behavior:'smooth',block:'center'});
+    if(markEl){
+      markEl.scrollIntoView({behavior:'smooth',block:'center'});
+      TY.positionPopNearMark(markEl);
+    }
   },
   fix(idx,sug){
     const iss=displayedIssues[idx];if(!iss)return;
@@ -2442,7 +2628,7 @@ window.TY={
   qfix(ev,idx){
     if(ev) ev.stopPropagation();
     const iss=displayedIssues[idx];
-    if(!iss||!iss.suggestions||!iss.suggestions[0]) return;
+    if(!iss||!iss.suggestions||iss.suggestions[0]===undefined) return;
     TY.fix(idx,iss.suggestions[0]);
   },
   qign(ev,idx){
@@ -2565,10 +2751,14 @@ function run(){
       meter.style.background=mColor;
     }
     document.getElementById('readTime').textContent='~'+rStats.readTimeStr;
+    const spEl=document.getElementById('speechTime');
+    if(spEl) spEl.textContent='~'+rStats.speechTimeStr;
     document.getElementById('stNoSpace').textContent=rStats.noSpaceChars.toLocaleString('tr-TR');
     document.getElementById('stEstPages').textContent=rStats.estPagesStr;
     document.getElementById('stSent').textContent=rStats.totalSentences;
     document.getElementById('stAvgSent').textContent=rStats.avgSentenceLength+' kelime';
+    const parEl=document.getElementById('stParas');
+    if(parEl) parEl.textContent=rStats.totalParagraphs;
     const divEl=document.getElementById('stDiversity');
     if(divEl) divEl.textContent='%'+rStats.diversityRatio+' ('+rStats.uniqueWords+' tekil)';
     const repBar=document.getElementById('repWordsBar');
@@ -2664,7 +2854,9 @@ function renderCurrent(){
 function setFilter(t){
   activeFilter=(t===''||activeFilter===t)?null:t;
   document.querySelectorAll('#statsBar .st[data-type]').forEach(el=>{
-    el.classList.toggle('active',activeFilter?el.dataset.type===activeFilter:el.dataset.type==='');
+    const isAct=activeFilter?el.dataset.type===activeFilter:el.dataset.type==='';
+    el.classList.toggle('active',isAct);
+    el.setAttribute('aria-pressed',String(isAct));
   });
   updateFxButton();
   if(document.getElementById('res').style.display!=='none') renderCurrent();
@@ -2752,6 +2944,7 @@ document.getElementById('clrBtn').addEventListener('click',()=>{
   document.getElementById('cc').textContent=countLabel('');
   document.getElementById('draftNotice').style.display='none';
   curText='';initialInputText='';curIssues=[];displayedIssues=[];ignored.clear();closePop();
+  updateFindCount();
   try{localStorage.removeItem('ty_draft');}catch(e){}
   showToast('🗑 Metin temizlendi. (Geri almak için: ↩ Geri Al)');
 });
@@ -3061,9 +3254,11 @@ document.getElementById('expReport').addEventListener('click',()=>{
   if(rStats){
     rep+=`- Kelime Sayısı: ${rStats.totalWords.toLocaleString('tr-TR')} (Kelime Çeşitliliği: %${rStats.diversityRatio}, ${rStats.uniqueWords} tekil kelime)\n`;
     rep+=`- Cümle Sayısı: ${rStats.totalSentences} (Ortalama cümle uzunluğu: ${rStats.avgSentenceLength} kelime)\n`;
+    rep+=`- Paragraf Sayısı: ${rStats.totalParagraphs}\n`;
     rep+=`- Heceler: ${rStats.totalSyllables} (Ortalama kelime uzunluğu: ${rStats.avgWordLengthSyllables} hece)\n`;
     rep+=`- Ateşman Okunabilirlik Skoru: ${rStats.score} / 100 (${rStats.label})\n`;
     rep+=`- Tahmini Okuma Süresi: ~${rStats.readTimeStr}\n`;
+    rep+=`- Tahmini Konuşma / Sunum Süresi: ~${rStats.speechTimeStr}\n`;
     rep+=`- Tahmini Kitap/Rapor Sayfası: ~${rStats.estPagesStr}\n`;
   }
   rep+=`\n[DENETİM DURUMU]\n`;
@@ -3400,9 +3595,14 @@ if(findInp){
       e.preventDefault();
       const marks=document.querySelectorAll('#otxt .h-find');
       if(marks.length>0){
-        currentFindIdx=(currentFindIdx+1)%marks.length;
+        if(e.shiftKey){
+          currentFindIdx=currentFindIdx<=0?marks.length-1:currentFindIdx-1;
+        } else {
+          currentFindIdx=(currentFindIdx+1)%marks.length;
+        }
         marks.forEach((m,idx)=>m.classList.toggle('active-find',idx===currentFindIdx));
         marks[currentFindIdx].scrollIntoView({behavior:'smooth',block:'center'});
+        if(findCount) findCount.textContent=`${currentFindIdx+1} / ${marks.length} eşleşme`;
       } else if(replaceInp){
         replaceInp.focus();
       }

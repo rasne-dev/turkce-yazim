@@ -875,6 +875,91 @@ it('Sözlük TXT ve BOM içeren metin dosyası formatı satır satır doğru ayr
   assert.deepStrictEqual(words, ['kubernetes', 'nextjs', 'react', 'typescript']);
 });
 
+console.log('\n--- 21. Soru Eki Yanlış Pozitif Önleme, Yapım Ekli Özel Adlar (Türkçede), Milyon/Milyar Ses Uyumu & Harf Düzeni ---');
+it('Sonu -m ile biten isimlerin iyelik/belirtme ekleri (sistemi, durumu, eğitimi, gelişimi, bölümü, çözümü, anlamı, önemi, kalemi, yirmi, ekonomi) yanlışlıkla soru eki sayılmamalıdır', () => {
+  const sample = 'Eğitimi ve gelişimi için bu sistemi kurduk. Ekonominin durumu, konunun önemi ve kelimenin anlamı yirmi sayfada anlatıldı. Bu bölümü ve çözümü kalemi ile işaretledi.';
+  const res = engine.analyze(sample);
+  const falseMi = res.filter(r => r.type === 'gram' && r.msg && r.msg.includes('Soru eki'));
+  assert.strictEqual(falseMi.length, 0, 'Normal isimlerde yanlış soru eki hatası üretilmemelidir: ' + falseMi.map(x => x.word).join(', '));
+});
+
+it('Gerçek bitişik soru ekleri (geliyormu, gelecekmi, geldimi, evdemi, güzelmi, doğrumu, hazırmısınız, öylemiydi) eksiksiz tespit edilmelidir', () => {
+  const res = engine.analyze('Yarın geliyormu, ödevi yaptımı, şu an evdemi, sence bu doğrumu ve hazırmısınız?');
+  const w1 = res.find(r => r.word.toLowerCase() === 'geliyormu');
+  const w2 = res.find(r => r.word.toLowerCase() === 'yaptımı');
+  const w3 = res.find(r => r.word.toLowerCase() === 'evdemi');
+  const w4 = res.find(r => r.word.toLowerCase() === 'doğrumu');
+  const w5 = res.find(r => r.word.toLowerCase() === 'hazırmısınız');
+  assert(w1 && w1.suggestions[0] === 'geliyor mu', 'geliyormu -> geliyor mu olmalı');
+  assert(w2 && w2.suggestions[0] === 'yaptı mı', 'yaptımı -> yaptı mı olmalı');
+  assert(w3 && w3.suggestions[0] === 'evde mi', 'evdemi -> evde mi olmalı');
+  assert(w4 && w4.suggestions[0] === 'doğru mu', 'doğrumu -> doğru mu olmalı');
+  assert(w5 && w5.suggestions[0] === 'hazır mısınız', 'hazırmısınız -> hazır mısınız olmalı');
+});
+
+it('TDK kuralı gereği "Türkçede, Türkçenin, Türkçeye" doğru kabul edilmeli; "Türkçe\'de, Türkçe\'nin, İstanbullu\'nun" kesme hatası olarak düzeltilmelidir', () => {
+  const validRes = engine.analyze('Türkçede ve Türkçenin yapısında bu kural çok açıktır.');
+  const falseErr = validRes.find(r => r.word.toLowerCase().startsWith('türkçe'));
+  assert(!falseErr, 'Türkçede / Türkçenin kelimelerine kesme işareti önerilmemelidir');
+
+  const invalidRes = engine.analyze("Bu ifade Türkçe'de ve Türkçe'nin sözlüğünde yer alır, İstanbullu'nun hoşuna gider.");
+  const k1 = invalidRes.find(r => r.word === "Türkçe'de");
+  const k2 = invalidRes.find(r => r.word === "Türkçe'nin");
+  const k3 = invalidRes.find(r => r.word === "İstanbullu'nun");
+  assert(k1 && k1.suggestions[0] === 'Türkçede', "Türkçe'de -> Türkçede olmalıdır");
+  assert(k2 && k2.suggestions[0] === 'Türkçenin', "Türkçe'nin -> Türkçenin olmalıdır");
+  assert(k3 && k3.suggestions[0] === 'İstanbullunun', "İstanbullu'nun -> İstanbullunun olmalıdır");
+});
+
+it('Küçük harfle yazılan özel isimler (türkiyede, istanbulda) tek adımda büyük harf ve kesme işaretiyle (Türkiye\'de, İstanbul\'da) önerilmelidir', () => {
+  const res = engine.analyze('Bugün türkiyede ve istanbulda hava güneşli.');
+  const w1 = res.find(r => r.word === 'türkiyede');
+  const w2 = res.find(r => r.word === 'istanbulda');
+  assert(w1 && w1.suggestions[0] === "Türkiye'de", "türkiyede -> Türkiye'de olmalıdır");
+  assert(w2 && w2.suggestions[0] === "İstanbul'da", "istanbulda -> İstanbul'da olmalıdır");
+});
+
+it('convertCase başlık düzeninde kesmeli kelimeleri (İstanbul\'un) ve sayıları (100 ve 200) bozmamalı, cümle düzeninde kısaltmaları ve özel adları korumalıdır', () => {
+  assert.strictEqual(engine.convertCase("istanbul'un ve türkiye'nin 100 ve 200 yıllık tarihi", 'title'), "İstanbul'un ve Türkiye'nin 100 ve 200 Yıllık Tarihi");
+  assert.strictEqual(engine.convertCase("DR. AHMET İLE 2. SINIFA VE TÜRKİYE'DE EĞİTİME BAKTIK.", 'sentence'), "Dr. ahmet ile 2. sınıfa ve Türkiye'de eğitime baktık.");
+});
+
+it('1000000 (milyon) ve 1000000000 (milyar) kalın ünlü uyumu (1000000\'da) almalı ve 100m ölçü birimi kesme hatası sayılmamalıdır', () => {
+  const res = engine.analyze("Bütçe 1000000'de kaldı ve 100m koşuda birinci oldu.");
+  const mil = res.find(r => r.word === "1000000'de");
+  const meter = res.find(r => r.word === '100m');
+  assert(mil && mil.suggestions[0] === "1000000'da", "1000000'de -> 1000000'da olmalıdır");
+  assert(!meter, '100m ölçü birimi sayı eki sanılmamalıdır');
+});
+
+console.log('\n--- 22. Bağlaç/Zarf-Fiil Yanlış Virgülleri, Kısaltma Ekleri Ses Uyumu & Konuşma Süresi/Paragraf ---');
+it('Bağlaçlardan (ve, veya, çünkü) ve tek şart/zarf-fiilden (-sa, -ıp, -arak) sonraki gereksiz virgüller tespit edilmelidir', () => {
+  const res = engine.analyze('Eve gelip, hemen yattı. Çok çalışırsa, başarır. Sen de gel çünkü, seni bekliyoruz.');
+  const it1 = res.find(r => r.word.includes('gelip,'));
+  const it2 = res.find(r => r.word.includes('çalışırsa,'));
+  const it3 = res.find(r => r.word.includes('çünkü,'));
+  assert(it1 && it1.suggestions[0].startsWith('gelip'), 'gelip, virgülü yakalanmalı');
+  assert(it2 && it2.suggestions[0].startsWith('çalışırsa'), 'çalışırsa, virgülü yakalanmalı');
+  assert(it3 && it3.suggestions[0] === 'çünkü ', 'çünkü, virgülü yakalanmalı');
+});
+
+it('Büyük harfli kısaltmalarda son harfin okunuşuna göre ek denetimi (TDK\'den, TÜBİTAK\'ta, THY\'de, RTÜK\'te) yapılmalıdır', () => {
+  const res = engine.analyze("TDK'da yeni kurallar var, TÜBİTAK'da projeler onaylandı ve THY'da bilet tükendi.");
+  const w1 = res.find(r => r.word === "TDK'da");
+  const w2 = res.find(r => r.word === "TÜBİTAK'da");
+  const w3 = res.find(r => r.word === "THY'da");
+  assert(w1 && w1.suggestions[0] === "TDK'de", "TDK'da -> TDK'de olmalıdır");
+  assert(w2 && w2.suggestions[0] === "TÜBİTAK'ta", "TÜBİTAK'da -> TÜBİTAK'ta olmalıdır");
+  assert(w3 && w3.suggestions[0] === "THY'de", "THY'da -> THY'de olmalıdır");
+});
+
+it('computeReadability speechTimeStr ve totalParagraphs metriklerini doğru hesaplamalıdır', () => {
+  const sample = 'Birinci paragraf burada yer alıyor.\n\nİkinci paragraf ise burada başlıyor.\n\nÜçüncü paragrafta sunum yapılıyor.';
+  const r = engine.computeReadability(sample);
+  assert(r && typeof r.speechTimeStr === 'string', 'speechTimeStr üretilmelidir');
+  assert.strictEqual(r.totalParagraphs, 3, '3 paragraf tespit edilmelidir');
+});
+
 console.log(`\n================================`);
 console.log(`Sonuç: ${passed} Başarılı, ${failed} Hatalı`);
 console.log(`================================\n`);
