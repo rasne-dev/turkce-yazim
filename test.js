@@ -997,6 +997,23 @@ it('computeReadability boşluklu satırlar ve Windows CRLF satır sonlarında pa
   assert.strictEqual(r.totalParagraphs, 3, 'Boşluklu satırlar içeren metin 3 paragraf sayılmalıdır');
 });
 
+console.log('\n--- 24. Hedefli Bul/Değiştir (targetIdx) & Büyük Metin Fark Güvenliği ---');
+it('findAndReplace hedef eşleşme indeksi (targetIdx) verildiğinde yalnızca o sıradaki eşleşmeyi değiştirmelidir', () => {
+  const text = 'elma ve armut, sonra elma ve muz, en son elma.';
+  const res = engine.findAndReplace(text, 'elma', 'portakal', false, 1);
+  assert.strictEqual(res.count, 3, 'Toplam 3 elma eşleşmesi bulunmalıdır');
+  assert.strictEqual(res.replaced, 1, '1 adet eşleşme değiştirilmelidir');
+  assert.strictEqual(res.text, 'elma ve armut, sonra portakal ve muz, en son elma.', 'Yalnızca 2. sıradaki elma değiştirilmelidir');
+});
+
+it('computeWordDiff çok büyük metinlerde bellek hatası fırlatmadan güvenli blok farkı üretmelidir', () => {
+  const bigOrig = Array(1500).fill('kelimeA').join(' ');
+  const bigCurr = Array(1500).fill('kelimeB').join(' ');
+  const diff = engine.computeWordDiff(bigOrig, bigCurr);
+  assert(Array.isArray(diff), 'diff dizi dönmelidir');
+  assert(diff.length > 0, 'fark üretilmelidir');
+});
+
 console.log(`\n================================`);
 console.log(`Sonuç: ${passed} Başarılı, ${failed} Hatalı`);
 console.log(`================================\n`);

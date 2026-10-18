@@ -45,8 +45,8 @@
   .hdr-r{margin-left:auto;display:flex;align-items:center;gap:.6rem}
   .bdg{background:rgba(255,255,255,.2);color:#fff;font-size:.68rem;font-weight:600;padding:.22rem .55rem;border-radius:20px}
   .hdr-btn{background:rgba(255,255,255,.15);border:none;color:#fff;width:32px;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1rem;transition:background .15s}
-  .hdr-btn:hover{background:rgba(255,255,255,.28)}
-  .btn:focus-visible,.hdr-btn:focus-visible,.smp:focus-visible,.side-search-clear:focus-visible{outline:2px solid var(--crimson);outline-offset:2px}
+  .btn:focus-visible,.smp:focus-visible,.side-search-clear:focus-visible{outline:2px solid var(--crimson);outline-offset:2px}
+  .hdr-btn:focus-visible{outline:2px solid #fff;outline-offset:2px}
   .wrap{max-width:1100px;margin:0 auto;padding:1.5rem 1rem 3rem;width:100%;flex:1}
   .card{background:var(--card-bg);border-radius:var(--r);box-shadow:var(--shadow);padding:1.5rem;margin-bottom:1rem;border:1px solid var(--border);transition:border-color .2s,background .2s}
   .card-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:.5rem}
@@ -319,6 +319,28 @@
   .ftr-privacy{display:flex;align-items:center;gap:.45rem;line-height:1.4}
   .ftr-icon{font-size:.95rem}
   .ftr-links{color:var(--slate);opacity:.85}
+
+  /* target badge & counter wrap */
+  .cc-wrap{margin-left:auto;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;justify-content:flex-end}
+  .target-badge{font-size:.74rem;font-weight:600;padding:.2rem .55rem;border-radius:12px;background:var(--mist);border:1px solid var(--border);color:var(--slate);cursor:pointer;font-family:var(--f);transition:all .15s;display:inline-flex;align-items:center;gap:.3rem}
+  .target-badge:hover{border-color:var(--crimson);color:var(--ink)}
+  .target-badge.active{background:var(--blu-bg);color:var(--blue);border-color:rgba(37,99,235,.3)}
+  .target-badge.achieved{background:var(--green-bg);color:var(--green);border-color:rgba(22,163,74,.3)}
+  .target-badge.exceeded{background:var(--red-bg);color:var(--red);border-color:rgba(220,38,38,.3)}
+
+  /* print & document styles */
+  @media print {
+    body { background: #fff !important; color: #111 !important; font-size: 12pt !important; line-height: 1.7 !important; }
+    .hdr, .tlb, .card-hd, .draftNotice, #statsBar, .empty-hints, #diffBanner, .ftr, .modal-overlay, #pop, .find-bar, .side-search-wrap, .scard, .view-toggles, .ctit, .sbar, .read-card, .rep-words-bar, .case-wrap, .toast {
+      display: none !important;
+    }
+    .wrap { max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
+    .card, .ocard { border: none !important; box-shadow: none !important; padding: 0 !important; background: transparent !important; }
+    .rgrid { display: block !important; }
+    #otxt, #inp { font-family: 'Georgia', 'Times New Roman', serif !important; font-size: 12pt !important; line-height: 1.7 !important; color: #111 !important; white-space: pre-wrap !important; }
+    textarea#inp { border: none !important; resize: none !important; background: transparent !important; padding: 0 !important; max-height: none !important; min-height: auto !important; height: auto !important; }
+    .h-sp, .h-gr, .h-wn, .h-pu, .h-su { text-decoration: none !important; border-bottom: none !important; background: transparent !important; color: inherit !important; }
+  }
 </style>
 </head>
 <body>
@@ -382,13 +404,17 @@
           <button type="button" class="dropdown-item" id="findToggleBtn" aria-expanded="false">🔍 Bul &amp; Değiştir (Ctrl+H)</button>
           <button type="button" class="dropdown-item" id="downBtn">💾 Dışa Aktar (.txt, .md, .html)</button>
           <button type="button" class="dropdown-item" id="fileBtnMenu">📁 Dosya Aç (.txt, .md)</button>
+          <button type="button" class="dropdown-item" id="printBtn">🖨️ Yazdır / PDF Olarak Kaydet</button>
         </div>
       </div>
-      <span class="cc" id="cc">0 karakter (boşluksuz: 0) · 0 kelime</span>
+      <div class="cc-wrap">
+        <span class="cc" id="cc">0 karakter (boşluksuz: 0) · 0 kelime</span>
+        <button type="button" class="target-badge" id="targetBtn" title="Kelime veya karakter hedefi belirle" aria-label="Yazım hedefi belirle">🎯 Hedef Belirle</button>
+      </div>
     </div>
     <div class="find-bar" id="findBar" role="region" aria-label="Bul ve Değiştir">
-      <input type="text" class="find-inp" id="findInp" placeholder="Aranan kelime veya ifade (İ/i, I/ı uyumlu)...">
-      <input type="text" class="find-inp" id="replaceInp" placeholder="Yeni ifade...">
+      <input type="text" class="find-inp" id="findInp" aria-label="Aranacak kelime veya ifade" placeholder="Aranan kelime veya ifade...">
+      <input type="text" class="find-inp" id="replaceInp" aria-label="Yerine yazılacak yeni ifade" placeholder="Yeni ifade...">
       <span class="find-cnt" id="findCount">0 eşleşme</span>
       <button type="button" class="btn btn-g btn-xs" id="replaceOneBtn">Değiştir</button>
       <button type="button" class="btn btn-p btn-xs" id="replaceAllBtn">Tümünü Değiştir</button>
@@ -440,7 +466,7 @@
           Konuşma Süresi
           <span class="info-tip" tabindex="0" role="button" aria-label="Konuşma Süresi Nedir?">ⓘ
             <span class="tip-content">
-              <b>Tahmini Konuşma / Sunum Süresi:</b> Standart seslendirme ve hitabet hızı olan dakikada ortalama 130 kelime baz alınarak hesaplanır.
+              <b>Tahmini Konuşma / Sunum Süresi:</b> Metnin standart bir konuşma veya sunum temposunda ne kadar sürede seslendirilebileceğini gösterir.
             </span>
           </span>
         </span>
@@ -455,7 +481,7 @@
           Tahmini Sayfa
           <span class="info-tip" tabindex="0" role="button" aria-label="Tahmini Sayfa Sayısı Nedir?">ⓘ
             <span class="tip-content">
-              <b>Tahmini Sayfa Sayısı:</b> Standart Türk yayıncılık ve akademik tez ölçütü olan 1.800 boşluksuz vuruş (karakter) baz alınarak hesaplanır.
+              <b>Tahmini Sayfa Sayısı:</b> Standart bir kitap ve tez sayfası baz alınarak tahmini sayfa sayısı gösterilir.
             </span>
           </span>
         </span>
@@ -558,7 +584,7 @@
       Buraya eklediğiniz kişi adları, teknik terimler ve özel sözcükler yazım denetiminde hata olarak işaretlenmez. Virgülle ayırarak birden fazla kelime ekleyebilirsiniz.
     </p>
     <div style="display:flex;gap:.5rem;margin-bottom:1rem">
-      <input type="text" id="dictInp" placeholder="Yeni kelime veya terim ekleyin..." style="flex:1;padding:.45rem .65rem;border:1.5px solid var(--border);border-radius:6px;font-family:var(--f);font-size:.85rem;background:var(--mist);color:var(--ink)">
+      <input type="text" id="dictInp" aria-label="Sözlüğe eklenecek yeni kelime" placeholder="Yeni kelime veya terim ekleyin..." style="flex:1;padding:.45rem .65rem;border:1.5px solid var(--border);border-radius:6px;font-family:var(--f);font-size:.85rem;background:var(--mist);color:var(--ink)">
       <button class="btn btn-p btn-xs" id="dictAddBtn">+ Ekle</button>
     </div>
     <div id="dictList" style="max-height:220px;overflow-y:auto;display:flex;flex-wrap:wrap;gap:.4rem;padding:.4rem 0"></div>
@@ -623,9 +649,42 @@
           <span class="exp-desc">İstatistikler ve düzeltmelerle</span>
         </span>
       </button>
+      <button type="button" class="export-card" id="expPrint">
+        <span class="exp-icon">🖨️</span>
+        <span class="exp-info">
+          <span class="exp-title">Yazdır / PDF</span>
+          <span class="exp-desc">Baskı ve PDF çıktısı alın</span>
+        </span>
+      </button>
     </div>
     <div style="display:flex;justify-content:flex-end;margin-top:1.2rem;padding-top:.8rem;border-top:1px solid var(--border)">
       <button class="btn btn-g btn-xs" id="exportDoneBtn">Kapat</button>
+    </div>
+  </div>
+</div>
+
+<div id="targetModal" class="modal-overlay" style="display:none" role="dialog" aria-modal="true" aria-labelledby="targetModalTitle">
+  <div class="modal-content" style="max-width:380px">
+    <div class="modal-hd">
+      <div class="modal-title" id="targetModalTitle">🎯 Yazım Hedefi Belirle</div>
+      <button class="modal-close" id="targetClose" aria-label="Kapat">×</button>
+    </div>
+    <p style="font-size:.8rem;color:var(--slate);margin-bottom:1rem;line-height:1.45">
+      Yazınız için kelime veya karakter sayısı hedefi belirleyin. Doluluk oranını anlık olarak takip edin.
+    </p>
+    <div style="display:flex;gap:.5rem;margin-bottom:1rem">
+      <input type="number" id="targetCountInp" aria-label="Hedef sayı" placeholder="Örn: 500" min="1" max="1000000" style="flex:1;padding:.45rem .65rem;border:1.5px solid var(--border);border-radius:6px;font-family:var(--f);font-size:.85rem;background:var(--mist);color:var(--ink)">
+      <select id="targetTypeSel" aria-label="Hedef türü" style="padding:.45rem .65rem;border:1.5px solid var(--border);border-radius:6px;font-family:var(--f);font-size:.82rem;background:var(--mist);color:var(--ink)">
+        <option value="word">Kelime</option>
+        <option value="char">Karakter</option>
+      </select>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding-top:.8rem;border-top:1px solid var(--border)">
+      <button type="button" class="smp" id="targetClearBtn" style="color:var(--red);font-size:.78rem">Hedefi Kaldır</button>
+      <div style="display:flex;gap:.5rem">
+        <button type="button" class="btn btn-g btn-xs" id="targetCancelBtn">İptal</button>
+        <button type="button" class="btn btn-p btn-xs" id="targetSaveBtn">Kaydet</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1247,7 +1306,7 @@ function cleanText(text){
   return cleanedParagraphs.filter(p=>p.length>0).join('\n\n').trim();
 }
 
-function findAndReplace(text,findStr,replaceStr,all=true){
+function findAndReplace(text,findStr,replaceStr,all=true,targetIdx=0){
   if(!text||!findStr) return{text:text||'',count:0,replaced:0};
   const lText=tl(text);
   const lFind=tl(findStr);
@@ -1260,14 +1319,16 @@ function findAndReplace(text,findStr,replaceStr,all=true){
     return{text:text.replace(rx,replaceStr),count:matches.length,replaced:all?matches.length:1};
   }
   let pos=0,idx=-1,count=0,replaced=0,out='';
+  const tgt=Math.max(0,targetIdx||0);
   while((idx=lText.indexOf(lFind,pos))!==-1){
-    count++;
-    if(all||replaced===0){
+    const isTarget=all||(count===tgt);
+    if(isTarget&&(!replaced||all)){
       out+=text.slice(pos,idx)+replaceStr;
       replaced++;
     } else {
       out+=text.slice(pos,idx+fLen);
     }
+    count++;
     pos=idx+fLen;
   }
   out+=text.slice(pos);
@@ -2246,7 +2307,12 @@ let customDict=new Set(getCustomDict().map(tl));
 function isDictIgnored(w){
   if(!w) return false;
   const clean=tl(w.trim().replace(/^['"\(\[\{]+|['"\)\]\}.,;:!?]+$/g,''));
-  return customDict.has(clean)||customDict.has(tl(w.trim()));
+  if(customDict.has(clean)||customDict.has(tl(w.trim()))) return true;
+  if(clean.includes("'")||clean.includes('\u2019')){
+    const base=clean.split(/['\u2019]/)[0];
+    if(base&&customDict.has(base)) return true;
+  }
+  return false;
 }
 
 function showToast(msg){
@@ -2265,6 +2331,7 @@ function countLabel(t){
   const chars=t.length;
   const noSpace=t.replace(/\s/g,'').length;
   const words=t.trim()?(t.trim().match(/[\wığüşöçİĞÜŞÖÇ]+(?:['\u2019][\wığüşöçİĞÜŞÖÇ]+)*/g)||[]).length:0;
+  if(typeof updateTargetDisplay==='function') updateTargetDisplay(words,chars);
   return chars.toLocaleString('tr-TR')+' karakter (boşluksuz: '+noSpace.toLocaleString('tr-TR')+') · '+words.toLocaleString('tr-TR')+' kelime';
 }
 
@@ -2298,31 +2365,36 @@ function computeWordDiff(orig,curr){
     for(const t of midA) midDiff.push({type:'del',val:t});
   } else {
     const n=midA.length,m=midB.length;
-    const dp=new Uint16Array((n+1)*(m+1));
-    const stride=m+1;
-    for(let i=1;i<=n;i++){
-      const row=i*stride,prevRow=(i-1)*stride;
-      const tA=midA[i-1];
-      for(let j=1;j<=m;j++){
-        dp[row+j]=(tA===midB[j-1])?dp[prevRow+j-1]+1:Math.max(dp[prevRow+j],dp[row+j-1]);
+    if((n+1)*(m+1)>2000000){
+      for(const t of midA) midDiff.push({type:'del',val:t});
+      for(const t of midB) midDiff.push({type:'ins',val:t});
+    } else {
+      const dp=new Uint16Array((n+1)*(m+1));
+      const stride=m+1;
+      for(let i=1;i<=n;i++){
+        const row=i*stride,prevRow=(i-1)*stride;
+        const tA=midA[i-1];
+        for(let j=1;j<=m;j++){
+          dp[row+j]=(tA===midB[j-1])?dp[prevRow+j-1]+1:Math.max(dp[prevRow+j],dp[row+j-1]);
+        }
       }
-    }
-    let i=n,j=m;
-    const rev=[];
-    while(i>0||j>0){
-      if(i>0&&j>0&&midA[i-1]===midB[j-1]){
-        rev.push({type:'eq',val:midA[i-1]});
-        i--;j--;
-      } else if(j>0&&(i===0||dp[i*stride+(j-1)]>=dp[(i-1)*stride+j])){
-        rev.push({type:'ins',val:midB[j-1]});
-        j--;
-      } else {
-        rev.push({type:'del',val:midA[i-1]});
-        i--;
+      let i=n,j=m;
+      const rev=[];
+      while(i>0||j>0){
+        if(i>0&&j>0&&midA[i-1]===midB[j-1]){
+          rev.push({type:'eq',val:midA[i-1]});
+          i--;j--;
+        } else if(j>0&&(i===0||dp[i*stride+(j-1)]>=dp[(i-1)*stride+j])){
+          rev.push({type:'ins',val:midB[j-1]});
+          j--;
+        } else {
+          rev.push({type:'del',val:midA[i-1]});
+          i--;
+        }
       }
+      rev.reverse();
+      midDiff.push(...rev);
     }
-    rev.reverse();
-    midDiff.push(...rev);
   }
   const all=prefix.concat(midDiff,suffix);
   const merged=[];
@@ -2470,8 +2542,8 @@ function renderSide(issues){
     const qFixTitle=firstSug===''?'Tek tıkla kaldır':`Tek tıkla düzelt: ${esc(firstSug||'')}`;
     const qFixBtn=canQuickFix?`<button type="button" class="ii-qbtn fix" title="${qFixTitle}" aria-label="Tek tıkla düzelt" onclick="TY.qfix(event,${i})">✓</button>`:'';
     const qIgnBtn=`<button type="button" class="ii-qbtn ign" title="Yoksay" aria-label="Yoksay" onclick="TY.qign(event,${i})">✕</button>`;
-    return`<div class="ii ${iss.type}" tabindex="0" role="button" title="${esc(tipText)}" aria-label="${esc(LBL[iss.type])}: ${esc(w)} — ${esc(iss.msg)}" onclick="TY.pop(null,${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();TY.pop(null,${i})}">
-      <div class="ii-top"><div class="iw">${esc(w)}</div><div class="ii-acts">${qFixBtn}${qIgnBtn}</div></div><div class="im">${esc(iss.msg)}</div>${d}${s}</div>`;
+    return`<div class="ii ${iss.type}" role="listitem" title="${esc(tipText)}">
+      <div class="ii-top"><div class="iw" tabindex="0" role="button" aria-label="${esc(LBL[iss.type])}: ${esc(w)} — ${esc(iss.msg)}" onclick="TY.pop(null,${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();TY.pop(null,${i})}">${esc(w)}</div><div class="ii-acts">${qFixBtn}${qIgnBtn}</div></div><div class="im" tabindex="0" role="button" aria-label="${esc(iss.msg)}" onclick="TY.pop(null,${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();TY.pop(null,${i})}">${esc(iss.msg)}</div>${d}${s}</div>`;
   }).join('');
 }
 
@@ -2514,7 +2586,7 @@ function renderRes(issues,isFiltered){
         <input type="text" class="side-search" id="errSearch" placeholder="Hatalarda ara..." value="${esc(searchQuery)}">
         <button type="button" class="side-search-clear" id="errSearchClear" aria-label="Aramayı temizle" style="${searchQuery?'display:block':''}">✕</button>
       </div>
-      <div id="slist">${renderSide(issues)}</div>
+      <div id="slist" role="list" aria-label="Hatalar ve öneriler listesi">${renderSide(issues)}</div>
     </div>
   </div>`;
 }
@@ -2696,11 +2768,43 @@ document.getElementById('pc').addEventListener('keydown',e=>{
   if(e.key==='Enter'||e.key===' '){e.preventDefault();closePop();}
 });
 document.addEventListener('keydown',e=>{
+  if(e.key==='Tab'){
+    const modals=[document.getElementById('kbdModal'),document.getElementById('dictModal'),document.getElementById('exportModal'),document.getElementById('targetModal')];
+    const openM=modals.find(m=>m&&(m.style.display==='flex'||(m.style.display!=='none'&&m.style.display!=='')));
+    if(openM){
+      const focusables=Array.from(openM.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex="0"]')).filter(el=>el.offsetParent!==null);
+      if(focusables.length>0){
+        const first=focusables[0];
+        const last=focusables[focusables.length-1];
+        if(e.shiftKey&&document.activeElement===first){
+          e.preventDefault();
+          last.focus();
+        } else if(!e.shiftKey&&document.activeElement===last){
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    }
+  }
   if(e.key==='Escape'){
     if(document.getElementById('pop').style.display!=='none') closePop();
-    if(document.getElementById('kbdModal').style.display!=='none') document.getElementById('kbdModal').style.display='none';
-    if(document.getElementById('dictModal').style.display!=='none') document.getElementById('dictModal').style.display='none';
-    if(document.getElementById('exportModal').style.display!=='none') document.getElementById('exportModal').style.display='none';
+    if(document.getElementById('kbdModal').style.display!=='none'){
+      document.getElementById('kbdModal').style.display='none';
+      if(kbdBtn) kbdBtn.focus();
+    }
+    if(document.getElementById('dictModal').style.display!=='none'){
+      document.getElementById('dictModal').style.display='none';
+      if(dictBtn) dictBtn.focus();
+    }
+    if(document.getElementById('exportModal').style.display!=='none'){
+      document.getElementById('exportModal').style.display='none';
+      if(toolsBtn) toolsBtn.focus();
+    }
+    if(document.getElementById('targetModal')&&document.getElementById('targetModal').style.display!=='none'){
+      document.getElementById('targetModal').style.display='none';
+      const tb=document.getElementById('targetBtn');
+      if(tb) tb.focus();
+    }
     const fb=document.getElementById('findBar');
     if(fb&&fb.style.display!=='none'){
       if(typeof toggleFindBar==='function') toggleFindBar(false);
@@ -3024,6 +3128,8 @@ if(pasteBtn){
         snapshotUndo();
         setEditorText(text);
         initialInputText=text;
+        const dn=document.getElementById('draftNotice');
+        if(dn) dn.style.display='none';
         run();
         showToast('📋 Metin panodan yapıştırıldı ve denetlendi.');
       } else {
@@ -3171,7 +3277,11 @@ inp.addEventListener('input',autoResize,false);
 
 let autoTimer=null;
 inp.addEventListener('input',()=>{
-  try{localStorage.setItem('ty_draft',inp.value);}catch(e){}
+  const val=inp.value;
+  try{
+    if(val.trim()) localStorage.setItem('ty_draft',val);
+    else localStorage.removeItem('ty_draft');
+  }catch(e){}
   if(undoStack.length===0){
     initialInputText=inp.value;
   }
@@ -3194,6 +3304,8 @@ function handleLoadedFile(file){
     snapshotUndo();
     setEditorText(evt.target.result);
     initialInputText=evt.target.result;
+    const dn=document.getElementById('draftNotice');
+    if(dn) dn.style.display='none';
     run();
     showToast(`📂 "${file.name}" yüklendi.`);
   };
@@ -3364,6 +3476,128 @@ document.getElementById('expReport').addEventListener('click',()=>{
   showToast('📊 Denetim raporu (.txt) indirildi.');
 });
 
+function printCleanDocument(){
+  if(typeof toggleToolsMenu==='function') toggleToolsMenu(false);
+  const em=document.getElementById('exportModal');
+  if(em) em.style.display='none';
+  const val=document.getElementById('inp').value;
+  if(!val.trim()){
+    showToast('Yazdırılacak metin bulunamadı.');
+    return;
+  }
+  window.print();
+}
+const printBtn=document.getElementById('printBtn');
+if(printBtn) printBtn.addEventListener('click',printCleanDocument);
+const expPrint=document.getElementById('expPrint');
+if(expPrint) expPrint.addEventListener('click',printCleanDocument);
+
+// === YAZIM HEDEFİ (KOTA İZLEYİCİ) ===
+let targetConfig=null;
+try{
+  const rawTarget=localStorage.getItem('ty_target');
+  if(rawTarget) targetConfig=JSON.parse(rawTarget);
+}catch(e){}
+
+function updateTargetDisplay(wCount,cCount){
+  const btn=document.getElementById('targetBtn');
+  if(!btn) return;
+  if(!targetConfig||!targetConfig.count){
+    btn.textContent='🎯 Hedef Belirle';
+    btn.className='target-badge';
+    btn.title='Kelime veya karakter hedefi belirle';
+    return;
+  }
+  const isWord=targetConfig.type==='word';
+  let current=0;
+  if(typeof wCount==='number'&&typeof cCount==='number'){
+    current=isWord?wCount:cCount;
+  } else {
+    const text=document.getElementById('inp').value;
+    const words=text.trim()?(text.trim().match(/[\wığüşöçİĞÜŞÖÇ]+(?:['\u2019][\wığüşöçİĞÜŞÖÇ]+)*/g)||[]).length:0;
+    current=isWord?words:text.length;
+  }
+  const goal=targetConfig.count;
+  const pct=Math.round((current/goal)*100);
+  const unitLabel=isWord?'kelime':'karakter';
+
+  btn.textContent=`🎯 ${current.toLocaleString('tr-TR')} / ${goal.toLocaleString('tr-TR')} ${unitLabel} (%${pct})`;
+  btn.title=`Hedef: ${goal} ${unitLabel}. Değiştirmek veya kaldırmak için tıklayın.`;
+  btn.classList.remove('active','achieved','exceeded');
+  if(pct>100){
+    btn.classList.add('exceeded');
+  } else if(pct===100){
+    btn.classList.add('achieved');
+  } else {
+    btn.classList.add('active');
+  }
+}
+
+const targetBtn=document.getElementById('targetBtn');
+const targetModal=document.getElementById('targetModal');
+const targetClose=document.getElementById('targetClose');
+const targetCancelBtn=document.getElementById('targetCancelBtn');
+const targetSaveBtn=document.getElementById('targetSaveBtn');
+const targetClearBtn=document.getElementById('targetClearBtn');
+const targetCountInp=document.getElementById('targetCountInp');
+const targetTypeSel=document.getElementById('targetTypeSel');
+
+function openTargetModal(){
+  if(targetConfig&&targetConfig.count){
+    targetCountInp.value=targetConfig.count;
+    targetTypeSel.value=targetConfig.type||'word';
+    targetClearBtn.style.display='inline-block';
+  } else {
+    targetCountInp.value='';
+    targetTypeSel.value='word';
+    targetClearBtn.style.display='none';
+  }
+  targetModal.style.display='flex';
+  targetCountInp.focus();
+}
+function closeTargetModal(){
+  targetModal.style.display='none';
+  if(targetBtn) targetBtn.focus();
+}
+
+if(targetBtn) targetBtn.addEventListener('click',openTargetModal);
+if(targetClose) targetClose.addEventListener('click',closeTargetModal);
+if(targetCancelBtn) targetCancelBtn.addEventListener('click',closeTargetModal);
+if(targetModal) targetModal.addEventListener('click',e=>{if(e.target===targetModal)closeTargetModal();});
+
+if(targetSaveBtn){
+  targetSaveBtn.addEventListener('click',()=>{
+    const count=parseInt(targetCountInp.value,10);
+    if(!count||count<=0){
+      showToast('Lütfen 0\'dan büyük bir hedef sayı girin.');
+      targetCountInp.focus();
+      return;
+    }
+    targetConfig={count,type:targetTypeSel.value||'word'};
+    try{localStorage.setItem('ty_target',JSON.stringify(targetConfig));}catch(e){}
+    updateTargetDisplay();
+    closeTargetModal();
+    showToast(`🎯 Hedef belirlendi: ${count} ${targetConfig.type==='word'?'kelime':'karakter'}`);
+  });
+}
+if(targetCountInp){
+  targetCountInp.addEventListener('keydown',e=>{
+    if(e.key==='Enter'){
+      e.preventDefault();
+      if(targetSaveBtn) targetSaveBtn.click();
+    }
+  });
+}
+if(targetClearBtn){
+  targetClearBtn.addEventListener('click',()=>{
+    targetConfig=null;
+    try{localStorage.removeItem('ty_target');}catch(e){}
+    updateTargetDisplay();
+    closeTargetModal();
+    showToast('Hedef kaldırıldı.');
+  });
+}
+
 document.getElementById('pc').addEventListener('click',closePop);
 document.addEventListener('click',e=>{
   const pop=document.getElementById('pop');
@@ -3405,7 +3639,8 @@ function applyTheme(isDark){
     if(metaTheme) metaTheme.setAttribute('content','#B5202A');
   }
 }
-const savedTheme=localStorage.getItem('ty_theme');
+let savedTheme=null;
+try{savedTheme=localStorage.getItem('ty_theme');}catch(e){}
 if(savedTheme){
   applyTheme(savedTheme==='dark');
 } else if(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches){
@@ -3703,7 +3938,8 @@ function execReplace(all){
   }
   const r=replaceInp?replaceInp.value:'';
   const current=document.getElementById('inp').value;
-  const res=findAndReplace(current,f,r,all);
+  const tgtIdx=currentFindIdx>=0?currentFindIdx:0;
+  const res=findAndReplace(current,f,r,all,tgtIdx);
   if(res.replaced===0){
     showToast(`"${f}" metinde bulunamadı.`);
     return;
@@ -3774,7 +4010,7 @@ if(diffDismiss){
 
 try{
   const saved=localStorage.getItem('ty_draft');
-  if(saved){
+  if(saved&&saved.trim()){
     inp.value=saved;
     document.getElementById('cc').textContent=countLabel(saved);
     autoResize.call(inp);
@@ -3786,6 +4022,7 @@ document.getElementById('draftDismiss').addEventListener('click',()=>{
   document.getElementById('draftNotice').style.display='none';
 });
 inp.addEventListener('input',()=>{document.getElementById('draftNotice').style.display='none';},{once:true});
+try{if(typeof updateTargetDisplay==='function') updateTargetDisplay();}catch(e){}
 try{document.getElementById('inp').focus();}catch(e){}
 try{
   if(typeof window!=='undefined'&&'serviceWorker' in navigator&&location.protocol.startsWith('http')){
