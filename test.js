@@ -960,6 +960,43 @@ it('computeReadability speechTimeStr ve totalParagraphs metriklerini doğru hesa
   assert.strictEqual(r.totalParagraphs, 3, '3 paragraf tespit edilmelidir');
 });
 
+console.log('\n--- 23. Bağlaç Boşluk Kontrolü, Zarf/Şart İsim Ayrımı & Kısaltma Genişletmeleri ---');
+it('Bağlaç virgülü düzeltmesi çift boşluk oluşturmamalıdır (çünkü, seni -> çünkü seni)', () => {
+  const text = 'Sen de gel çünkü, seni bekliyoruz.';
+  const res = engine.analyze(text);
+  const it = res.find(r => r.word.includes('çünkü'));
+  assert(it, 'çünkü virgülü yakalanmalı');
+  assert.strictEqual(it.word, 'çünkü, ');
+  assert.strictEqual(it.suggestions[0], 'çünkü ');
+  const corrected = text.slice(0, it.start) + it.suggestions[0] + text.slice(it.end);
+  assert.strictEqual(corrected, 'Sen de gel çünkü seni bekliyoruz.', 'Düzeltme sonrası çift boşluk kalmamalıdır');
+});
+
+it('Zarf ve şart ekine benzeyen kök isimler (kısa, börek, sahip, mektup) yanlış virgül hatası vermemelidir', () => {
+  const text = 'Kısa, öz bir yazı yazdı. Sıcak börek, çayla iyi gider. Ev sahibi veya sahip, sorumludur.';
+  const res = engine.analyze(text);
+  const falseSart = res.find(r => r.word.includes('Kısa,') || r.word.includes('börek,') || r.word.includes('sahip,'));
+  assert(!falseSart, 'Kök isimler yanlışlıkla şart veya zarf-fiil sayılmamalıdır');
+});
+
+it('Yeni eklenen kısaltmaların (MEB, YSK, AFAD, İTÜ, ODTÜ) ek uyumu doğru denetlenmelidir', () => {
+  const res = engine.analyze("MEB'da sınav yapıldı, YSK'da sonuçlar açıklandı, AFAD'de toplantı var ve İTÜ'da ders başladı.");
+  const w1 = res.find(r => r.word === "MEB'da");
+  const w2 = res.find(r => r.word === "YSK'da");
+  const w3 = res.find(r => r.word === "AFAD'de");
+  const w4 = res.find(r => r.word === "İTÜ'da");
+  assert(w1 && w1.suggestions[0] === "MEB'de", "MEB'da -> MEB'de olmalıdır");
+  assert(w2 && w2.suggestions[0] === "YSK'de", "YSK'da -> YSK'de olmalıdır");
+  assert(w3 && w3.suggestions[0] === "AFAD'da", "AFAD'de -> AFAD'da olmalıdır");
+  assert(w4 && w4.suggestions[0] === "İTÜ'de", "İTÜ'da -> İTÜ'de olmalıdır");
+});
+
+it('computeReadability boşluklu satırlar ve Windows CRLF satır sonlarında paragraf sayısını doğru hesaplamalıdır', () => {
+  const text = 'Birinci paragraf.\r\n   \r\n   \r\nİkinci paragraf.\r\n\r\nÜçüncü paragraf.';
+  const r = engine.computeReadability(text);
+  assert.strictEqual(r.totalParagraphs, 3, 'Boşluklu satırlar içeren metin 3 paragraf sayılmalıdır');
+});
+
 console.log(`\n================================`);
 console.log(`Sonuç: ${passed} Başarılı, ${failed} Hatalı`);
 console.log(`================================\n`);

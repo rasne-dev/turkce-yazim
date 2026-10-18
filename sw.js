@@ -1,4 +1,4 @@
-const CACHE_NAME = 'turkce-yazim-v2.2.9';
+const CACHE_NAME = 'turkce-yazim-v2.3.0';
 const ASSETS = [
   './',
   './index.html',

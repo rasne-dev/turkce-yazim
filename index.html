@@ -67,6 +67,11 @@
   .btn-p{background:var(--crimson);color:#fff}.btn-p:hover{background:var(--crimson2)}
   .btn-g{background:none;color:var(--slate);border:1.5px solid var(--border)}.btn-g:hover{border-color:var(--slate);color:var(--ink)}
   .btn-xs{padding:.35rem .7rem;font-size:.75rem;border-radius:6px}
+  .btn-icon{padding:.52rem .65rem;min-width:36px;justify-content:center;font-size:.95rem;line-height:1}
+  .btn-group-undo{display:inline-flex}
+  .btn-group-undo .btn:first-child{border-top-right-radius:0;border-bottom-right-radius:0;margin-right:-1px}
+  .btn-group-undo .btn:last-child{border-top-left-radius:0;border-bottom-left-radius:0}
+  .btn-group-undo .btn:hover,.btn-group-undo .btn:focus-visible{z-index:1}
   .cc{font-size:.78rem;color:var(--slate);margin-left:auto;white-space:nowrap}
   .draftNotice{display:flex;align-items:center;justify-content:space-between;gap:.5rem;font-size:.76rem;color:var(--slate);background:var(--blu-bg);border:1px solid rgba(37,99,235,.2);border-radius:7px;padding:.45rem .75rem;margin-bottom:.65rem}
   .draftNotice button{background:none;border:none;color:var(--slate);cursor:pointer;font-size:.85rem;padding:.1rem .3rem}
@@ -244,7 +249,7 @@
   .btn-group #fxAll{border-top-right-radius:0;border-bottom-right-radius:0}
   .dropdown-menu{position:absolute;top:calc(100% + 4px);right:0;background:var(--card-bg);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow-lg);min-width:240px;z-index:9000;padding:.35rem 0}
   .dropdown-item{display:flex;align-items:center;gap:.5rem;width:100%;padding:.48rem .85rem;border:none;background:none;font-size:.8rem;font-family:var(--f);color:var(--ink);cursor:pointer;text-align:left;transition:background .12s}
-  .dropdown-item:hover{background:var(--mist);color:var(--crimson)}
+  .dropdown-item:hover,.dropdown-item:focus-visible{background:var(--mist);color:var(--crimson);outline:none}
 
   /* view toggles & diff view */
   .view-toggles{display:inline-flex;background:var(--mist);border:1px solid var(--border);border-radius:6px;padding:2px;gap:2px}
@@ -354,9 +359,15 @@
     </div>
     <div class="tlb">
       <button class="btn btn-p" id="chkBtn">✓ Kontrol Et</button>
-      <button class="btn btn-g" id="cleanBtn" title="Bozuk PDF/web satır sonlarını birleştirir ve fazla boşlukları temizler">🧹 Biçimlendir</button>
+      <button class="btn btn-g" id="pasteBtn" title="Panodaki metni yapıştır ve denetle (Ctrl+V)">📋 Yapıştır</button>
+      <button class="btn btn-g" id="cpyBtnTop" title="Metni panoya kopyala">⎘ Kopyala</button>
+      <button class="btn btn-g" id="clrBtn" title="Metni temizle">✕ Temizle</button>
+      <div class="btn-group-undo" role="group" aria-label="Geri ve ileri alma">
+        <button class="btn btn-g btn-icon" id="undoBtn" disabled title="Geri al (Ctrl+Z)" aria-label="Geri al">↩</button>
+        <button class="btn btn-g btn-icon" id="redoBtn" disabled title="İleri al (Ctrl+Y)" aria-label="İleri al">↪</button>
+      </div>
       <div class="case-wrap">
-        <button class="btn btn-g" id="caseBtn" title="Türkçe uyumlu büyük/küçük harf dönüştürücü (İ/i, I/ı)" aria-haspopup="true" aria-expanded="false">Aa Harf Düzeni ▾</button>
+        <button class="btn btn-g" id="caseBtn" title="Türkçe uyumlu harf düzeni (İ/i, I/ı)" aria-haspopup="true" aria-expanded="false">Aa Harf Düzeni ▾</button>
         <div class="dropdown-menu" id="caseMenu" style="display:none;left:0;right:auto;min-width:220px">
           <button type="button" class="dropdown-item" data-case="sentence">🔤 Tümce düzeni (Cümle başı büyük)</button>
           <button type="button" class="dropdown-item" data-case="lower">🔡 tümü küçük harf (i / ı uyumlu)</button>
@@ -364,12 +375,15 @@
           <button type="button" class="dropdown-item" data-case="title">✨ Başlık Düzeni (Kelime Başı Büyük)</button>
         </div>
       </div>
-      <button class="btn btn-g" id="findToggleBtn" title="Türkçe duyarlı Bul ve Değiştir (Ctrl+H)" aria-expanded="false">🔍 Bul &amp; Değiştir</button>
-      <button class="btn btn-g" id="clrBtn">✕ Temizle</button>
-      <button class="btn btn-g" id="undoBtn" disabled title="Son işlemi geri al (Ctrl+Z)">↩ Geri Al</button>
-      <button class="btn btn-g" id="redoBtn" disabled title="Son işlemi ileri al (Ctrl+Y)">↪ İleri Al</button>
-      <button class="btn btn-g" id="cpyBtnTop" title="Metni panoya kopyala">⎘ Kopyala</button>
-      <button class="btn btn-g" id="downBtn" title="Metni farklı formatlarda dışa aktar (.txt, .md, .html)">💾 Dışa Aktar</button>
+      <div class="case-wrap">
+        <button class="btn btn-g" id="toolsBtn" title="Metin biçimlendirme, bul ve dışa aktarma araçları" aria-haspopup="true" aria-expanded="false">🛠️ Araçlar ▾</button>
+        <div class="dropdown-menu" id="toolsMenu" style="display:none;left:0;right:auto;min-width:240px">
+          <button type="button" class="dropdown-item" id="cleanBtn">🧹 Metni Biçimlendir (PDF/Kırık Satır)</button>
+          <button type="button" class="dropdown-item" id="findToggleBtn" aria-expanded="false">🔍 Bul &amp; Değiştir (Ctrl+H)</button>
+          <button type="button" class="dropdown-item" id="downBtn">💾 Dışa Aktar (.txt, .md, .html)</button>
+          <button type="button" class="dropdown-item" id="fileBtnMenu">📁 Dosya Aç (.txt, .md)</button>
+        </div>
+      </div>
       <span class="cc" id="cc">0 karakter (boşluksuz: 0) · 0 kelime</span>
     </div>
     <div class="find-bar" id="findBar" role="region" aria-label="Bul ve Değiştir">
@@ -384,9 +398,9 @@
 
   <div id="emptyHints" class="empty-hints">
     <div class="empty-hints-items">
-      <span class="empty-hint-pill">💡 <b>İpucu:</b> PDF'ten kopyalanan kırık satırları <b>🧹 Biçimlendir</b> ile birleştirin.</span>
-      <span class="empty-hint-pill">🔤 Tamamı büyük yazılmış metinleri <b>Aa Harf Düzeni</b> ile düzeltin.</span>
-      <span class="empty-hint-pill">⚡ Tüm hataları <b>Ctrl+Shift+F</b> ile anında onarın.</span>
+      <span class="empty-hint-pill">📋 Panodan metin aktarmak için <b>📋 Yapıştır</b> butonunu kullanın.</span>
+      <span class="empty-hint-pill">🧹 PDF'ten kopyalanan kırık satırları <b>🛠️ Araçlar → Biçimlendir</b> ile birleştirin.</span>
+      <span class="empty-hint-pill">⚡ Hataların tümünü <b>Ctrl+Shift+F</b> ile anında onarın.</span>
     </div>
   </div>
 
@@ -1302,7 +1316,7 @@ function computeReadability(text){
   const speechSecs=Math.round(((totalWords%130)/130)*60);
   const speechTimeStr=totalWords<15?'< 10 sn':(speechMins>0?`${speechMins} dk ${speechSecs} sn`:`${speechSecs} sn`);
 
-  const paragraphs=clean.split(/\n{2,}|\n\s*[-*•—–]\s+|\n(?=\d+\.\s+)/).filter(p=>p.trim().length>0);
+  const paragraphs=clean.split(/(?:\r?\n\s*){2,}|\r?\n\s*[-*•—–]\s+|\r?\n(?=\d+\.\s+)/).filter(p=>p.trim().length>0);
   const totalParagraphs=Math.max(1,paragraphs.length);
 
   const noSpaceChars=clean.replace(/\s/g,'').length;
@@ -1990,28 +2004,36 @@ function analyze(text){
     }
 
     // 4) TDK Noktalama: Bağlaçlardan, şart ekinden (-sa/-se) ve tek zarf-fiilden sonra virgül konmaz
-    const baglacVirgulRx=new RegExp(WB+'(ve|veya|yahut|ya\\s+da|çünkü|fakat|lakin|oysaki|halbuki|meğerki|zira)\\s*,\\s*'+WE,'gi');
+    const baglacVirgulRx=new RegExp(WB+'(ve|veya|yahut|ya\\s+da|çünkü|fakat|lakin|oysaki|halbuki|meğerki|zira)\\s*,(\\s*)','gi');
     let bvm;
     while((bvm=baglacVirgulRx.exec(text))!==null){
       const conj=bvm[1];
+      const atEnd=(bvm.index+bvm[0].length>=text.length);
+      const sugWord=atEnd?conj:(conj+' ');
       push({
         type:'punct',
         word:bvm[0],
         start:bvm.index,
         end:bvm.index+bvm[0].length,
-        suggestions:[conj+' '],
+        suggestions:[sugWord],
         msg:`TDK: "${conj}" bağlacından sonra virgül konmaz`,
         detail:'Metin içinde bağlaçlardan önce ve sonra virgül konulmaz.'
       });
     }
 
+    const SART_EXCLUSIONS=new Set(['kısa','lise','kilise','elbise','ense','şase','terse']);
+    const ZARF_EXCLUSIONS=new Set([
+      'maden','beden','çorap','kasap','kitap','sebep','talep','takip','kulüp','üslup','tarip',
+      'sahip','rakip','nasip','garip','cazip','mektup','klip','kutup','grup','tabip','katip','tertip','tahrip',
+      'börek','çörek','kürek','direk','engerek','tarak'
+    ]);
     const sartZarfVirgulRx=new RegExp(WB+'([a-zA-ZığüşöçİĞÜŞÖÇ]{3,}(?:sa|se|ıp|ip|up|üp|arak|erek|madan|meden|dıkça|dikçe|dukça|dükçe|tıkça|tikçe|tukça|tükçe))\\s*,\\s*([a-zA-ZığüşöçİĞÜŞÖÇ]{2,})'+WE,'gi');
     let szm;
     while((szm=sartZarfVirgulRx.exec(text))!==null){
       const w1=szm[1],w2=szm[2];
       const lw1=tl(w1);
-      const isSart=/(?:sa|se)$/.test(lw1)&&!/(?:masa|kasa|arsa|bursa|manisa|tasa|yasa|arsa)$/.test(lw1);
-      const isZarf=/(?:ıp|ip|up|üp|arak|erek|madan|meden|dıkça|dikçe|dukça|dükçe|tıkça|tikçe|tukça|tükçe)$/.test(lw1)&&!/(?:maden|çorap|kasap|kitap|sebep|talep|takip|kulüp|tarip)$/.test(lw1);
+      const isSart=/(?:sa|se)$/.test(lw1)&&!/(?:masa|kasa|arsa|bursa|manisa|tasa|yasa)$/.test(lw1)&&!SART_EXCLUSIONS.has(lw1);
+      const isZarf=/(?:ıp|ip|up|üp|arak|erek|madan|meden|dıkça|dikçe|dukça|dükçe|tıkça|tikçe|tukça|tükçe)$/.test(lw1)&&!ZARF_EXCLUSIONS.has(lw1);
       if(isSart||isZarf){
         const ekTipi=isSart?'şart ekinden (-sa/-se)':'zarf-fiil ekinden';
         push({
@@ -2158,6 +2180,11 @@ function analyze(text){
     ['KDV', {da:'de',de:'de',ta:'de',te:'de',dan:'den',den:'den',tan:'den',ten:'den',nın:'nin',nin:'nin',ya:'ye',ye:'ye'}],
     ['ÖTV', {da:'de',de:'de',ta:'de',te:'de',dan:'den',den:'den',tan:'den',ten:'den',nın:'nin',nin:'nin',ya:'ye',ye:'ye'}],
     ['TCMB', {da:'de',de:'de',ta:'de',te:'de',dan:'den',den:'den',tan:'den',ten:'den',nın:'nin',nin:'nin',ya:'ye',ye:'ye'}],
+    ['MEB', {da:'de',de:'de',ta:'de',te:'de',dan:'den',den:'den',tan:'den',ten:'den',nın:'in',nin:'in',ya:'e',ye:'e',a:'e',e:'e'}],
+    ['YSK', {da:'de',de:'de',ta:'te',te:'te',dan:'den',den:'den',tan:'ten',ten:'ten',nın:'nin',nin:'nin',ya:'ye',ye:'ye'}],
+    ['AFAD', {de:'da',te:'da',ta:'da',den:'dan',ten:'dan',tan:'dan',nin:'ın',nın:'ın',e:'a',ye:'a'}],
+    ['İTÜ', {da:'de',de:'de',ta:'de',te:'de',dan:'den',den:'den',tan:'den',ten:'den',nın:'nün',nin:'nün',ya:'ye',ye:'ye'}],
+    ['ODTÜ', {da:'de',de:'de',ta:'de',te:'de',dan:'den',den:'den',tan:'den',ten:'den',nın:'nün',nin:'nün',ya:'ye',ye:'ye'}],
     ['RTÜK', {da:'te',de:'te',ta:'te',te:'te',dan:'ten',den:'ten',tan:'ten',ten:'ten',nın:'ün',nin:'ün'}]
   ]);
   const abbrSufRx=new RegExp(WB+'([A-ZİĞÜŞÖÇ]{2,})[\'\\u2019]([a-zığüşöç]+)'+WE,'g');
@@ -2681,6 +2708,7 @@ document.addEventListener('keydown',e=>{
     }
     if(typeof toggleFxMenu==='function') toggleFxMenu(false);
     if(typeof toggleCaseMenu==='function') toggleCaseMenu(false);
+    if(typeof toggleToolsMenu==='function') toggleToolsMenu(false);
   }
   if(document.getElementById('pop').style.display!=='none'){
     if(e.key==='ArrowRight'){e.preventDefault();TY.nav(1);}
@@ -2983,6 +3011,33 @@ function copyEditorText(btn){
 if(cpyBtn) cpyBtn.addEventListener('click',function(){ copyEditorText(this); });
 if(cpyBtnTop) cpyBtnTop.addEventListener('click',function(){ copyEditorText(this); });
 
+const pasteBtn=document.getElementById('pasteBtn');
+if(pasteBtn){
+  pasteBtn.addEventListener('click',async()=>{
+    try{
+      if(navigator.clipboard&&navigator.clipboard.readText){
+        const text=await navigator.clipboard.readText();
+        if(!text||!text.trim()){
+          showToast('Panoda yapıştırılacak metin bulunamadı.');
+          return;
+        }
+        snapshotUndo();
+        setEditorText(text);
+        initialInputText=text;
+        run();
+        showToast('📋 Metin panodan yapıştırıldı ve denetlendi.');
+      } else {
+        const el=document.getElementById('inp');
+        el.focus();
+        showToast('Lütfen Ctrl+V kısayolu ile yapıştırın.');
+      }
+    }catch(err){
+      document.getElementById('inp').focus();
+      showToast('Pano erişim izni verilmedi. Lütfen Ctrl+V ile yapıştırın.');
+    }
+  });
+}
+
 document.getElementById('inp').addEventListener('input',()=>{
   document.getElementById('cc').textContent=countLabel(document.getElementById('inp').value);
 });
@@ -3028,6 +3083,7 @@ function toggleCaseMenu(open){
 if(caseBtn){
   caseBtn.addEventListener('click',e=>{
     e.stopPropagation();
+    if(typeof toggleToolsMenu==='function') toggleToolsMenu(false);
     toggleCaseMenu();
   });
 }
@@ -3059,12 +3115,38 @@ if(caseMenu){
   });
 }
 
+const toolsBtn=document.getElementById('toolsBtn');
+const toolsMenu=document.getElementById('toolsMenu');
+function toggleToolsMenu(open){
+  if(!toolsMenu) return;
+  const show=typeof open==='boolean'?open:toolsMenu.style.display==='none';
+  toolsMenu.style.display=show?'block':'none';
+  if(toolsBtn) toolsBtn.setAttribute('aria-expanded',show?'true':'false');
+}
+if(toolsBtn){
+  toolsBtn.addEventListener('click',e=>{
+    e.stopPropagation();
+    if(typeof toggleCaseMenu==='function') toggleCaseMenu(false);
+    toggleToolsMenu();
+  });
+}
+const fileBtnMenu=document.getElementById('fileBtnMenu');
+if(fileBtnMenu){
+  fileBtnMenu.addEventListener('click',()=>{
+    toggleToolsMenu(false);
+    fileInp.click();
+  });
+}
+
 document.addEventListener('click',e=>{
   if(fxMenu&&fxMenu.style.display!=='none'&&!e.target.closest('.btn-group')){
     toggleFxMenu(false);
   }
   if(caseMenu&&caseMenu.style.display!=='none'&&!e.target.closest('#caseBtn')&&!e.target.closest('#caseMenu')){
     toggleCaseMenu(false);
+  }
+  if(toolsMenu&&toolsMenu.style.display!=='none'&&!e.target.closest('#toolsBtn')&&!e.target.closest('#toolsMenu')){
+    toggleToolsMenu(false);
   }
 });
 
@@ -3151,6 +3233,7 @@ const exportClose=document.getElementById('exportClose');
 const exportDoneBtn=document.getElementById('exportDoneBtn');
 
 function openExportModal(){
+  if(typeof toggleToolsMenu==='function') toggleToolsMenu(false);
   const val=document.getElementById('inp').value;
   if(!val.trim()){
     showToast('Dışa aktarılacak metin bulunamadı.');
@@ -3566,6 +3649,7 @@ function updateFindCount(){
 function toggleFindBar(open){
   if(!findBar) return;
   const show=typeof open==='boolean'?open:findBar.style.display==='none';
+  if(show&&typeof toggleToolsMenu==='function') toggleToolsMenu(false);
   findBar.style.display=show?'flex':'none';
   if(findToggleBtn){
     findToggleBtn.setAttribute('aria-expanded',String(show));
@@ -3645,6 +3729,7 @@ if(replaceInp){
 const cleanBtn=document.getElementById('cleanBtn');
 if(cleanBtn){
   cleanBtn.addEventListener('click',()=>{
+    if(typeof toggleToolsMenu==='function') toggleToolsMenu(false);
     const val=document.getElementById('inp').value;
     if(!val.trim()){
       showToast('Temizlenecek metin bulunamadı.');
