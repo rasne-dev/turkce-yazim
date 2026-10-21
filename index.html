@@ -238,6 +238,7 @@
   @media(max-width:520px){.export-grid{grid-template-columns:1fr}}
   .export-card{display:flex;align-items:center;gap:.65rem;padding:.75rem .85rem;background:var(--mist);border:1.5px solid var(--border);border-radius:8px;cursor:pointer;text-align:left;color:var(--ink);font-family:var(--f);transition:border-color .15s,background .15s,transform .1s}
   .export-card:hover{border-color:var(--crimson);background:var(--card-bg);transform:translateY(-1px)}
+  .export-card:focus-visible{outline:2px solid var(--crimson);outline-offset:2px}
   .exp-icon{font-size:1.35rem;flex-shrink:0}
   .exp-info{display:flex;flex-direction:column}
   .exp-title{font-size:.84rem;font-weight:700;color:var(--ink)}
@@ -249,7 +250,7 @@
   .btn-group #fxAll{border-top-right-radius:0;border-bottom-right-radius:0}
   .dropdown-menu{position:absolute;top:calc(100% + 4px);right:0;background:var(--card-bg);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow-lg);min-width:240px;z-index:9000;padding:.35rem 0}
   .dropdown-item{display:flex;align-items:center;gap:.5rem;width:100%;padding:.48rem .85rem;border:none;background:none;font-size:.8rem;font-family:var(--f);color:var(--ink);cursor:pointer;text-align:left;transition:background .12s}
-  .dropdown-item:hover,.dropdown-item:focus-visible{background:var(--mist);color:var(--crimson);outline:none}
+  .dropdown-item:hover,.dropdown-item:focus-visible{background:var(--mist);color:var(--crimson);outline:2px solid var(--crimson);outline-offset:-2px}
 
   /* view toggles & diff view */
   .view-toggles{display:inline-flex;background:var(--mist);border:1px solid var(--border);border-radius:6px;padding:2px;gap:2px}
@@ -330,16 +331,20 @@
 
   /* print & document styles */
   @media print {
-    body { background: #fff !important; color: #111 !important; font-size: 12pt !important; line-height: 1.7 !important; }
-    .hdr, .tlb, .card-hd, .draftNotice, #statsBar, .empty-hints, #diffBanner, .ftr, .modal-overlay, #pop, .find-bar, .side-search-wrap, .scard, .view-toggles, .ctit, .sbar, .read-card, .rep-words-bar, .case-wrap, .toast {
+    body { background: #fff !important; color: #111 !important; font-size: 12pt !important; line-height: 1.75 !important; }
+    .hdr, .card, #statsBar, .empty-hints, #diffBanner, #res, .ftr, .modal-overlay, #pop, .toast {
       display: none !important;
     }
     .wrap { max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
-    .card, .ocard { border: none !important; box-shadow: none !important; padding: 0 !important; background: transparent !important; }
-    .rgrid { display: block !important; }
-    #otxt, #inp { font-family: 'Georgia', 'Times New Roman', serif !important; font-size: 12pt !important; line-height: 1.7 !important; color: #111 !important; white-space: pre-wrap !important; }
-    textarea#inp { border: none !important; resize: none !important; background: transparent !important; padding: 0 !important; max-height: none !important; min-height: auto !important; height: auto !important; }
-    .h-sp, .h-gr, .h-wn, .h-pu, .h-su { text-decoration: none !important; border-bottom: none !important; background: transparent !important; color: inherit !important; }
+    #printDoc {
+      display: block !important;
+      font-family: 'Georgia', 'Times New Roman', serif !important;
+      font-size: 12pt !important;
+      line-height: 1.75 !important;
+      color: #111 !important;
+      white-space: pre-wrap !important;
+      word-break: break-word !important;
+    }
   }
 </style>
 </head>
@@ -1027,15 +1032,24 @@ const P2S_ROOTS=new Set([
   'çalış','iste','bekle','bırak','başla','bitir','konuş','otur','kalk'
 ]);
 
+const PRON_NOUN_EXC=new Set([
+  'durum','kurum','sorum','yorum','kısım','adım','resim','mevsim','hüküm','takım',
+  'öğretim','eğitim','bölüm','toplum','üretim','tüketim','film','bilim','çizim',
+  'yudum','akım','hacim','verim','bakım','canım','hanım','tanım','kavram',
+  'deniz','havuz','ceviz','karpuz','yıldız','kılavuz','öküz','sakız','boynuz','omuz','pürüz',
+  'basın','besin','kesin','esin','yasin','mersin','telsiz','hissiz','sessiz'
+]);
+
 function personAgrees(pron,verb){
   if(!verb) return false;
   const v=tl(verb.trim().replace(/^['"\(\[\{]+|['"\)\]\}.,;:!?]+$/g,''));
   if(!v) return false;
+  if(PRON_NOUN_EXC.has(v)) return false;
 
-  const P1S=/(yorum|dım$|dim$|dum$|düm$|tım$|tim$|tum$|tüm$|mışım$|mişim$|muşum$|müşüm$|acağım$|eceğim$|sam$|sem$|malıyım$|meliyim$|[ae]y[ıiuü]m$|[aeıiuü]r[ıiuü]m$|m[ae]m$|[y]?[ıiuü]m$)/;
-  const P2S=/(yorsun|dın$|din$|dun$|dün$|tın$|tin$|tun$|tün$|mışsın$|mişsin$|muşsun$|müşsün$|acaksın$|eceksin$|malısın$|melisin$|sana$|sene$|[aeıiuü]rs[ıiuü]n$|m[ae]zs[ıiuü]n$|s[ıiuü]n$)/;
-  const P3S=/(yor$|dı$|di$|du$|dü$|tı$|ti$|tu$|tü$|mış$|miş$|muş$|müş$|acak$|ecek$|malı$|meli$|s[ıiuü]n$|[aeıiuü]r$|m[ae]z$)/;
-  const P1P=/(yoruz|dık$|dik$|duk$|dük$|tık$|tik$|tuk$|tük$|mışız$|mişiz$|muşuz$|müşüz$|acağız$|eceğiz$|malıyız$|meliyiz$|[ae]l[ıiuü]m$|[aeıiuü]r[ıiuü]z$|m[ae]y[ıiuü]z$|[y]?[ıiuü]z$)/;
+  const P1S=/(yorum|dım$|dim$|dum$|düm$|tım$|tim$|tum$|tüm$|mışım$|mişim$|muşum$|müşüm$|acağım$|eceğim$|sam$|sem$|malıyım$|meliyim$|[ae]y[ıiuü]m$|[aeıiuü]r[ıiuü]m$|m[ae]m$)/;
+  const P2S=/(yorsun|dın$|din$|dun$|dün$|tın$|tin$|tun$|tün$|mışsın$|mişsin$|muşsun$|müşsün$|acaksın$|eceksin$|malısın$|melisin$|sana$|sene$|[aeıiuü]rs[ıiuü]n$|m[ae]zs[ıiuü]n$)/;
+  const P3S=/(yor$|dı$|di$|du$|dü$|tı$|ti$|tu$|tü$|mış$|miş$|muş$|müş$|acak$|ecek$|malı$|meli$|[aeıiuü]r$|m[ae]z$)/;
+  const P1P=/(yoruz|dık$|dik$|duk$|dük$|tık$|tik$|tuk$|tük$|mışız$|mişiz$|muşuz$|müşüz$|acağız$|eceğiz$|malıyız$|meliyiz$|[ae]l[ıiuü]m$|[aeıiuü]r[ıiuü]z$|m[ae]y[ıiuü]z$)/;
   const P2P=/(yorsunuz|dınız$|diniz$|dunuz$|dünüz$|tınız$|tiniz$|tunuz$|tünüz$|mışsınız$|mişsiniz$|muşsunuz$|müşsünüz$|acaksınız$|eceksiniz$|malısınız$|melisiniz$|[y]?[ıiuü]n$|[y]?[ıiuü]n[ıiuü]z$|[ae]s[ıiuü]n[ıiuü]z$|[aeıiuü]rs[ıiuü]n[ıiuü]z$|m[ae]zs[ıiuü]n[ıiuü]z$|s[ıiuü]n[ıiuü]z$)/;
   const P3P=/(yorlar$|dılar$|diler$|dular$|düler$|tılar$|tiler$|tular$|tüler$|mışlar$|mişler$|muşlar$|müşler$|acaklar$|ecekler$|s[ıiuü]nl[ae]r$|[aeıiuü]rl[ae]r$|m[ae]zl[ae]r$|l[ae]r$)/;
 
@@ -1521,7 +1535,7 @@ function analyze(text){
     let dm;
     while((dm = digitInWordRx.exec(text)) !== null){
       const full = dm[0];
-      if(/^[A-ZİĞÜŞÖÇ]{1,2}\d+[A-ZİĞÜŞÖÇ]{1,2}$/.test(full)) continue;
+      if(/^[a-zA-ZığüşöçİĞÜŞÖÇ]{1,2}\d+[a-zA-ZığüşöçİĞÜŞÖÇ]{1,2}$/i.test(full)) continue;
       const cleaned = full.replace(/\d+/g, '');
       if(cleaned.length < 2) continue;
       const digits = full.match(/\d+/g).join('');
@@ -2581,7 +2595,7 @@ function renderRes(issues,isFiltered){
       <div id="otxt">${viewMode==='diff'?renderDiffContent():renderOut(curText,issues)}</div>
     </div>
     <div class="scard">
-      <div class="ctit"><span>Hatalar &amp; Öneriler (${issues.length})</span></div>
+      <div class="ctit"><span id="sideTitle">Hatalar &amp; Öneriler (${issues.length})</span></div>
       <div class="side-search-wrap">
         <input type="text" class="side-search" id="errSearch" placeholder="Hatalarda ara..." value="${esc(searchQuery)}">
         <button type="button" class="side-search-clear" id="errSearchClear" aria-label="Aramayı temizle" style="${searchQuery?'display:block':''}">✕</button>
@@ -2952,33 +2966,42 @@ function renderCurrent(){
   const uOk=document.getElementById('diffUndoBtnOk');
   if(uOk) uOk.addEventListener('click',undo);
 
+  function updateSideSearchResults(){
+  let list=activeFilter?curIssues.filter(i=>i.type===activeFilter):curIssues;
+  if(searchQuery.trim()){
+    const q=tl(searchQuery.trim());
+    list=list.filter(i=>tl(i.word).includes(q)||tl(i.msg).includes(q));
+  }
+  displayedIssues=list;
+  const slist=document.getElementById('slist');
+  if(slist) slist.innerHTML=renderSide(displayedIssues);
+  const sTitle=document.getElementById('sideTitle');
+  if(sTitle) sTitle.textContent=`Hatalar & Öneriler (${displayedIssues.length})`;
+  const sClear=document.getElementById('errSearchClear');
+  if(sClear) sClear.style.display=searchQuery?'block':'none';
+}
+
   const sInput=document.getElementById('errSearch');
   const sClear=document.getElementById('errSearchClear');
   if(sInput){
     sInput.addEventListener('input',e=>{
-      const start=e.target.selectionStart;
-      const end=e.target.selectionEnd;
       searchQuery=e.target.value;
-      renderCurrent();
-      const ni=document.getElementById('errSearch');
-      if(ni){
-        ni.focus();
-        try{ ni.setSelectionRange(start,end); }catch(err){}
-      }
+      updateSideSearchResults();
     });
     sInput.addEventListener('keydown',e=>{
       if(e.key==='Escape'){
         searchQuery='';
-        renderCurrent();
+        e.target.value='';
+        updateSideSearchResults();
       }
     });
   }
   if(sClear){
     sClear.addEventListener('click',()=>{
       searchQuery='';
-      renderCurrent();
       const ni=document.getElementById('errSearch');
-      if(ni) ni.focus();
+      if(ni){ ni.value=''; ni.focus(); }
+      updateSideSearchResults();
     });
   }
 }
@@ -3359,6 +3382,7 @@ function openExportModal(){
 }
 function closeExportModal(){
   if(exportModal) exportModal.style.display='none';
+  if(toolsBtn) toolsBtn.focus();
 }
 
 document.getElementById('downBtn').addEventListener('click',openExportModal);
@@ -3485,7 +3509,28 @@ function printCleanDocument(){
     showToast('Yazdırılacak metin bulunamadı.');
     return;
   }
+  let pDoc=document.getElementById('printDoc');
+  if(!pDoc){
+    pDoc=document.createElement('div');
+    pDoc.id='printDoc';
+    const wrap=document.querySelector('.wrap');
+    if(wrap) wrap.appendChild(pDoc);
+  }
+  if(pDoc) pDoc.textContent=val;
   window.print();
+}
+if(typeof window!=='undefined'&&window.addEventListener){
+  window.addEventListener('beforeprint',()=>{
+    let pDoc=document.getElementById('printDoc');
+    if(!pDoc){
+      pDoc=document.createElement('div');
+      pDoc.id='printDoc';
+      const wrap=document.querySelector('.wrap');
+      if(wrap) wrap.appendChild(pDoc);
+    }
+    const el=document.getElementById('inp');
+    if(pDoc&&el) pDoc.textContent=el.value;
+  });
 }
 const printBtn=document.getElementById('printBtn');
 if(printBtn) printBtn.addEventListener('click',printCleanDocument);
@@ -3496,13 +3541,18 @@ if(expPrint) expPrint.addEventListener('click',printCleanDocument);
 let targetConfig=null;
 try{
   const rawTarget=localStorage.getItem('ty_target');
-  if(rawTarget) targetConfig=JSON.parse(rawTarget);
-}catch(e){}
+  if(rawTarget){
+    const parsed=JSON.parse(rawTarget);
+    if(parsed&&typeof parsed.count==='number'&&parsed.count>0&&!isNaN(parsed.count)){
+      targetConfig=parsed;
+    }
+  }
+}catch(e){targetConfig=null;}
 
 function updateTargetDisplay(wCount,cCount){
   const btn=document.getElementById('targetBtn');
   if(!btn) return;
-  if(!targetConfig||!targetConfig.count){
+  if(!targetConfig||typeof targetConfig.count!=='number'||targetConfig.count<=0||isNaN(targetConfig.count)){
     btn.textContent='🎯 Hedef Belirle';
     btn.className='target-badge';
     btn.title='Kelime veya karakter hedefi belirle';
@@ -3518,7 +3568,7 @@ function updateTargetDisplay(wCount,cCount){
     current=isWord?words:text.length;
   }
   const goal=targetConfig.count;
-  const pct=Math.round((current/goal)*100);
+  const pct=goal>0?Math.round((current/goal)*100):0;
   const unitLabel=isWord?'kelime':'karakter';
 
   btn.textContent=`🎯 ${current.toLocaleString('tr-TR')} / ${goal.toLocaleString('tr-TR')} ${unitLabel} (%${pct})`;
@@ -3659,7 +3709,7 @@ kbdBtn.addEventListener('click',()=>{
   kbdModal.style.display='flex';
   if(kbdClose) kbdClose.focus();
 });
-kbdClose.addEventListener('click',()=>kbdModal.style.display='none');
+kbdClose.addEventListener('click',()=>{kbdModal.style.display='none';if(kbdBtn)kbdBtn.focus();});
 kbdModal.addEventListener('click',e=>{if(e.target===kbdModal)kbdModal.style.display='none';});
 
 document.querySelectorAll('.info-tip').forEach(tip=>{
@@ -3723,6 +3773,7 @@ function openDictModal(){
 }
 function closeDictModal(){
   dictModal.style.display='none';
+  if(dictBtn) dictBtn.focus();
 }
 if(dictBtn) dictBtn.addEventListener('click',openDictModal);
 if(dictClose) dictClose.addEventListener('click',closeDictModal);
@@ -3788,7 +3839,6 @@ if(dictImportBtn&&dictFileInp){
   dictImportBtn.addEventListener('click',()=>dictFileInp.click());
   dictFileInp.addEventListener('change',e=>{
     const f=e.target.files[0];
-    dictFileInp.value='';
     if(!f) return;
     const reader=new FileReader();
     reader.onload=evt=>{
@@ -3821,7 +3871,13 @@ if(dictImportBtn&&dictFileInp){
         showToast(addedCount>0?`📥 ${cleaned.length} kelime işlendi (${addedCount} yeni kelime eklendi).`:`📥 ${cleaned.length} kelime işlendi (hepsi zaten sözlükte vardı).`);
       }catch(err){
         showToast('❌ Sözlük dosyası okunamadı.');
+      }finally{
+        dictFileInp.value='';
       }
+    };
+    reader.onerror=()=>{
+      dictFileInp.value='';
+      showToast('❌ Dosya okunamadı.');
     };
     reader.readAsText(f,'UTF-8');
   });
@@ -3885,6 +3941,7 @@ function toggleFindBar(open){
   if(!findBar) return;
   const show=typeof open==='boolean'?open:findBar.style.display==='none';
   if(show&&typeof toggleToolsMenu==='function') toggleToolsMenu(false);
+  if(show&&viewMode==='diff'){viewMode='text';renderCurrent();}
   findBar.style.display=show?'flex':'none';
   if(findToggleBtn){
     findToggleBtn.setAttribute('aria-expanded',String(show));

@@ -1014,6 +1014,35 @@ it('computeWordDiff çok büyük metinlerde bellek hatası fırlatmadan güvenli
   assert(diff.length > 0, 'fark üretilmelidir');
 });
 
+console.log('\n--- 25. Zamir Bağlacı İsim Ayrımı & Küçük Harfli Alfanumerik Kısaltmalar ---');
+it('personAgrees durum, deniz, havuz gibi isimleri fiil saymamalıdır', () => {
+  assert.strictEqual(engine.personAgrees('ben', 'durum'), false, 'durum bir şahıs fiili değildir');
+  assert.strictEqual(engine.personAgrees('ben', 'resim'), false, 'resim bir şahıs fiili değildir');
+  assert.strictEqual(engine.personAgrees('biz', 'deniz'), false, 'deniz bir şahıs fiili değildir');
+  assert.strictEqual(engine.personAgrees('biz', 'havuz'), false, 'havuz bir şahıs fiili değildir');
+  assert.strictEqual(engine.personAgrees('siz', 'basın'), false, 'basın bir şahıs fiili değildir');
+  
+  const res1 = engine.analyze('bizde deniz harika görünüyor.');
+  assert(!res1.some(r => r.word === 'bizde' && r.type === 'gram'), '"bizde deniz" cümlesinde "bizde" kesin dilbilgisi hatası sayılmamalıdır');
+
+  const res2 = engine.analyze('bende durum kritik.');
+  assert(!res2.some(r => r.word === 'bende' && r.type === 'gram'), '"bende durum" cümlesinde "bende" kesin dilbilgisi hatası sayılmamalıdır');
+
+  const res3 = engine.analyze('bende geldim.');
+  assert(res3.some(r => r.word === 'bende' && r.suggestions.includes('ben de')), '"bende geldim" cümlesinde bağlaç uyarısı verilmelidir');
+});
+
+it('Küçük harfli alfanumerik kısaltmalar (b2b, b2c, p2p, h2o) yanlışlıkla yazım hatası sayılmamalıdır', () => {
+  const res = engine.analyze('b2b ve b2c pazaryeri sisteminde p2p transferi ve h2o molekülü.');
+  assert(!res.some(r => r.word === 'b2b'), 'b2b yazım hatası sayılmamalıdır');
+  assert(!res.some(r => r.word === 'b2c'), 'b2c yazım hatası sayılmamalıdır');
+  assert(!res.some(r => r.word === 'p2p'), 'p2p yazım hatası sayılmamalıdır');
+  assert(!res.some(r => r.word === 'h2o'), 'h2o yazım hatası sayılmamalıdır');
+
+  const typoRes = engine.analyze('b8ugün eve gittim.');
+  assert(typoRes.some(r => r.word === 'b8ugün' && r.suggestions.includes('bugün')), 'b8ugün -> bugün hatası yakalanmalıdır');
+});
+
 console.log(`\n================================`);
 console.log(`Sonuç: ${passed} Başarılı, ${failed} Hatalı`);
 console.log(`================================\n`);
