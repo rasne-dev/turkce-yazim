@@ -1043,6 +1043,31 @@ it('Küçük harfli alfanumerik kısaltmalar (b2b, b2c, p2p, h2o) yanlışlıkla
   assert(typoRes.some(r => r.word === 'b8ugün' && r.suggestions.includes('bugün')), 'b8ugün -> bugün hatası yakalanmalıdır');
 });
 
+console.log('\n--- 26. Arama Boşluk Duyarlılığı, BOM Temizliği & Harf Düzeni İyileştirmeleri ---');
+it('findAndReplace başta veya sonda boşluk içeren ifadeleri tam eşleşmeyle bulmalıdır', () => {
+  const text = 'model ve modern ve de demo.';
+  const res = engine.findAndReplace(text, ' de ', ' dA ', true);
+  assert.strictEqual(res.count, 1, 'Yalnızca bağımsız " de " ifadesi eşleşmelidir');
+  assert.strictEqual(res.text, 'model ve modern ve dA demo.', 'Sadece bağımsız " de " değiştirilmelidir');
+});
+
+it('BOM içeren metin dosyalarında ilk kelimenin büyük harf denetimi doğru çalışmalıdır', () => {
+  let text = '\uFEFFtürkiye büyük bir ülkedir.';
+  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+  const res = engine.analyze(text);
+  assert(res.some(r => r.word === 't' && r.suggestions.includes('T')), 'BOM temizlendikten sonra cümle başı büyük harf önerilmelidir');
+});
+
+it('countLabel seçili metin verildiğinde seçilen kelime ve karakter sayısını raporlamalıdır', () => {
+  const full = 'Türkçe yazım denetimi motoru çok hızlı çalışmaktadır.';
+  const sel = 'çok hızlı çalışmaktadır.';
+  const labelNoSel = engine.countLabel(full);
+  assert(!labelNoSel.includes('Seçilen:'), 'Seçim yokken Seçilen ibaresi bulunmamalıdır');
+  
+  const labelWithSel = engine.countLabel(full, sel);
+  assert(labelWithSel.includes('Seçilen: 3 kelime · 24 karakter'), 'Seçili kelime ve karakter doğru hesaplanmalıdır');
+});
+
 console.log(`\n================================`);
 console.log(`Sonuç: ${passed} Başarılı, ${failed} Hatalı`);
 console.log(`================================\n`);

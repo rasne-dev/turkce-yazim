@@ -112,6 +112,11 @@
   .score-medium{background:rgba(234,179,8,.15);color:#ca8a04}
   .score-hard{background:rgba(249,115,22,.15);color:#ea580c}
   .score-veryhard{background:rgba(239,68,68,.15);color:#dc2626}
+  body.dark .score-veryeasy{background:rgba(74,222,128,.18);color:#4ade80}
+  body.dark .score-easy{background:rgba(96,165,250,.18);color:#60a5fa}
+  body.dark .score-medium{background:rgba(250,204,21,.18);color:#facc15}
+  body.dark .score-hard{background:rgba(251,146,60,.18);color:#fb923c}
+  body.dark .score-veryhard{background:rgba(248,113,113,.18);color:#f87171}
   .read-meter{width:100%;height:5px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:.4rem}
   .read-meter-fill{height:100%;border-radius:3px;transition:width .35s ease,background .35s ease;width:0%}
   .info-tip{position:relative;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:var(--slate);margin-left:.25rem;font-size:.78rem;border-radius:50%}
@@ -182,7 +187,7 @@
   .okcard{background:var(--card-bg);border-radius:var(--r);box-shadow:var(--shadow);padding:3rem 2rem;text-align:center;border:1px solid var(--border)}
 
   /* popup */
-  #pop{position:fixed;background:var(--card-bg);border-radius:12px;box-shadow:var(--shadow-lg);padding:1.15rem;width:280px;max-width:calc(100vw - 24px);z-index:9999;border:1px solid var(--border)}
+  #pop{position:fixed;background:var(--card-bg);border-radius:12px;box-shadow:var(--shadow-lg);padding:1.15rem;width:280px;max-width:calc(100vw - 24px);max-height:calc(100vh - 2rem);overflow-y:auto;z-index:9999;border:1px solid var(--border)}
   .ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem}
   .pb{font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:.2rem .48rem;border-radius:4px}
   .pb.spell{background:var(--red-bg);color:var(--red)}.pb.gram{background:var(--pur-bg);color:var(--purp)}
@@ -329,6 +334,8 @@
   .target-badge.achieved{background:var(--green-bg);color:var(--green);border-color:rgba(22,163,74,.3)}
   .target-badge.exceeded{background:var(--red-bg);color:var(--red);border-color:rgba(220,38,38,.3)}
 
+  #printDoc{display:none}
+
   /* print & document styles */
   @media print {
     body { background: #fff !important; color: #111 !important; font-size: 12pt !important; line-height: 1.75 !important; }
@@ -394,11 +401,11 @@
         <button class="btn btn-g btn-icon" id="redoBtn" disabled title="İleri al (Ctrl+Y)" aria-label="İleri al">↪</button>
       </div>
       <div class="case-wrap">
-        <button class="btn btn-g" id="caseBtn" title="Türkçe uyumlu harf düzeni (İ/i, I/ı)" aria-haspopup="true" aria-expanded="false">Aa Harf Düzeni ▾</button>
+        <button class="btn btn-g" id="caseBtn" title="Büyük/küçük harf düzeni" aria-haspopup="true" aria-expanded="false">Aa Harf Düzeni ▾</button>
         <div class="dropdown-menu" id="caseMenu" style="display:none;left:0;right:auto;min-width:220px">
           <button type="button" class="dropdown-item" data-case="sentence">🔤 Tümce düzeni (Cümle başı büyük)</button>
-          <button type="button" class="dropdown-item" data-case="lower">🔡 tümü küçük harf (i / ı uyumlu)</button>
-          <button type="button" class="dropdown-item" data-case="upper">🔠 TÜMÜ BÜYÜK HARF (İ / I uyumlu)</button>
+          <button type="button" class="dropdown-item" data-case="lower">🔡 Tümü küçük harf</button>
+          <button type="button" class="dropdown-item" data-case="upper">🔠 TÜMÜ BÜYÜK HARF</button>
           <button type="button" class="dropdown-item" data-case="title">✨ Başlık Düzeni (Kelime Başı Büyük)</button>
         </div>
       </div>
@@ -2341,12 +2348,18 @@ function showToast(msg){
 const HC={spell:'h-sp',gram:'h-gr',warn:'h-wn',punct:'h-pu',suggest:'h-su'};
 const LBL={spell:'Yazım Hatası',gram:'Dilbilgisi',warn:'Kontrol Edin',punct:'Noktalama',suggest:'Öneri'};
 
-function countLabel(t){
+function countLabel(t,selText){
   const chars=t.length;
   const noSpace=t.replace(/\s/g,'').length;
   const words=t.trim()?(t.trim().match(/[\wığüşöçİĞÜŞÖÇ]+(?:['\u2019][\wığüşöçİĞÜŞÖÇ]+)*/g)||[]).length:0;
   if(typeof updateTargetDisplay==='function') updateTargetDisplay(words,chars);
-  return chars.toLocaleString('tr-TR')+' karakter (boşluksuz: '+noSpace.toLocaleString('tr-TR')+') · '+words.toLocaleString('tr-TR')+' kelime';
+  let base=chars.toLocaleString('tr-TR')+' karakter (boşluksuz: '+noSpace.toLocaleString('tr-TR')+') · '+words.toLocaleString('tr-TR')+' kelime';
+  if(selText&&selText.trim()){
+    const sChars=selText.length;
+    const sWords=(selText.trim().match(/[\wığüşöçİĞÜŞÖÇ]+(?:['\u2019][\wığüşöçİĞÜŞÖÇ]+)*/g)||[]).length;
+    base+=` (Seçilen: ${sWords.toLocaleString('tr-TR')} kelime · ${sChars.toLocaleString('tr-TR')} karakter)`;
+  }
+  return base;
 }
 
 function setEditorText(t){
@@ -2502,8 +2515,8 @@ function renderPlainSeg(seg){
   if(!seg) return '';
   const fbEl=document.getElementById('findBar');
   const fiEl=document.getElementById('findInp');
-  const findActive=fbEl&&fbEl.style.display!=='none'&&fiEl&&fiEl.value.trim().length>0;
-  const findVal=findActive?fiEl.value.trim():null;
+  const findActive=fbEl&&fbEl.style.display!=='none'&&fiEl&&fiEl.value.length>0;
+  const findVal=findActive?fiEl.value:null;
 
   function renderRepSeg(sub){
     if(!sub) return '';
@@ -2569,6 +2582,10 @@ function renderRes(issues,isFiltered){
       <div style="color:var(--slate);font-size:.85rem;margin-top:.4rem">Diğer hataları görmek için filtreyi kaldırın.</div>
     </div>`;
     const hasDiff=initialInputText&&initialInputText!==curText;
+    const fbEl=document.getElementById('findBar');
+    const fiEl=document.getElementById('findInp');
+    const findActive=fbEl&&fbEl.style.display!=='none'&&fiEl&&fiEl.value.length>0;
+    const showCleanText=findActive||!!activeRepWord;
     return`<div class="okcard">
       <div style="font-size:2.5rem;margin-bottom:.75rem">✅</div>
       <div style="font-size:1.1rem;font-weight:700;color:var(--green)">Harika! Hata bulunamadı.</div>
@@ -2581,6 +2598,10 @@ function renderRes(issues,isFiltered){
         <button type="button" class="btn btn-g btn-xs" id="diffUndoBtnOk">↩ Geri Al</button>
       </div>
       <div id="otxt">${renderDiffContent()}</div>
+    </div>` : showCleanText ? `
+    <div class="ocard" style="margin-top:1.25rem">
+      <div class="ctit"><span>Denetlenen Metin (Vurgulamalar)</span></div>
+      <div id="otxt">${renderOut(curText,[])}</div>
     </div>` : ''}`;
   }
   return`<div class="rgrid">
@@ -2783,7 +2804,7 @@ document.getElementById('pc').addEventListener('keydown',e=>{
 });
 document.addEventListener('keydown',e=>{
   if(e.key==='Tab'){
-    const modals=[document.getElementById('kbdModal'),document.getElementById('dictModal'),document.getElementById('exportModal'),document.getElementById('targetModal')];
+    const modals=[document.getElementById('pop'),document.getElementById('kbdModal'),document.getElementById('dictModal'),document.getElementById('exportModal'),document.getElementById('targetModal')];
     const openM=modals.find(m=>m&&(m.style.display==='flex'||(m.style.display!=='none'&&m.style.display!=='')));
     if(openM){
       const focusables=Array.from(openM.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex="0"]')).filter(el=>el.offsetParent!==null);
@@ -2975,6 +2996,8 @@ function renderCurrent(){
   displayedIssues=list;
   const slist=document.getElementById('slist');
   if(slist) slist.innerHTML=renderSide(displayedIssues);
+  const otxt=document.getElementById('otxt');
+  if(otxt&&viewMode==='text') otxt.innerHTML=renderOut(curText,displayedIssues);
   const sTitle=document.getElementById('sideTitle');
   if(sTitle) sTitle.textContent=`Hatalar & Öneriler (${displayedIssues.length})`;
   const sClear=document.getElementById('errSearchClear');
@@ -3167,8 +3190,16 @@ if(pasteBtn){
   });
 }
 
-document.getElementById('inp').addEventListener('input',()=>{
-  document.getElementById('cc').textContent=countLabel(document.getElementById('inp').value);
+function updateEditorCount(){
+  const el=document.getElementById('inp');
+  if(!el) return;
+  const sStart=el.selectionStart,sEnd=el.selectionEnd;
+  const sel=typeof sStart==='number'&&typeof sEnd==='number'&&sStart!==sEnd?el.value.slice(sStart,sEnd):null;
+  document.getElementById('cc').textContent=countLabel(el.value,sel);
+}
+document.getElementById('inp').addEventListener('input',updateEditorCount);
+['select','keyup','mouseup','pointerup'].forEach(ev=>{
+  document.getElementById('inp').addEventListener(ev,updateEditorCount);
 });
 document.getElementById('inp').addEventListener('keydown',e=>{
   if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();document.getElementById('chkBtn').click();}
@@ -3231,13 +3262,20 @@ if(caseMenu){
     snapshotUndo();
     const selStart=el.selectionStart,selEnd=el.selectionEnd;
     let nextVal=val;
+    let hasSel=false,convertedLen=0;
     if(typeof selStart==='number'&&typeof selEnd==='number'&&selStart!==selEnd){
       const part=val.slice(selStart,selEnd);
-      nextVal=val.slice(0,selStart)+convertCase(part,mode)+val.slice(selEnd);
+      const conv=convertCase(part,mode);
+      convertedLen=conv.length;
+      hasSel=true;
+      nextVal=val.slice(0,selStart)+conv+val.slice(selEnd);
     } else {
       nextVal=convertCase(val,mode);
     }
     setEditorText(nextVal);
+    if(hasSel){
+      try{el.focus();el.setSelectionRange(selStart,selStart+convertedLen);}catch(e){}
+    }
     run();
     const labels={sentence:'Tümce düzenine',lower:'küçük harfe',upper:'BÜYÜK HARFE',title:'Başlık Düzenine'};
     showToast(`🔤 Metin ${labels[mode]||'yeni düzene'} dönüştürüldü.`);
@@ -3324,9 +3362,11 @@ function handleLoadedFile(file){
   }
   const reader=new FileReader();
   reader.onload=evt=>{
+    let content=String(evt.target.result||'');
+    if(content.charCodeAt(0)===0xFEFF) content=content.slice(1);
     snapshotUndo();
-    setEditorText(evt.target.result);
-    initialInputText=evt.target.result;
+    setEditorText(content);
+    initialInputText=content;
     const dn=document.getElementById('draftNotice');
     if(dn) dn.style.display='none';
     run();
@@ -3840,6 +3880,11 @@ if(dictImportBtn&&dictFileInp){
   dictFileInp.addEventListener('change',e=>{
     const f=e.target.files[0];
     if(!f) return;
+    if(f.size>2*1024*1024){
+      showToast('⚠️ Sözlük dosyası 2 MB\'den küçük olmalıdır.');
+      dictFileInp.value='';
+      return;
+    }
     const reader=new FileReader();
     reader.onload=evt=>{
       try{
@@ -4069,6 +4114,7 @@ try{
   const saved=localStorage.getItem('ty_draft');
   if(saved&&saved.trim()){
     inp.value=saved;
+    initialInputText=saved;
     document.getElementById('cc').textContent=countLabel(saved);
     autoResize.call(inp);
     run();
@@ -4087,7 +4133,7 @@ try{
   }
 }catch(e){}
 if(typeof module!=='undefined'&&module.exports){
-  module.exports={analyze,computeReadability,cleanText,findAndReplace,esc,computeWordDiff,convertCase,normalizeNumberSuffix,SPELL,DEDA,KI,WARNS,personAgrees};
+  module.exports={analyze,computeReadability,cleanText,findAndReplace,esc,computeWordDiff,convertCase,normalizeNumberSuffix,SPELL,DEDA,KI,WARNS,personAgrees,countLabel};
 }
 })();
 </script>
