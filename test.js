@@ -1101,6 +1101,23 @@ it('downloadFile indirme bağlantısını DOM gövdesine eklemeli, tetiklemeli v
   }
 });
 
+console.log('\n--- 28. Akıcılık Uyarısı (Aşırı Uzun Cümle Tespiti) ---');
+it('35 veya daha fazla kelime içeren aşırı uzun cümleler akıcılık uyarısı üretmelidir', () => {
+  const longSentence = "Türkiye'de eğitim alanında yürütülen kapsamlı bilimsel araştırmalar sonucunda ortaya konulan çağdaş pedagojik yaklaşımların okullarda hayata geçirilmesi sürecinde karşılaşılan yapısal güçlüklerin hızla giderilmesi amacıyla öğretmenlerin, okul idarecilerinin, akademisyenlerin ve velilerin ortak bir vizyon doğrultusunda kararlılıkla hareket etmesi gerektiği belirtilmiştir.";
+  const issues = engine.analyze(longSentence);
+  const warn = issues.find(i => i.type === 'warn' && i.msg.includes('aşırı uzun'));
+  assert(warn, '35+ kelimelik cümle için akıcılık uyarısı dönmelidir');
+  assert(warn.msg.includes('38 kelime'), 'Kelime sayısı mesajda belirtilmelidir');
+  assert(warn.word.includes('...'), 'Görüntülenen kelime başlık olarak özetlenmelidir');
+});
+
+it('Makul uzunluktaki (örneğin 15-20 kelimelik) cümlelerde akıcılık uyarısı üretilmemelidir', () => {
+  const normalSentence = 'Milli Eğitim Bakanlığı tarafından yürütülen yeni müfredat çalışmaları ülke genelindeki tüm okullarda başarıyla uygulanmaya devam etmektedir.';
+  const issues = engine.analyze(normalSentence);
+  const warn = issues.find(i => i.type === 'warn' && i.msg.includes('aşırı uzun'));
+  assert(!warn, 'Kısa ve orta uzunluktaki cümlelerde akıcılık uyarısı olmamalıdır');
+});
+
 console.log(`\n================================`);
 console.log(`Sonuç: ${passed} Başarılı, ${failed} Hatalı`);
 console.log(`================================\n`);

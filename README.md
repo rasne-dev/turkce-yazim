@@ -8,6 +8,7 @@
 
 ## 🚀 Yeni Özellikler (v2.2)
 
+- **🌊 Akıcılık Uyarısı & Hızlı Pano Yapıştırma:** 35 kelimeden uzun, takibi zor cümleleri tespit ederek cümlenin bölünmesi yönünde rehberlik sağlar; üst başlık, durum çubuğu ve ipucu alanından tek tıkla pano içeriğini yapıştırır.
 - **🎨 Özel Uygulama İkonu & PWA Desteği:** Vektörel SVG ve yüksek çözünürlüklü uygulama ikonları (`favicon.svg`, `favicon.ico`, `apple-touch-icon`, 192px/512px ikonlar) ve `manifest.json` entegrasyonu; mobilde ve masaüstünde tarayıcıdan tek tıkla "Uygulama Olarak Yükle" (PWA / Bağımsız Uygulama) özelliği.
 - **📖 Kişisel Sözlük (Özel Terim & Ad Hafızası):** TDK'de bulunmayan özel adları, teknik terimleri (örn. marka/yazılım adları) hata penceresinden tek tıkla sözlüğünüze ekleyin; `localStorage` ile cihazınızda saklansın ve bir daha hata olarak görünmesin. Üst çubuktan sözlüğü dilediğiniz gibi yönetin.
 - **✨ Değişiklikleri Göster (Düzeltme Özeti / Diff):** "⚡ Tümünü Düzelt" uygulandığında hangi kelimelerin neye dönüştürüldüğünü şeffaf bir özet banner'ı ve açılır diff dökümüyle gösterir.
