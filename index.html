@@ -2469,6 +2469,8 @@ function updateUndoRedoBtns(){
   if(r) r.disabled=redoStack.length===0;
 }
 function snapshotUndo(clearRedo=true){
+  const el=document.getElementById('inp');
+  if(el&&el.value!==curText) curText=el.value;
   if(!initialInputText) initialInputText=curText;
   undoStack.push({text:curText,ignored:new Set(ignored)});
   if(undoStack.length>50) undoStack.shift();
@@ -2570,7 +2572,7 @@ function renderSide(issues){
     const qFixBtn=canQuickFix?`<button type="button" class="ii-qbtn fix" title="${qFixTitle}" aria-label="Tek tıkla düzelt" onclick="TY.qfix(event,${i})">✓</button>`:'';
     const qIgnBtn=`<button type="button" class="ii-qbtn ign" title="Yoksay" aria-label="Yoksay" onclick="TY.qign(event,${i})">✕</button>`;
     return`<div class="ii ${iss.type}" role="listitem" title="${esc(tipText)}">
-      <div class="ii-top"><div class="iw" tabindex="0" role="button" aria-label="${esc(LBL[iss.type])}: ${esc(w)} — ${esc(iss.msg)}" onclick="TY.pop(null,${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();TY.pop(null,${i})}">${esc(w)}</div><div class="ii-acts">${qFixBtn}${qIgnBtn}</div></div><div class="im" tabindex="0" role="button" aria-label="${esc(iss.msg)}" onclick="TY.pop(null,${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();TY.pop(null,${i})}">${esc(iss.msg)}</div>${d}${s}</div>`;
+      <div class="ii-top"><div class="iw" tabindex="0" role="button" aria-label="${esc(LBL[iss.type])}: ${esc(w)} — ${esc(iss.msg)}" onclick="TY.pop(null,${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();TY.pop(null,${i})}">${esc(w)}</div><div class="ii-acts">${qFixBtn}${qIgnBtn}</div></div><div class="im" onclick="TY.pop(null,${i})">${esc(iss.msg)}</div>${d}${s}</div>`;
   }).join('');
 }
 
@@ -3135,11 +3137,13 @@ function copyEditorText(btn){
     showToast('Kopyalanacak metin bulunamadı.');
     return;
   }
-  const prevText=btn?btn.textContent:'⎘ Kopyala';
+  const btns=[cpyBtn,cpyBtnTop].filter(Boolean);
   const showResult=ok=>{
-    if(btn) btn.textContent=ok?'✓ Kopyalandı!':'✕ Kopyalanamadı';
+    btns.forEach(b=>{ b.textContent=ok?'✓ Kopyalandı!':'✕ Kopyalanamadı'; });
     if(ok) showToast('📋 Metin panoya kopyalandı.');
-    if(btn) setTimeout(()=>{ btn.textContent=prevText; },2000);
+    setTimeout(()=>{
+      btns.forEach(b=>{ b.textContent='⎘ Kopyala'; });
+    },2000);
   };
   const legacyCopy=()=>{
     try{
@@ -3399,8 +3403,11 @@ function downloadFile(content,filename,mimeType){
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
   a.download=filename;
+  a.style.display='none';
+  document.body.appendChild(a);
   a.click();
-  setTimeout(()=>URL.revokeObjectURL(a.href),100);
+  document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 }
 
 const exportModal=document.getElementById('exportModal');
@@ -4133,7 +4140,7 @@ try{
   }
 }catch(e){}
 if(typeof module!=='undefined'&&module.exports){
-  module.exports={analyze,computeReadability,cleanText,findAndReplace,esc,computeWordDiff,convertCase,normalizeNumberSuffix,SPELL,DEDA,KI,WARNS,personAgrees,countLabel};
+  module.exports={analyze,computeReadability,cleanText,findAndReplace,esc,computeWordDiff,convertCase,normalizeNumberSuffix,SPELL,DEDA,KI,WARNS,personAgrees,countLabel,downloadFile};
 }
 })();
 </script>

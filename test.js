@@ -23,6 +23,7 @@ const mockEl = () => ({
   classList: { add: () => {}, remove: () => {}, toggle: () => false },
   addEventListener: () => {},
   appendChild: () => {},
+  removeChild: () => {},
   setAttribute: () => {},
   focus: () => {},
   click: () => {},
@@ -53,6 +54,7 @@ const sandbox = {
   navigator: {},
   setTimeout: () => {},
   clearTimeout: () => {},
+  Blob: typeof Blob !== 'undefined' ? Blob : function(parts, opts) { this.parts = parts; this.opts = opts; },
   URL: { createObjectURL: () => '', revokeObjectURL: () => {} },
   FileReader: function() { this.readAsText = () => {}; },
   module: { exports: {} },
@@ -1066,6 +1068,37 @@ it('countLabel seçili metin verildiğinde seçilen kelime ve karakter sayısın
   
   const labelWithSel = engine.countLabel(full, sel);
   assert(labelWithSel.includes('Seçilen: 3 kelime · 24 karakter'), 'Seçili kelime ve karakter doğru hesaplanmalıdır');
+});
+
+console.log('\n--- 27. Dosya İndirme Güvenliği (DOM Döngüsü) & Metin Temizleme Kararlılığı ---');
+it('downloadFile indirme bağlantısını DOM gövdesine eklemeli, tetiklemeli ve kaldırmalıdır', () => {
+  let appended = false;
+  let clicked = false;
+  let removed = false;
+  
+  const originalCreateEl = sandbox.document.createElement;
+  const originalAppend = sandbox.document.body.appendChild;
+  const originalRemove = sandbox.document.body.removeChild;
+  
+  sandbox.document.createElement = (tag) => ({
+    style: {},
+    click: () => { clicked = true; },
+    download: '',
+    href: ''
+  });
+  sandbox.document.body.appendChild = (el) => { appended = true; };
+  sandbox.document.body.removeChild = (el) => { removed = true; };
+  
+  try {
+    engine.downloadFile('örnek metin', 'test.txt', 'text/plain');
+    assert(appended, 'İndirme etiketi document.body içine eklenmelidir (Firefox/Safari uyumu)');
+    assert(clicked, 'İndirme tetiklenmelidir');
+    assert(removed, 'İndirme etiketi bellek sızıntısını önlemek için kaldırılmalıdır');
+  } finally {
+    sandbox.document.createElement = originalCreateEl;
+    sandbox.document.body.appendChild = originalAppend;
+    sandbox.document.body.removeChild = originalRemove;
+  }
 });
 
 console.log(`\n================================`);
