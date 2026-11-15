@@ -1,7 +1,10 @@
-const CACHE_NAME = 'turkce-yazim-v2.3.5';
+const CACHE_NAME = 'turkce-yazim-v2.3.6';
 const ASSETS = [
   './',
   './index.html',
+  './styles.css',
+  './engine.js',
+  './app.js',
   './manifest.json',
   './favicon.svg',
   './favicon.ico',

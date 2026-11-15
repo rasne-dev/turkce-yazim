@@ -5,54 +5,126 @@ const assert = require('assert');
 
 console.log('🧪 TürkçeYazım Test Paketi Başlatılıyor...\n');
 
-// 1. index.html dosyasını oku ve script içeriğini çıkar
+// 1. Modüler motor (engine.js) ve arayüz (app.js) dosyalarını oku
 const htmlPath = path.join(__dirname, 'index.html');
-const htmlContent = fs.readFileSync(htmlPath, 'utf8');
+const enginePath = path.join(__dirname, 'engine.js');
+const appPath = path.join(__dirname, 'app.js');
+const engineCode = fs.readFileSync(enginePath, 'utf8');
+const appCode = fs.readFileSync(appPath, 'utf8');
 
-const scriptMatch = htmlContent.match(/<script>([\s\S]*?)<\/script>/i);
-if (!scriptMatch) {
-  console.error('❌ index.html içinde <script> bloğu bulunamadı!');
-  process.exit(1);
+// 2. Durumlu (stateful) DOM Mock ortamı
+const elements = new Map();
+const storageMap = new Map();
+
+function createMockEl(tag = 'DIV', id = '') {
+  const classSet = new Set();
+  const listeners = new Map();
+  const attrs = {};
+  let _innerHTML = '';
+  const el = {
+    id,
+    tagName: String(tag).toUpperCase(),
+    style: { cssText: '' },
+    dataset: {},
+    children: [],
+    value: '',
+    textContent: '',
+    scrollHeight: 100,
+    files: [],
+    disabled: false,
+    get innerHTML() { return _innerHTML; },
+    set innerHTML(v) {
+      _innerHTML = String(v);
+      if (!_innerHTML) this.children = [];
+    },
+    get className() { return Array.from(classSet).join(' '); },
+    set className(v) {
+      classSet.clear();
+      String(v || '').split(/\s+/).filter(Boolean).forEach(c => classSet.add(c));
+    },
+    classList: {
+      add: (...cls) => cls.forEach(c => classSet.add(c)),
+      remove: (...cls) => cls.forEach(c => classSet.delete(c)),
+      contains: (c) => classSet.has(c),
+      toggle: (c, force) => {
+        if (typeof force === 'boolean') {
+          if (force) classSet.add(c); else classSet.delete(c);
+          return force;
+        }
+        if (classSet.has(c)) { classSet.delete(c); return false; }
+        classSet.add(c); return true;
+      }
+    },
+    addEventListener: (type, fn) => {
+      if (!listeners.has(type)) listeners.set(type, []);
+      listeners.get(type).push(fn);
+    },
+    appendChild: (node) => { if (node) el.children.push(node); return node; },
+    append: (...nodes) => { nodes.forEach(n => { if (n) el.children.push(n); }); },
+    removeChild: (node) => {
+      const idx = el.children.indexOf(node);
+      if (idx !== -1) el.children.splice(idx, 1);
+    },
+    setAttribute: (k, v) => { attrs[k] = String(v); },
+    getAttribute: (k) => (k in attrs ? attrs[k] : null),
+    querySelector: () => null,
+    querySelectorAll: () => [],
+    closest: () => null,
+    getBoundingClientRect: () => ({ left: 0, top: 0, right: 0, bottom: 0 }),
+    scrollIntoView: () => {},
+    select: () => {},
+    setSelectionRange: () => {},
+    focus: () => {},
+    click: () => {
+      const ev = {
+        type: 'click',
+        target: el,
+        currentTarget: el,
+        preventDefault: () => {},
+        stopPropagation: () => {},
+        closest: () => null
+      };
+      if (typeof el.onclick === 'function') el.onclick(ev);
+      (listeners.get('click') || []).forEach(fn => fn.call(el, ev));
+    }
+  };
+  return el;
 }
 
-const scriptCode = scriptMatch[1];
+const initiallyHiddenIds = [
+  'findBar', 'pop', 'kbdModal', 'dictModal', 'exportModal', 'targetModal',
+  'statsBar', 'res', 'diffBanner', 'draftNotice', 'fxMenu', 'caseMenu', 'toolsMenu'
+];
+for (const hid of initiallyHiddenIds) {
+  const el = createMockEl('DIV', hid);
+  el.style.display = 'none';
+  elements.set(hid, el);
+}
 
-// 2. Mock ortamı
-const mockEl = () => ({
-  style: {},
-  classList: { add: () => {}, remove: () => {}, toggle: () => false },
-  addEventListener: () => {},
-  appendChild: () => {},
-  removeChild: () => {},
-  setAttribute: () => {},
-  focus: () => {},
-  click: () => {},
-  value: '',
-  textContent: '',
-  innerHTML: '',
-  scrollHeight: 100,
-  files: []
-});
-
-const defaultEl = mockEl();
-
+const bodyEl = createMockEl('BODY', 'body');
 const sandbox = {
   window: {},
   document: {
-    getElementById: () => mockEl(),
+    getElementById: (id) => {
+      if (!elements.has(id)) elements.set(id, createMockEl('DIV', id));
+      return elements.get(id);
+    },
+    querySelector: () => null,
     querySelectorAll: () => [],
-    createElement: () => mockEl(),
+    createElement: (tag) => createMockEl(tag),
     addEventListener: () => {},
     activeElement: null,
-    body: mockEl()
+    body: bodyEl
   },
   localStorage: {
-    getItem: () => null,
-    setItem: () => {},
-    removeItem: () => {}
+    getItem: (k) => (storageMap.has(k) ? storageMap.get(k) : null),
+    setItem: (k, v) => { storageMap.set(k, String(v)); },
+    removeItem: (k) => { storageMap.delete(k); }
   },
   navigator: {},
-  setTimeout: () => {},
+  innerWidth: 1280,
+  innerHeight: 800,
+  setTimeout: () => 0,
   clearTimeout: () => {},
   Blob: typeof Blob !== 'undefined' ? Blob : function(parts, opts) { this.parts = parts; this.opts = opts; },
   URL: { createObjectURL: () => '', revokeObjectURL: () => {} },
@@ -64,7 +136,8 @@ sandbox.window = sandbox;
 sandbox.globalThis = sandbox;
 
 try {
-  vm.runInNewContext(scriptCode, sandbox);
+  vm.runInNewContext(engineCode, sandbox);
+  vm.runInNewContext(appCode, sandbox);
 } catch (e) {
   console.error('Script yüklenirken hata:', e);
   process.exit(1);
@@ -73,7 +146,7 @@ try {
 const engine = sandbox.module.exports;
 assert(engine && engine.analyze, 'analyze fonksiyonu module.exports içinde bulunmalıdır');
 
-console.log('✅ index.html motoru başarıyla yüklendi.');
+console.log('✅ engine.js ve app.js modülleri başarıyla yüklendi.');
 
 let passed = 0;
 let failed = 0;
@@ -1116,6 +1189,320 @@ it('Makul uzunluktaki (örneğin 15-20 kelimelik) cümlelerde akıcılık uyarı
   const issues = engine.analyze(normalSentence);
   const warn = issues.find(i => i.type === 'warn' && i.msg.includes('aşırı uzun'));
   assert(!warn, 'Kısa ve orta uzunluktaki cümlelerde akıcılık uyarısı olmamalıdır');
+});
+
+console.log('\n--- 29. Uyarı Seçenekleri (birebir / Büyük Harf Uyumu) & Kelime Başı Kesme Sınırı ---');
+it('"birebir" ve cümle başı "Birebir" / "İste" uyarılarında optA.val doğru yönü ve büyük harfi korumalıdır', () => {
+  const res1 = engine.analyze('Birebir görüşme yaptık.');
+  const w1 = res1.find(r => r.word === 'Birebir');
+  assert(w1 && w1.type === 'warn', 'Birebir uyarısı bulunmalıdır');
+  assert.strictEqual(w1.optA.val, 'Bire bir', 'optA.val büyük harfi korumalıdır');
+  assert.strictEqual(w1.optB.val, null, 'optB.val bitişik bırakma için null olmalıdır');
+  assert.strictEqual(w1.guess && w1.guess.opt, 'A', 'Yüz yüze bağlamında "bire bir" (A) önerilmelidir');
+
+  const res2 = engine.analyze('Bu ilaç baş ağrısına birebir.');
+  const w2 = res2.find(r => r.word === 'birebir');
+  assert(w2 && w2.guess && w2.guess.opt === 'B', 'İlaç/şifa bağlamında "birebir" (B) önerilmelidir');
+
+  const res3 = engine.analyze('İste orada bekliyor.');
+  const w3 = res3.find(r => r.word === 'İste');
+  assert(w3 && w3.optA.val === 'İşte', 'Cümle başı İste için optA.val "İşte" olmalıdır');
+  assert.strictEqual(w3.suggestions[0], 'İşte', 'suggestions[0] da "İşte" olmalıdır');
+});
+
+it('mp3te ve kat2de gibi alfanumerik ifadelerde kelime ortasından kesme önerilmemeli; 2024te ve TDKda yakalanmalıdır', () => {
+  const res = engine.analyze('Bu mp3te ve kat2de sorun yok; 2024te ve TDKda konuşuldu.');
+  assert(!res.some(r => r.word === '3te' || r.word === '2de'), 'Kelime ortasındaki rakam+ek kesme hatası sayılmamalıdır');
+  const y = res.find(r => r.word === '2024te');
+  const t = res.find(r => r.word === 'TDKda');
+  assert(y && y.suggestions[0] === "2024'te", "2024te -> 2024'te olmalıdır");
+  assert(t && t.suggestions[0] === "TDK'da", "TDKda -> TDK'da olmalıdır");
+});
+
+console.log('\n--- 30. Modüler Mimari, WARNS ltext Eşleşmesi & DOM/UI Etkileşim Testleri ---');
+it('styles.css, engine.js, app.js dosyaları mevcut olmalı ve index.html ile sw.js içinde tanımlanmalıdır', () => {
+  const htmlContent = fs.readFileSync(htmlPath, 'utf8');
+  const swContent = fs.readFileSync(path.join(__dirname, 'sw.js'), 'utf8');
+  assert(fs.existsSync(path.join(__dirname, 'styles.css')), 'styles.css bulunmalıdır');
+  assert(fs.existsSync(enginePath), 'engine.js bulunmalıdır');
+  assert(fs.existsSync(appPath), 'app.js bulunmalıdır');
+  assert(htmlContent.includes('href="styles.css"'), 'index.html styles.css bağlantısı içermelidir');
+  assert(htmlContent.includes('src="engine.js"'), 'index.html engine.js scripti içermelidir');
+  assert(htmlContent.includes('src="app.js"'), 'index.html app.js scripti içermelidir');
+  assert(!/<style>/i.test(htmlContent), 'index.html içinde satır içi <style> bloğu kalmamalıdır');
+  assert(swContent.includes("'./styles.css'") && swContent.includes("'./engine.js'") && swContent.includes("'./app.js'"), 'sw.js modül dosyalarını önbelleğe almalıdır');
+});
+
+it('WARNS kuralları ltext üzerinden tamamı büyük harfli ve Türkçe İ/I içeren ifadeleri yakalamalıdır', () => {
+  const cases = [
+    { text: 'İSTE orada.', word: 'İSTE', optA: 'İŞTE', guessOpt: 'A' },
+    { text: 'BİREBİR görüşme yaptık.', word: 'BİREBİR', optA: 'BİRE BİR', guessOpt: 'A' },
+    { text: 'BİR TAKIM sorunlar çıktı.', word: 'BİR TAKIM', optA: 'BİRTAKIM', guessOpt: 'A' },
+    { text: 'SİZDE para var.', word: 'SİZDE', optA: 'SİZ DE', guessOpt: 'B' },
+    { text: 'MASADA Kİ kitap duruyor.', word: 'MASADA Kİ', optA: 'MASADAKİ', guessOpt: 'A' }
+  ];
+  for (const c of cases) {
+    const res = engine.analyze(c.text);
+    const item = res.find(r => r.word === c.word && r.type === 'warn');
+    assert(item, `"${c.text}" içinde "${c.word}" uyarısı tespit edilmelidir`);
+    assert.strictEqual(item.optA.val, c.optA, `"${c.word}" için optA.val "${c.optA}" olmalıdır`);
+    if (c.guessOpt) assert.strictEqual(item.guess && item.guess.opt, c.guessOpt, `"${c.word}" için tahmin yönü ${c.guessOpt} olmalıdır`);
+  }
+});
+
+it('#findToggleBtn ve #findCloseBtn ile #findBar görünürlüğü ve .open sınıfı senkronize açılıp kapanmalıdır', () => {
+  const findBar = sandbox.document.getElementById('findBar');
+  const findToggleBtn = sandbox.document.getElementById('findToggleBtn');
+  const findCloseBtn = sandbox.document.getElementById('findCloseBtn');
+
+  assert.strictEqual(findBar.style.display, 'none', 'Başlangıçta findBar gizli olmalıdır');
+  assert(!findBar.classList.contains('open'), 'Başlangıçta open sınıfı olmamalıdır');
+
+  findToggleBtn.click();
+  assert.strictEqual(findBar.style.display, 'flex', 'Açıldığında display flex olmalıdır');
+  assert(findBar.classList.contains('open'), 'Açıldığında open sınıfı eklenmelidir');
+
+  findCloseBtn.click();
+  assert.strictEqual(findBar.style.display, 'none', 'Kapatıldığında display none olmalıdır');
+  assert(!findBar.classList.contains('open'), 'Kapatıldığında open sınıfı kaldırılmalıdır');
+});
+
+it('#themeBtn karanlık modu ve localStorage ty_theme değerini değiştirmelidir', () => {
+  const themeBtn = sandbox.document.getElementById('themeBtn');
+  const initialDark = sandbox.document.body.classList.contains('dark');
+  themeBtn.click();
+  assert.strictEqual(sandbox.document.body.classList.contains('dark'), !initialDark, 'body dark sınıfı değişmelidir');
+  assert.strictEqual(sandbox.localStorage.getItem('ty_theme'), !initialDark ? 'dark' : 'light', 'localStorage ty_theme güncellenmelidir');
+  themeBtn.click();
+  assert.strictEqual(sandbox.document.body.classList.contains('dark'), initialDark, 'Tekrar tıklandığında eski temaya dönmelidir');
+});
+
+it('Popup altbilgisi noktalama hatasında Sözlüğe Ekle gizlemeli, yazım hatasında göstermeli; düzeltme ve geri/ileri alma çalışmalıdır', () => {
+  const hasNodeText = (node, txt) => {
+    if (!node) return false;
+    if (typeof node.textContent === 'string' && node.textContent.includes(txt)) return true;
+    return Array.isArray(node.children) && node.children.some(ch => hasNodeText(ch, txt));
+  };
+
+  const inp = sandbox.document.getElementById('inp');
+  const chkBtn = sandbox.document.getElementById('chkBtn');
+  const pop = sandbox.document.getElementById('pop');
+  const pf = sandbox.document.getElementById('pf');
+  const undoBtn = sandbox.document.getElementById('undoBtn');
+  const redoBtn = sandbox.document.getElementById('redoBtn');
+  const clrBtn = sandbox.document.getElementById('clrBtn');
+
+  // Noktalama hatasında "➕ Sözlüğe Ekle" olmamalı
+  inp.value = 'Merhaba , dünya.';
+  chkBtn.click();
+  sandbox.TY.pop(null, 0);
+  assert.strictEqual(pop.style.display, 'block', 'Popup açılmalıdır');
+  assert(!hasNodeText(pf, 'Sözlüğe Ekle'), 'Noktalama hatasında Sözlüğe Ekle düğmesi gizlenmelidir');
+
+  // Yazım hatasında "➕ Sözlüğe Ekle" olmalı ve fix + undo/redo çalışmalı
+  inp.value = 'Bu orjinal bir metin.';
+  chkBtn.click();
+  sandbox.TY.pop(null, 0);
+  assert(hasNodeText(pf, 'Sözlüğe Ekle'), 'Yazım hatasında Sözlüğe Ekle düğmesi görünmelidir');
+
+  sandbox.TY.fix(0, 'orijinal');
+  assert.strictEqual(inp.value, 'Bu orijinal bir metin.', 'TY.fix metni düzeltmelidir');
+  assert.strictEqual(undoBtn.disabled, false, 'Düzeltme sonrası geri al etkin olmalıdır');
+
+  undoBtn.click();
+  assert.strictEqual(inp.value, 'Bu orjinal bir metin.', 'undoBtn eski metni geri getirmelidir');
+  assert.strictEqual(redoBtn.disabled, false, 'Geri alma sonrası ileri al etkin olmalıdır');
+
+  redoBtn.click();
+  assert.strictEqual(inp.value, 'Bu orijinal bir metin.', 'redoBtn düzeltmeyi yeniden uygulamalıdır');
+  clrBtn.click();
+});
+
+it('#fxAll sonrası #diffBanner görünmeli ve #smpBtn ile yeni metin yüklendiğinde gizlenmelidir', () => {
+  const inp = sandbox.document.getElementById('inp');
+  const chkBtn = sandbox.document.getElementById('chkBtn');
+  const fxAll = sandbox.document.getElementById('fxAll');
+  const smpBtn = sandbox.document.getElementById('smpBtn');
+  const diffBanner = sandbox.document.getElementById('diffBanner');
+  const clrBtn = sandbox.document.getElementById('clrBtn');
+
+  inp.value = 'Bu orjinal bir metin.';
+  chkBtn.click();
+  fxAll.click();
+  assert.strictEqual(diffBanner.style.display, 'block', 'fxAll sonrası diffBanner görünür olmalıdır');
+  assert.strictEqual(inp.value, 'Bu orijinal bir metin.', 'fxAll yazım hatasını düzeltmelidir');
+
+  smpBtn.click();
+  assert.strictEqual(diffBanner.style.display, 'none', 'smpBtn ile yeni metin yüklendiğinde diffBanner gizlenmelidir');
+  clrBtn.click();
+});
+
+it('#targetSaveBtn 1-1.000.000 aralığını doğrulamalı ve geçerli hedefte #targetBtn metnini güncellemelidir', () => {
+  const targetBtn = sandbox.document.getElementById('targetBtn');
+  const targetModal = sandbox.document.getElementById('targetModal');
+  const targetCountInp = sandbox.document.getElementById('targetCountInp');
+  const targetTypeSel = sandbox.document.getElementById('targetTypeSel');
+  const targetSaveBtn = sandbox.document.getElementById('targetSaveBtn');
+  const targetClearBtn = sandbox.document.getElementById('targetClearBtn');
+  const toast = sandbox.document.getElementById('toast');
+
+  targetBtn.click();
+  assert.strictEqual(targetModal.style.display, 'flex', 'Hedef modalı açılmalıdır');
+
+  targetCountInp.value = '0';
+  targetSaveBtn.click();
+  assert(toast.textContent.includes('1 ile 1.000.000'), '0 değeri için aralık uyarısı gösterilmelidir');
+  assert.strictEqual(targetModal.style.display, 'flex', 'Geçersiz değerde modal açık kalmalıdır');
+
+  targetCountInp.value = '2000000';
+  targetSaveBtn.click();
+  assert(toast.textContent.includes('1 ile 1.000.000'), 'Üst sınır aşımında aralık uyarısı gösterilmelidir');
+  assert.strictEqual(targetModal.style.display, 'flex', 'Üst sınır aşımında modal açık kalmalıdır');
+
+  targetCountInp.value = '500';
+  targetTypeSel.value = 'word';
+  targetSaveBtn.click();
+  assert.strictEqual(targetModal.style.display, 'none', 'Geçerli değerde modal kapanmalıdır');
+  assert(targetBtn.textContent.includes('500 kelime'), 'targetBtn yeni hedefi göstermelidir');
+
+  targetClearBtn.click();
+});
+
+it('sw.js önbellek yaşam döngüsü (install/activate/fetch) ve DOM/CSS bütünlüğü doğrulanmalıdır', () => {
+  const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
+  const swPath = path.join(__dirname, 'sw.js');
+  const swCode = fs.readFileSync(swPath, 'utf8');
+  const cssCode = fs.readFileSync(path.join(__dirname, 'styles.css'), 'utf8');
+  const htmlCode = fs.readFileSync(htmlPath, 'utf8');
+
+  // 1. ASSETS içindeki fiziksel dosya varlığını kontrol et
+  const mCache = swCode.match(/const\s+CACHE_NAME\s*=\s*'([^']+)'/);
+  const mAssets = swCode.match(/const\s+ASSETS\s*=\s*\[([\s\S]*?)\];/);
+  assert(mCache && mAssets, 'sw.js CACHE_NAME ve ASSETS tanımlı olmalıdır');
+  assert.strictEqual(mCache[1], 'turkce-yazim-v' + pkg.version, 'CACHE_NAME package.json sürümüyle eşleşmelidir');
+  const assetList = [...mAssets[1].matchAll(/'([^']+)'/g)].map(m => m[1]);
+  assert(assetList.length >= 10, 'ASSETS listesi uygulama dosyalarını içermelidir');
+  for (const rel of assetList) {
+    if (rel === './') continue;
+    assert(fs.existsSync(path.join(__dirname, rel)), `SW asset dosyası mevcut olmalıdır: ${rel}`);
+  }
+
+  // 2. sw.js yaşam döngüsünü senkron thenable mock bağlamında çalıştır
+  const syncThenable = (val, isErr = false) => ({
+    then(onOk, onErr) {
+      const fn = isErr ? onErr : onOk;
+      if (!fn) return syncThenable(val, isErr);
+      try {
+        const res = fn(val);
+        return res && typeof res.then === 'function' ? res : syncThenable(res);
+      } catch (e) {
+        return syncThenable(e, true);
+      }
+    },
+    catch(onErr) {
+      return this.then(undefined, onErr);
+    }
+  });
+
+  const cacheStore = new Map([['turkce-yazim-v0.0.1', new Map()]]);
+  const swListeners = {};
+  let skipWaitingCalled = false;
+  let clientsClaimCalled = false;
+  let fetchMode = 'offline';
+
+  const makeCacheApi = name => {
+    if (!cacheStore.has(name)) cacheStore.set(name, new Map());
+    const map = cacheStore.get(name);
+    return {
+      addAll(urls) {
+        urls.forEach(u => map.set(u, { cachedFor: u }));
+        return syncThenable(undefined);
+      },
+      put(req, res) {
+        const key = typeof req === 'string' ? req : req.url;
+        map.set(key, res);
+        return syncThenable(undefined);
+      }
+    };
+  };
+
+  const swCtx = {
+    self: {
+      addEventListener(type, fn) { swListeners[type] = fn; },
+      skipWaiting() { skipWaitingCalled = true; return syncThenable(undefined); },
+      clients: { claim() { clientsClaimCalled = true; return syncThenable(undefined); } }
+    },
+    caches: {
+      open(name) { return syncThenable(makeCacheApi(name)); },
+      keys() { return syncThenable(Array.from(cacheStore.keys())); },
+      delete(name) { return syncThenable(cacheStore.delete(name)); },
+      match(req) {
+        const key = typeof req === 'string' ? req : req.url;
+        for (const map of cacheStore.values()) {
+          if (map.has(key)) return syncThenable(map.get(key));
+        }
+        return syncThenable(undefined);
+      }
+    },
+    fetch(req) {
+      if (fetchMode === 'ok') {
+        const resp = { status: 200, type: 'basic', url: req.url, clone() { return { ...resp }; } };
+        return syncThenable(resp);
+      }
+      return syncThenable(new Error('offline'), true);
+    },
+    Promise: {
+      all(arr) {
+        const out = [];
+        for (const p of arr) {
+          if (p && typeof p.then === 'function') p.then(v => out.push(v));
+          else out.push(p);
+        }
+        return syncThenable(out);
+      }
+    }
+  };
+
+  vm.runInNewContext(swCode, swCtx);
+  assert(swListeners.install && swListeners.activate && swListeners.fetch, 'sw.js install/activate/fetch dinleyicilerini kaydetmelidir');
+
+  let installWait = null;
+  swListeners.install({ waitUntil(p) { installWait = p; } });
+  assert(installWait, 'install event.waitUntil çağrılmalıdır');
+  assert(skipWaitingCalled, 'install sırasında self.skipWaiting() çağrılmalıdır');
+  const activeCache = cacheStore.get(mCache[1]);
+  assert(activeCache && assetList.every(u => activeCache.has(u)), 'install sırasında tüm ASSETS önbelleğe eklenmelidir');
+
+  let activateWait = null;
+  swListeners.activate({ waitUntil(p) { activateWait = p; } });
+  assert(activateWait, 'activate event.waitUntil çağrılmalıdır');
+  assert(!cacheStore.has('turkce-yazim-v0.0.1'), 'activate eski önbellek anahtarını silmelidir');
+  assert(cacheStore.has(mCache[1]), 'activate güncel önbellek anahtarını korumalıdır');
+  assert(clientsClaimCalled, 'activate sırasında self.clients.claim() çağrılmalıdır');
+
+  let hitResp = null;
+  swListeners.fetch({ request: { url: './engine.js', method: 'GET' }, respondWith(p) { p.then(v => { hitResp = v; }); } });
+  assert.deepStrictEqual(hitResp, { cachedFor: './engine.js' }, 'GET isteği önbellekten dönmelidir');
+
+  let offlineResp = null;
+  swListeners.fetch({ request: { url: './yok-dosya.js', method: 'GET' }, respondWith(p) { p.then(v => { offlineResp = v; }); } });
+  assert.deepStrictEqual(offlineResp, { cachedFor: './index.html' }, 'Ağ hatasında ./index.html çevrimdışı yedeğine düşülmelidir');
+
+  fetchMode = 'ok';
+  let netResp = null;
+  swListeners.fetch({ request: { url: './yeni-istek.json', method: 'GET' }, respondWith(p) { p.then(v => { netResp = v; }); } });
+  assert.strictEqual(netResp && netResp.status, 200, 'Önbellekte olmayan ağ yanıtı döndürülmelidir');
+  assert(activeCache.has('./yeni-istek.json'), 'Başarılı GET ağ yanıtı önbelleğe yazılmalıdır');
+
+  // 3. DOM ID ve styles.css seçici bütünlüğü
+  const allMarkup = htmlCode + '\n' + appCode;
+  const usedIds = [...new Set([...appCode.matchAll(/getElementById\('([^']+)'\)/g)].map(m => m[1]))];
+  const missingIds = usedIds.filter(id => !new RegExp('(?:id=|\\.id\\s*=)\\s*[\\x22\\x27]?' + id + '[\\x22\\x27\\s>]').test(allMarkup));
+  assert.deepStrictEqual(missingIds, [], 'app.js içindeki tüm DOM ID referansları HTML veya şablonlarda tanımlı olmalıdır');
+
+  for (const sel of ['.hdr', '.wrap', '.rgrid', '.ocard', '.scard', 'body.dark', '@media']) {
+    assert(cssCode.includes(sel), `styles.css içinde ${sel} seçicisi bulunmalıdır`);
+  }
 });
 
 console.log(`\n================================`);

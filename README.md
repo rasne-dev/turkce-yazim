@@ -20,7 +20,7 @@
 - **📁 Dosya İçe/Dışa Aktarma:** `.txt` ve `.md` dosyalarını sürükle-bırak veya butonla yükleme; düzeltilmiş metni anında `.txt` olarak indirme.
 - **⌨️ Klavye Kısayolları Modalı:** `?` tuşu ile açılan kısayol rehberi, `Ctrl + Enter` ile denetleme, `Ctrl + Shift + F` ile tümünü düzeltme, `Ctrl + Z` ile geri alma.
 - **🔍 Canlı Hata Arama:** Hatalar listesinde kelimeye veya kurala göre anında filtreleme.
-- **🧪 Otomatik Birim Test Paketi:** `npm test` ile kuralların doğruluğunu güvenceye alan Node.js testleri (39 birim test).
+- **🧪 Otomatik Birim Test Paketi:** `npm test` ile kuralların doğruluğunu güvenceye alan Node.js testleri (125 birim test).
 
 ---
 
@@ -98,7 +98,7 @@ node test.js
 
 ## Teknik
 
-- **Tek HTML dosyası** — harici CDN veya kütüphane bağımlılığı yoktur.
+- **Modüler Mimari & Sıfır Bağımlılık** — `index.html`, `styles.css`, `engine.js` ve `app.js` yapısında, harici CDN veya kütüphane bağımlılığı olmadan çalışır.
 - **%100 İstemci Taraflı** — metniniz asla sunucuya gönderilmez, tarayıcınızda yerel işlenir.
 - **Kural Tabanlı Motor** — TDK yazım kılavuzuna dayalı yüksek doğruluklu regex kuralları.
 - **Ateşman Algoritması** — Türkçe hece yapısına uygun bilimsel okunabilirlik hesaplaması.
